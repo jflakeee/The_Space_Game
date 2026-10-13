@@ -31,6 +31,7 @@ button:disabled{opacity:.4;cursor:default}
   padding:calc(8px + env(safe-area-inset-top,0px)) 12px 14px;background:linear-gradient(var(--panel) 60%,rgba(14,20,52,0));
   pointer-events:none;font-size:13px}
 #hud button{pointer-events:auto}
+#hud button.stop{border-color:var(--ore);color:var(--ore)}
 .res{display:flex;align-items:center;gap:6px}
 .res b{font-size:18px;font-variant-numeric:tabular-nums;min-width:2.5ch}
 .res small{color:var(--dim);font-variant-numeric:tabular-nums}
@@ -62,7 +63,7 @@ h1 i{font-style:normal;color:var(--ore)}
 .ms em{display:block;font-style:normal;color:var(--ore);font-size:13px;letter-spacing:2px;margin-top:4px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid .ms{margin:0}.ms.wide{grid-column:1/-1}
 .prog{color:var(--dim);font-size:13px;margin:-8px 0 12px;display:flex;align-items:center;gap:6px}
-.prog .lang{margin-left:auto;font-size:12px;padding:4px 10px}.prog b{color:var(--ore)}
+.prog .lang{font-size:12px;padding:4px 10px}.prog #diffBtn{margin-left:auto}.prog b{color:var(--ore)}
 #tip{position:fixed;left:50%;transform:translateX(-50%);width:min(460px,calc(100vw - 24px));background:var(--panel);border:1px solid var(--en);
   border-radius:8px;padding:8px 8px 8px 12px;font-size:13px;line-height:1.5;display:flex;gap:10px;align-items:center}
 #tip>span{color:var(--en);font-variant-numeric:tabular-nums;flex:0 0 auto}#tip>div{flex:1}#tip b{color:var(--ore)}
@@ -127,6 +128,17 @@ const EN = {
 const MAXLV = 3;
 function st(b, k) {
   const d = DEF[b.type], l = (b.lvl || 1) - 1;
+  if (b.br === "rapid") switch (k) {
+    case "dps": return 25 + 15 * l;
+    case "range": return 125 + 10 * l;
+    case "use": return 2.5 + 0.5 * l;
+  }
+  if (b.br === "lance") switch (k) {
+    case "dmg": return 50 + 45 * l;
+    case "range": return 180 + 40 * l;
+    case "reload": return 1.5;
+    case "shot": return 4 + 2 * l;
+  }
   switch (k) {
     case "gen": return b.type === "core" ? 2 + 1.5 * l : d.gen * (1 + 0.5 * l);
     case "rate": case "dps": case "dmg": case "heal": return d[k] * (1 + 0.5 * l);
@@ -140,7 +152,13 @@ function st(b, k) {
   }
   return d[k];
 }
-const upCost = b => Math.round((DEF[b.type].cost || 100) * (b.lvl === 1 ? 0.8 : 1.2));
+const upCost = (b, br = b.br) => Math.round((DEF[b.type].cost || 100) * (b.lvl === 1 ? 0.8 : 1.2) * (br === "lance" ? 1.6 : 1));
+const BR = { rapid: () => L("속사", "Rapid"), lance: () => L("저격", "Lance") };
+const BRD = { rapid: () => L("짧은 사거리, 높은 연속 피해. 사격 중 에너지 소모.", "Short range, high sustained damage. Uses energy while firing."), lance: () => L("긴 사거리. 범위 내 체력이 가장 높은 적에게 강한 단발. 발사마다 에너지 소모.", "Long range. Heavy single shots at the toughest target in range. Uses energy per shot.") };
+const LINK_CAP = { core: 20, node: 8 }, capOf = b => LINK_CAP[b.type] || 2;
+const refund = b => b.prog < 1 || b.type === "node" ? b.spent : Math.floor(b.spent * 0.5);
+const DIFFS = [0.75, 1, 1.3];
+let diffIdx = 1;
 const ALL = null, NO_SLOW = ["node", "solar", "battery", "miner", "laser", "missile", "repair"];
 const MISSIONS = [
   { name: "첫 채굴",      desc: "광석 300 채굴. 기본을 익히세요.",       goal: { ore: 300 },   firstWave: 90, gap: 60, diff: 0.6,  ore: 150, map: "scatter", allow: ["node", "solar", "miner", "laser"] },
@@ -176,6 +194,7 @@ const store = {
 // ---------- i18n ----------
 const LANG = store.get("orebelt.lang") || ((navigator.language || "").toLowerCase().startsWith("ko") ? "ko" : "en");
 const L = (ko, en) => LANG === "en" ? en : ko;
+diffIdx = +(store.get("orebelt.diff") ?? 1);
 if (LANG === "en") {
   const EN_B = {
     core: ["Core", "Base core. Produces energy; you lose if it is destroyed."],
@@ -403,7 +422,7 @@ function mkB(type, x, y, built) {
 }
 function newGame(mi, silent = false) {
   const m = mi === -1 ? dailyMission() : MISSIONS[mi];
-  S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave,
+  S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave, dm: m.diff * DIFFS[diffIdx], dIdx: diffIdx,
     asteroids: m.seed ? seeded(m.seed, () => genAsteroids(30, m.map)) : genAsteroids(m.ast || 30, m.map || MAPS[(Math.random() * MAPS.length) | 0]),
     mod: Object.assign({ spd: 1, mine: 1, solar: 1, hp: 1 }, m.mod), buildings: [], enemies: [], shots: [], fx: [], parts: [], shake: 0, links: [], lost: 0,
     dirty: true, speed: 1, paused: false, over: null, kills: 0, build: null, sel: null,
@@ -430,12 +449,18 @@ function linkRange(a, b) {
 function canLink(a, b) { const R = linkRange(a, b); return R > 0 && dist(a, b) <= R && !blocked(a, b); }
 function rebuildGrid() {
   if (S.core.dead) return;
-  const B = S.buildings, adj = new Map(B.map(b => [b, []]));
+  const B = S.buildings, adj = new Map(B.map(b => [b, []])), cand = [];
   S.links = [];
   for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
     const a = B[i], b = B[j];
-    if (canLink(a, b)) { S.links.push([a, b, Math.random()]); adj.get(a).push(b); adj.get(b).push(a); }
+    if (canLink(a, b)) cand.push([a, b, dist(a, b) + (RELAY[a.type] && RELAY[b.type] ? -1000 : 0)]);
   }
+  cand.sort((p, q) => p[2] - q[2]);
+  for (const [a, b] of cand) {
+    if (adj.get(a).length >= capOf(a) || adj.get(b).length >= capOf(b)) continue;
+    S.links.push([a, b, Math.random()]); adj.get(a).push(b); adj.get(b).push(a);
+  }
+  S.deg = new Map(B.map(b => [b, adj.get(b).length]));
   for (const b of B) b.powered = false;
   S.core.powered = true;
   const q = [S.core];
@@ -455,10 +480,13 @@ function checkPlace(type, x, y) {
   if (x < d.r + 10 || y < d.r + 10 || x > W - d.r - 10 || y > H - d.r - 10) { res.reason = L("맵 밖입니다", "Out of bounds"); return res; }
   for (const a of S.asteroids) if (dist(a, p) < a.r + d.r + 2) { res.reason = L("소행성 위에는 지을 수 없습니다", "Cannot build on an asteroid"); return res; }
   for (const b of S.buildings) if (dist(b, p) < b.r + d.r + 4) { res.reason = L("다른 건물과 겹칩니다", "Overlaps another building"); return res; }
-  let any = false;
-  for (const b of S.buildings) if (canLink(p, b)) { res.links.push(b); if (RELAY[b.type] && b.powered) any = true; }
+  let any = false, full = false;
+  for (const b of S.buildings) if (canLink(p, b)) {
+    if ((S.deg?.get(b) || 0) >= capOf(b)) { if (RELAY[b.type] && b.powered) full = true; continue; }
+    res.links.push(b); if (RELAY[b.type] && b.powered) any = true;
+  }
   if (type === "miner" && !nearAst(p)) { res.reason = L("채굴기는 소행성 가까이에 지어야 합니다", "Miners must be next to an asteroid"); return res; }
-  if (!any) { res.reason = L("전력망 범위 밖입니다", "Out of power grid range"); return res; }
+  if (!any) { res.reason = full ? L("근처 중계기의 연결 슬롯이 가득 찼습니다", "Nearby relays have no free link slots") : L("전력망 범위 밖입니다", "Out of power grid range"); return res; }
   if (S.ore < d.cost) { res.reason = L("광석이 부족합니다", "Not enough ore"); return res; }
   res.ok = true; return res;
 }
@@ -515,7 +543,7 @@ function mkE(k, x, y, hpM) {
 }
 function spawnWave() {
   S.wave++;
-  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.08 * (w - 1)) * S.m.diff * S.mod.hp, list = [];
+  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.08 * (w - 1)) * S.dm * S.mod.hp, list = [];
   const add = (k, n) => { for (let i = 0; i < n; i++) list.push(k); };
   add("scout", 2 + Math.floor(c * 0.8)); add("raider", Math.floor(c * 0.5)); add("heavy", Math.max(0, Math.floor((c - 2) / 3)));
   if (c >= 4) add("bomber", Math.floor((c - 1) / 3));
@@ -537,7 +565,7 @@ function update(dt) {
 
   let gen = st(S.core, "gen"), cap = 150; S.energy += gen * dt;
   for (const b of S.buildings) {
-    b.beam = null;
+    b.beam = null; if (b.shotT > 0) b.shotT -= dt;
     if (!b.powered) continue;
     const d = DEF[b.type];
     if (b.prog < 1) {
@@ -567,6 +595,14 @@ function update(dt) {
           b.ast.r = b.ast.r0 * (0.45 + 0.55 * b.ast.ore / b.ast.ore0);
           if (b.ast.ore <= 0) depleted(b.ast);
         }
+      }
+    } else if (b.type === "laser" && b.br === "lance") {
+      b.cd -= dt;
+      let e = null;
+      for (const x of S.enemies) if (!x.dead && dist(x, b) - x.r <= st(b, "range") && (!e || x.hp > e.hp)) e = x;
+      if (e) {
+        b.ang = Math.atan2(e.y - b.y, e.x - b.x);
+        if (b.cd <= 0 && use(st(b, "shot"))) { b.cd = st(b, "reload"); hurt(e, st(b, "dmg")); b.shotT = 0.18; b.sx = e.x; b.sy = e.y; sfx("launch"); burst(e.x, e.y, 6, "#e9fbff", 120, 0.35, 2); }
       }
     } else if (b.type === "laser") {
       const e = nearestEnemy(b, st(b, "range"));
@@ -613,7 +649,7 @@ function update(dt) {
       e.x += dx / dd * sp * dt; e.y += dy / dd * sp * dt;
       if (dd <= e.r + e.tgt.r + 2) {
         e.dead = true; boom(e.x, e.y, d.blast, COL.hos); shake(4); sfx("boom");
-        for (const b of S.buildings) if (Math.hypot(b.x - e.x, b.y - e.y) <= d.blast + b.r) damageB(b, d.dmg * S.m.diff);
+        for (const b of S.buildings) if (Math.hypot(b.x - e.x, b.y - e.y) <= d.blast + b.r) damageB(b, d.dmg * S.dm);
       }
       continue;
     }
@@ -626,7 +662,7 @@ function update(dt) {
     e.cd -= dt * (0.4 + 0.6 * (e.slowF || 1));
     if (dd <= d.range && e.cd <= 0) {
       e.cd = d.rof;
-      S.shots.push({ kind: "e", x: e.x, y: e.y, vx: 0, vy: 0, spd: 300, tgt: e.tgt, dmg: d.dmg * S.m.diff, life: 3 });
+      S.shots.push({ kind: "e", x: e.x, y: e.y, vx: 0, vy: 0, spd: 300, tgt: e.tgt, dmg: d.dmg * S.dm, life: 3 });
     }
   }
 
@@ -707,8 +743,12 @@ function drawB(b, ghostMode, ok) {
       circle(0, 0, d.r); ctx.fill(); ctx.stroke(); ctx.rotate(b.ang);
       ctx.beginPath(); ctx.moveTo(d.r + 6, 0); ctx.lineTo(d.r - 3, -5); ctx.lineTo(d.r - 3, 5); ctx.closePath(); ctx.fillStyle = COL.ore; ctx.fill(); break;
     case "laser":
-      circle(0, 0, d.r); ctx.fill(); ctx.stroke(); ctx.rotate(b.ang);
-      ctx.strokeStyle = COL.en; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(d.r + 7, 0); ctx.stroke(); break;
+      if (b.br === "lance") { poly(4, d.r * 1.1, 0); ctx.fill(); ctx.stroke(); } else { circle(0, 0, d.r); ctx.fill(); ctx.stroke(); }
+      ctx.rotate(b.ang); ctx.strokeStyle = COL.en; ctx.beginPath();
+      if (b.br === "rapid") { ctx.lineWidth = 2.5; ctx.moveTo(2, -3.5); ctx.lineTo(d.r + 5, -3.5); ctx.moveTo(2, 3.5); ctx.lineTo(d.r + 5, 3.5); }
+      else if (b.br === "lance") { ctx.lineWidth = 2.5; ctx.moveTo(2, 0); ctx.lineTo(d.r + 14, 0); }
+      else { ctx.lineWidth = 3.5; ctx.moveTo(2, 0); ctx.lineTo(d.r + 7, 0); }
+      ctx.stroke(); break;
     case "missile":
       poly(8, d.r, Math.PI / 8); ctx.fill(); ctx.stroke(); ctx.rotate(b.ang);
       ctx.fillStyle = COL.ore; ctx.fillRect(-2, -7, d.r + 3, 4); ctx.fillRect(-2, 3, d.r + 3, 4); break;
@@ -748,7 +788,7 @@ function draw() {
   // relay coverage in build mode
   if (S.build) {
     ctx.fillStyle = `rgba(${COL.grid},.06)`; ctx.strokeStyle = `rgba(${COL.grid},.2)`; ctx.lineWidth = px;
-    for (const b of S.buildings) if (RELAY[b.type] && b.powered) { circle(b.x, b.y, st(b, "link")); ctx.fill(); ctx.stroke(); }
+    for (const b of S.buildings) if (RELAY[b.type] && b.powered) { const f = (S.deg?.get(b) || 0) >= capOf(b); ctx.strokeStyle = f ? "rgba(255,90,110,.35)" : `rgba(${COL.grid},.2)`; ctx.fillStyle = f ? "rgba(255,90,110,.04)" : `rgba(${COL.grid},.06)`; circle(b.x, b.y, st(b, "link")); ctx.fill(); ctx.stroke(); }
   }
 
   // asteroids
@@ -790,6 +830,11 @@ function draw() {
       ctx.strokeStyle = COL.heal; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.lineDashOffset = -S.t * 20;
       ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(t.x, t.y); ctx.stroke(); ctx.setLineDash([]);
     }
+  }
+
+  for (const b of S.buildings) if (b.shotT > 0) {
+    ctx.globalAlpha = b.shotT / 0.18; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    ctx.strokeStyle = COL.en; ctx.lineWidth = 10; ctx.globalAlpha *= 0.35; ctx.stroke(); ctx.globalAlpha = 1;
   }
 
   // selected range
@@ -894,22 +939,24 @@ function statLine(b) {
     case "node": return L(`연결 거리 ${f("link", 0)}`, `Link range ${f("link", 0)}`);
     case "battery": return L(`저장량 +${f("cap", 0)}`, `Storage +${f("cap", 0)}`);
     case "miner": return L(`채굴 ${f("rate")}/s, 에너지 ${f("use")}/s`, `Mining ${f("rate")}/s, energy ${f("use")}/s`);
-    case "laser": return L(`${f("dps", 0)} dps, 사거리 ${f("range", 0)}`, `${f("dps", 0)} dps, range ${f("range", 0)}`);
+    case "laser": return b.br === "lance" ? L(`피해 ${f("dmg", 0)}, 사거리 ${f("range", 0)}, 재장전 ${f("reload")}s`, `Damage ${f("dmg", 0)}, range ${f("range", 0)}, reload ${f("reload")}s`)
+      : L(`${f("dps", 0)} dps, 사거리 ${f("range", 0)}`, `${f("dps", 0)} dps, range ${f("range", 0)}`);
     case "missile": return L(`피해 ${f("dmg", 0)}, 사거리 ${f("range", 0)}, 재장전 ${f("reload")}s`, `Damage ${f("dmg", 0)}, range ${f("range", 0)}, reload ${f("reload")}s`);
     case "slow": return L(`감속 ${Math.round((1 - st(b, "slow")) * 100)}%, 범위 ${f("range", 0)}`, `Slow ${Math.round((1 - st(b, "slow")) * 100)}%, range ${f("range", 0)}`);
     case "repair": return L(`수리 ${f("heal", 0)}/s, 범위 ${f("range", 0)}`, `Repair ${f("heal", 0)}/s, range ${f("range", 0)}`);
   }
   return "";
 }
-function upgrade(b) {
+function upgrade(b, br) {
   if (!S || !b || b.dead || b.lvl >= MAXLV || b.prog < 1) return;
-  const c = upCost(b);
+  if (b.type === "laser" && b.lvl === 1 && !br) { toast(L("정보 패널에서 속사/저격 중 하나를 고르세요", "Choose Rapid or Lance in the info panel")); return; }
+  const c = upCost(b, br || b.br);
   if (S.ore < c) { toast(L("광석이 부족합니다", "Not enough ore")); return; }
-  S.ore -= c; b.spent += c; b.lvl++;
+  S.ore -= c; b.spent += c; b.lvl++; const newBr = br && !b.br; if (br) b.br = br;
   const nh = st(b, "hp"); b.hp += nh - b.maxHp; b.maxHp = nh;
   if (RELAY[b.type]) S.dirty = true;
   boom(b.x, b.y, b.r * 2.2, COL.en); sfx("up");
-  updateInfo();
+  if (newBr) select(b); else updateInfo();
 }
 function select(b) {
   if (!S) return;
@@ -917,13 +964,16 @@ function select(b) {
   const box = $("info");
   if (!b) { box.hidden = true; return; }
   const d = DEF[b.type];
-  box.innerHTML = `<div class="t">${d.name} <span id="iL"></span></div><div id="iS"></div><div id="iH"></div><div id="iX"></div><div class="d">${d.desc}</div>`;
-  const up = document.createElement("button"); up.id = "iU"; up.onclick = () => upgrade(S.sel); box.appendChild(up);
+  box.innerHTML = `<div class="t">${d.name}${b.br ? ` (${BR[b.br]()})` : ""} <span id="iL"></span></div><div id="iS"></div><div id="iH"></div><div id="iX"></div><div class="d">${b.br ? BRD[b.br]() : d.desc}</div>`;
+  if (b.type === "laser" && b.lvl === 1) {
+    box.insertAdjacentHTML("beforeend", `<div class="d" id="iBr">${L("속사: 짧은 사거리, 높은 연속 피해. 저격: 긴 사거리, 체력 높은 적에게 강한 단발.", "Rapid: short range, high sustained damage. Lance: long range, heavy single shots at the toughest target.")}</div>`);
+    for (const br of ["rapid", "lance"]) { const x = document.createElement("button"); x.id = "iU_" + br; x.onclick = () => upgrade(S.sel, br); box.appendChild(x); }
+  } else { const up = document.createElement("button"); up.id = "iU"; up.onclick = () => upgrade(S.sel); box.appendChild(up); }
   if (b.type !== "core") {
     const btn = document.createElement("button"); btn.id = "iSell";
     btn.onclick = () => {
       if (b.dead) return;
-      b.dead = true; S.ore += Math.floor(b.spent * 0.5); S.buildings = S.buildings.filter(x => x !== b); S.dirty = true; select(null);
+      b.dead = true; S.ore += refund(b); S.buildings = S.buildings.filter(x => x !== b); S.dirty = true; select(null);
     };
     box.appendChild(btn);
   }
@@ -937,13 +987,16 @@ function updateInfo() {
   $("iH").textContent = `${L("내구도", "HP")} ${Math.ceil(b.hp)} / ${b.maxHp}`;
   $("iX").textContent = statLine(b);
   const up = $("iU");
-  if (b.lvl >= MAXLV) { up.textContent = L("최대 레벨", "Max level"); up.disabled = true; }
+  if (!up) for (const br of ["rapid", "lance"]) { const x = $("iU_" + br); if (!x) continue; const c = upCost(b, br); x.textContent = `${BR[br]()} (${c})`; x.disabled = b.prog < 1 || S.ore < c; }
+  else if (b.lvl >= MAXLV) { up.textContent = L("최대 레벨", "Max level"); up.disabled = true; }
   else { const c = upCost(b); up.textContent = `${L("업그레이드", "Upgrade")} (${c})`; up.disabled = b.prog < 1 || S.ore < c; }
-  const sl = $("iSell"); if (sl) sl.textContent = `${L("판매", "Sell")} (+${Math.floor(b.spent * 0.5)})`;
+  if (RELAY[b.type]) $("iX").textContent = statLine(b) + `, ${L("연결", "links")} ${S.deg?.get(b) || 0}/${capOf(b)}`;
+  const sl = $("iSell"); if (sl) sl.textContent = `${L("판매", "Sell")} (+${refund(b)})`;
 }
 function updateCtl() {
   if (!S) return;
-  $("spdBtn").textContent = S.speed + "×";
+  $("spdBtn").textContent = S.speed ? S.speed + "×" : L("정지", "Stop");
+  $("spdBtn").classList.toggle("stop", !S.speed);
   $("pauseBtn").textContent = L("일시정지", "Pause");
 }
 let hudT = 0;
@@ -975,7 +1028,8 @@ $("callBtn").onclick = () => {
   S.ore += bonus; spawnWave(); S.waveT = S.m.gap;
   if (bonus > 0) toast(`${L("조기 호출 보너스", "Early call bonus")} +${bonus}`);
 };
-$("spdBtn").onclick = () => { if (!S) return; S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1; updateCtl(); };
+function setSpeed(v) { if (!S) return; if (v === 0 && S.speed) S.lastSpd = S.speed; S.speed = v; updateCtl(); if (v === 0) toast(L("정지: 건설과 업그레이드는 계속 가능", "Stopped: you can still build and upgrade")); }
+$("spdBtn").onclick = () => setSpeed(S.speed === 1 ? 2 : S.speed === 2 ? 3 : S.speed === 3 ? 0 : 1);
 $("muteBtn").onclick = () => { auInit(); setSound((soundMode + 1) % 3); };
 setSound(soundMode);
 $("pauseBtn").onclick = () => setPause(true);
@@ -994,7 +1048,7 @@ function showMenu() {
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
     <p>${L("소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.", "Build a base in the middle of an asteroid belt. Lay a power grid, mine ore, and hold off the pirates.")}</p>
-    <div class="prog">${L("획득한 별", "Stars")} <b>${total}</b> / ${maxStars} <button id="langBtn" class="lang">${L("English", "한국어")}</button></div>
+    <div class="prog">${L("획득한 별", "Stars")} <b>${total}</b> / ${maxStars} <button id="diffBtn" class="lang">${[L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard")][diffIdx]}</button><button id="langBtn" class="lang">${L("English", "한국어")}</button></div>
     ${sv ? `<button class="ms resume" id="resume"><b>${L("이어하기", "Continue")}</b><span>${sv.mi >= 0 && MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${sv.mi === -1 ? L("일일 도전", "Daily Challenge") : MISSIONS[sv.mi].name}, ${L("웨이브", "wave")} ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
@@ -1006,17 +1060,20 @@ function showMenu() {
     건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 손가락을 끌어 위치를 정하고 떼면 건설.<br>
     건물은 중계기나 코어의 연결선이 닿아야 작동합니다. 소행성은 연결선을 가립니다.<br>
     건물을 누르면 업그레이드(최대 Lv 3)와 판매를 할 수 있습니다.<br>
-    별점은 잃은 건물 수로 정해집니다(3개 이하 ★3, 10개 이하 ★2).<br>
-    단축키: 숫자 건설, U 업그레이드, Esc 취소, Space 일시정지.`, `Drag to pan; scroll wheel or pinch to zoom.<br>
+    별점은 잃은 건물 수로 정해집니다(3개 이하 ★3, 10개 이하 ★2, 쉬움은 최대 ★2). 짓는 중인 건물과 중계기는 판매 시 전액 환불.<br>
+    레이저는 Lv 2에서 속사/저격으로 갈라집니다. 중계기는 8개, 코어는 20개까지 연결됩니다.<br>
+    단축키: 숫자 건설, U 업그레이드(R/L 레이저 분기), Space 정지(정지 중에도 건설 가능), Esc 취소/메뉴.`, `Drag to pan; scroll wheel or pinch to zoom.<br>
     Pick a building, then tap the map to build. On touch, drag to position and release to build.<br>
     Buildings only work when linked to a relay or the core. Asteroids block links.<br>
     Tap a building to upgrade it (up to Lv 3) or sell it.<br>
-    Stars depend on buildings lost (3 or fewer ★3, 10 or fewer ★2).<br>
-    Keys: numbers build, U upgrade, Esc cancel, Space pause.`)}</div></div>`;
+    Stars depend on buildings lost (3 or fewer ★3, 10 or fewer ★2; Easy caps at ★2). Unfinished buildings and relays sell for a full refund.<br>
+    Lasers branch into Rapid or Lance at Lv 2. Relays hold 8 links, the core 20.<br>
+    Keys: numbers build, U upgrade (R/L laser branch), Space stop (you can still build), Esc cancel/menu.`)}</div></div>`;
   o.hidden = false;
   o.querySelectorAll(".grid .ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
   if (sv) $("resume").onclick = loadGame;
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
+  $("diffBtn").onclick = () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); showMenu(); };
   $("langBtn").onclick = () => setLang(LANG === "en" ? "ko" : "en");
 }
 function endGame(win) {
@@ -1024,7 +1081,7 @@ function endGame(win) {
   S.over = win ? "win" : "lose"; S.build = null; ghost = null; clearSave(); renderTip(); sfx(win ? "win" : "lose");
   const coreF = Math.max(0, S.core.hp / S.core.maxHp);
   let stars = 0;
-  if (win && S.m.goal) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; saveStars(S.mi, stars); }
+  if (win && S.m.goal) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; if (S.dIdx === 0) stars = Math.min(2, stars); saveStars(S.mi, stars); }
   if (S.m.daily) { if (S.wave > dailyBest()) store.set("orebelt.daily", JSON.stringify({ key: todayKey(), best: S.wave })); }
   else if (!S.m.goal) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
   const mm = Math.floor(S.t / 60), ss = String(Math.floor(S.t % 60)).padStart(2, "0");
@@ -1118,8 +1175,10 @@ addEventListener("keydown", e => {
   if (!$("overlay").hidden) return;
   if (e.key >= "1" && e.key <= "9" && S.allow[+e.key - 1]) { const k = S.allow[+e.key - 1]; setBuild(S.build === k ? null : k); }
   else if (e.key === "u" || e.key === "U") upgrade(S.sel);
+  else if ((e.key === "r" || e.key === "R") && S.sel && S.sel.type === "laser" && S.sel.lvl === 1) upgrade(S.sel, "rapid");
+  else if ((e.key === "l" || e.key === "L") && S.sel && S.sel.type === "laser" && S.sel.lvl === 1) upgrade(S.sel, "lance");
   else if (e.key === "Escape") { if (S.build || S.sel) { setBuild(null); select(null); } else setPause(true); }
-  else if (e.key === " ") { e.preventDefault(); setPause(true); }
+  else if (e.key === " ") { e.preventDefault(); setSpeed(S.speed ? 0 : (S.lastSpd || 1)); }
 });
 
 // ---------- save / load ----------
@@ -1128,7 +1187,7 @@ function saveGame() {
   if (!S || S.over || !S.core || S.core.dead) return;
   const data = { v: 1, mi: S.mi, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
     ast: S.asteroids.map(a => [a.x, a.y, a.r, a.r0, a.ore, a.ore0, a.rot, a.pts, a.veins]),
-    b: S.buildings.map(b => [b.type, b.x, b.y, b.hp, b.maxHp, b.prog, b.lvl, b.spent, b.cd]),
+    b: S.buildings.map(b => [b.type, b.x, b.y, b.hp, b.maxHp, b.prog, b.lvl, b.spent, b.cd, b.br || null]),
     e: S.enemies.map(e => [e.kind, e.x, e.y, e.hp, e.maxHp, e.hpM, e.cd, e.side, e.spawnT]),
     cam: [cam.x, cam.y, cam.z] };
   store.set(SAVE_KEY, JSON.stringify(data));
@@ -1140,7 +1199,7 @@ function loadGame() {
   newGame(d.mi, true);
   Object.assign(S, { t: d.t, ore: d.ore, energy: d.energy, oreMined: d.oreMined, wave: d.wave, waveT: d.waveT, kills: d.kills });
   S.asteroids = d.ast.map(([x, y, r, r0, ore, ore0, rot, pts, veins]) => ({ x, y, r, r0, ore, ore0, rot, pts, veins }));
-  S.buildings = d.b.map(([type, x, y, hp, maxHp, prog, lvl, spent, cd]) => Object.assign(mkB(type, x, y, prog >= 1), { hp, maxHp, prog, lvl, spent, cd }));
+  S.buildings = d.b.map(([type, x, y, hp, maxHp, prog, lvl, spent, cd, br]) => Object.assign(mkB(type, x, y, prog >= 1), { hp, maxHp, prog, lvl, spent, cd, br: br || null }));
   S.core = S.buildings.find(b => b.type === "core");
   if (!S.core) { clearSave(); newGame(d.mi); return; }
   S.enemies = d.e.map(([k, x, y, hp, maxHp, hpM, cd, side, spawnT]) => Object.assign(mkE(k, x, y, hpM), { hp, maxHp, cd, side, spawnT }));
