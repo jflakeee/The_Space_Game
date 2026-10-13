@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Ore Belt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c1230;--panel:rgba(14,20,52,.86);--line:rgba(130,160,230,.28);--text:#d6def0;--dim:#8592b3;
+  --ore:#e8a951;--en:#6fd6ec;--hos:#ff5a6e;--heal:#7ee0a0}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:"Chakra Petch",system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas{display:block;position:fixed;inset:0;touch-action:none}
+button{font:inherit;color:var(--text);background:rgba(40,52,110,.75);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--en)}
+button:focus-visible{outline:2px solid var(--en);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+#hud{position:fixed;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;
+  padding:calc(8px + env(safe-area-inset-top,0px)) 12px 14px;background:linear-gradient(var(--panel) 60%,rgba(14,20,52,0));
+  pointer-events:none;font-size:13px}
+#hud button{pointer-events:auto}
+.res{display:flex;align-items:center;gap:6px}
+.res b{font-size:18px;font-variant-numeric:tabular-nums;min-width:2.5ch}
+.res small{color:var(--dim);font-variant-numeric:tabular-nums}
+.sw{width:9px;height:9px;transform:rotate(45deg)}
+.sw.ore{background:var(--ore)}.sw.en{background:var(--en)}
+#enBar{width:56px;height:4px;background:rgba(255,255,255,.12)}#enBar i{display:block;height:100%;width:0;background:var(--en)}
+.starved b{color:var(--hos)}
+#waveV,#goalV{color:var(--dim)}#waveV b,#goalV b{color:var(--text);font-weight:600}
+.ctl{margin-left:auto;display:flex;gap:6px}
+#bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:6px;overflow-x:auto;
+  padding:16px 10px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(rgba(14,20,52,0),var(--panel) 35%)}
+.bb{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;min-width:74px;padding:6px 10px;text-align:left;line-height:1.25}
+.bb .n{font-weight:600}.bb .c{font-size:12px;color:var(--ore)}
+.bb.on{border-color:var(--en);background:rgba(55,88,170,.9)}
+.bb.poor .c{color:var(--hos)}
+#info{position:fixed;right:10px;bottom:86px;width:210px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5}
+#info[hidden]{display:none}
+#info .t{font-size:15px;font-weight:600}#info .d{color:var(--dim)}#info button{margin-top:8px;width:100%}
+#toast{position:fixed;left:50%;top:calc(76px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);
+  padding:6px 12px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,12,34,.8);padding:20px;overflow:auto}
+#overlay[hidden]{display:none}
+.card{max-width:420px;width:100%}
+h1{font-size:52px;line-height:1;margin:0 0 10px;font-weight:600;letter-spacing:-.01em}
+h1 i{font-style:normal;color:var(--ore)}
+.card p{color:var(--dim);margin:0 0 20px;line-height:1.6}
+.ms{display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 14px}
+.ms b{display:block;font-size:16px}.ms span{color:var(--dim);font-size:13px}
+.help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
+.stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
+.stats dt{color:var(--dim)}.stats dd{margin:0}
+@media (max-width:520px){h1{font-size:42px}.res b{font-size:16px}#info{bottom:80px;width:190px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" hidden>
+  <div class="res" id="oreBox"><span class="sw ore"></span><b id="oreV">0</b><small>광석</small></div>
+  <div class="res" id="enBox"><span class="sw en"></span><b id="enV">0</b><div id="enBar"><i></i></div><small id="enR"></small></div>
+  <div id="waveV"></div>
+  <div id="goalV"></div>
+  <div class="ctl">
+    <button id="callBtn" title="다음 웨이브를 바로 부르고 남은 시간만큼 광석 보너스">웨이브 호출</button>
+    <button id="spdBtn" title="게임 속도">1×</button>
+    <button id="pauseBtn" title="일시정지 (Space)">일시정지</button>
+  </div>
+</div>
+<div id="bar" hidden></div>
+<div id="info" hidden></div>
+<div id="toast"></div>
+<div id="overlay"></div>
+
+<script>
+"use strict";
+// ---------- config ----------
+const W = 1800, H = 1200, ZMIN = 0.3, ZMAX = 2.5;
+const RELAY = { core: 1, node: 1 };
+const DEF = {
+  core:    { name: "코어",   cost: 0,  hp: 600, r: 22, link: 160, build: 0, desc: "기지 본체. 에너지 +2/s. 파괴되면 패배." },
+  node:    { name: "중계기", cost: 15, hp: 80,  r: 8,  link: 150, build: 2, desc: "전력망을 확장. 소행성이 연결을 가립니다." },
+  solar:   { name: "태양광", cost: 30, hp: 90,  r: 12, build: 4, gen: 1.6, desc: "에너지 +1.6/s." },
+  miner:   { name: "채굴기", cost: 40, hp: 110, r: 11, build: 5, use: 0.6, rate: 2.2, reach: 70, desc: "가까운 소행성에서 광석 채굴. 에너지 0.6/s." },
+  laser:   { name: "레이저", cost: 60, hp: 140, r: 12, build: 6, range: 140, dps: 22, use: 2.5, desc: "근거리 지속 피해. 사격 중 에너지 2.5/s." },
+  missile: { name: "미사일", cost: 90, hp: 150, r: 13, build: 8, range: 240, dmg: 45, splash: 45, reload: 2.2, ammo: 2, desc: "장거리 범위 피해. 발사당 광석 2." },
+  repair:  { name: "수리소", cost: 70, hp: 120, r: 12, build: 6, range: 130, heal: 12, use: 2, desc: "범위 내 건물 수리. 수리 중 에너지 2/s." },
+};
+const ORDER = ["node", "solar", "miner", "laser", "missile", "repair"];
+const EN = {
+  scout:  { hp: 40,  spd: 70, r: 7,  range: 80,  dmg: 5,  rof: 0.8, bounty: 4 },
+  raider: { hp: 120, spd: 45, r: 10, range: 110, dmg: 12, rof: 1.2, bounty: 8 },
+  heavy:  { hp: 420, spd: 28, r: 15, range: 140, dmg: 30, rof: 2.0, bounty: 20 },
+};
+const MISSIONS = [
+  { name: "채굴 계약", desc: "광석 1500 채굴. 해적은 약합니다.", goal: { ore: 1500 }, firstWave: 60, gap: 45, diff: 0.8 },
+  { name: "방어선",    desc: "웨이브 12개를 버티세요.",          goal: { waves: 12 }, firstWave: 45, gap: 38, diff: 1 },
+  { name: "무한 벨트", desc: "끝없는 웨이브. 얼마나 버틸까요?",   goal: null,          firstWave: 40, gap: 32, diff: 1.1 },
+];
+const COL = { bg: "#0c1230", ore: "#e8a951", en: "#6fd6ec", grid: "92,143,224", hos: "#ff5a6e", heal: "#7ee0a0",
+  struct: "#cfd8ec", fill: "#1b2450", rock: "#37364f", rockEdge: "#57557a" };
+
+// ---------- utils ----------
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function segDist(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, l = dx * dx + dy * dy;
+  const t = l ? clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / l, 0, 1) : 0;
+  return Math.hypot(a.x + dx * t - p.x, a.y + dy * t - p.y);
+}
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+// ---------- canvas / camera ----------
+const cv = $("c"), ctx = cv.getContext("2d");
+let cw, ch, dpr;
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  cw = innerWidth; ch = innerHeight;
+  cv.width = cw * dpr; cv.height = ch * dpr;
+  cv.style.width = cw + "px"; cv.style.height = ch + "px";
+}
+addEventListener("resize", resize); resize();
+const cam = { x: W / 2, y: H / 2, z: 1 };
+const s2w = (x, y) => [(x - cw / 2) / cam.z + cam.x, (y - ch / 2) / cam.z + cam.y];
+function clampCam() { cam.x = clamp(cam.x, 0, W); cam.y = clamp(cam.y, 0, H); }
+
+const stars = Array.from({ length: 320 }, () => ({ x: rand(-300, W + 300), y: rand(-300, H + 300), s: rand(0.8, 2.2), a: rand(0.15, 0.7) }));
+
+// ---------- world gen ----------
+function makeAst(x, y, r) {
+  const n = 9 + (Math.random() * 5 | 0);
+  const ore = Math.round(r * r * 0.9);
+  return { x, y, r, r0: r, ore, ore0: ore, rot: rand(0, 6.28),
+    pts: Array.from({ length: n }, () => rand(0.8, 1.12)),
+    veins: Array.from({ length: 3 + (Math.random() * 3 | 0) }, () => { const a = rand(0, 6.28), d = rand(0, 0.55); return [Math.cos(a) * d, Math.sin(a) * d, rand(0.08, 0.16)]; }) };
+}
+function genAsteroids() {
+  const A = [], cx = W / 2, cy = H / 2;
+  const add = (x, y, r) => {
+    if (x < r + 30 || x > W - r - 30 || y < r + 30 || y > H - r - 30) return;
+    if (Math.hypot(x - cx, y - cy) < r + 90) return;
+    for (const a of A) if (Math.hypot(a.x - x, a.y - y) < a.r + r + 40) return;
+    A.push(makeAst(x, y, r));
+  };
+  for (let k = 0; A.length < 4 && k < 500; k++) { const g = rand(0, 6.28), d = rand(140, 230); add(cx + Math.cos(g) * d, cy + Math.sin(g) * d, rand(20, 30)); }
+  for (let k = 0; A.length < 30 && k < 4000; k++) add(rand(0, W), rand(0, H), rand(16, 48));
+  return A;
+}
+
+// ---------- state ----------
+let S = null, uid = 1, ghost = null;
+function mkB(type, x, y, built) {
+  const d = DEF[type];
+  return { id: uid++, type, x, y, r: d.r, maxHp: d.hp, hp: built ? d.hp : d.hp * 0.3, prog: built ? 1 : 0,
+    powered: false, cd: 0, ast: null, beam: null, ang: -Math.PI / 2, dead: false };
+}
+function newGame(mi) {
+  const m = MISSIONS[mi];
+  S = { mi, m, t: 0, ore: 120, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave,
+    asteroids: genAsteroids(), buildings: [], enemies: [], shots: [], fx: [], links: [],
+    dirty: true, speed: 1, paused: false, over: null, kills: 0, build: null, sel: null,
+    gen: 0, usedAcc: 0, rateT: 0, useRate: 0, starved: 0 };
+  S.core = mkB("core", W / 2, H / 2, true);
+  S.buildings.push(S.core);
+  cam.x = W / 2; cam.y = H / 2; cam.z = clamp(Math.min(cw / 760, ch / 600), 0.45, 1.4);
+  ghost = null;
+  $("overlay").hidden = true; $("hud").hidden = false; $("bar").hidden = false; $("info").hidden = true;
+  buildBar(); updateCtl();
+  toast("중계기로 전력망을 넓히고, 소행성 옆에 채굴기를 지으세요", 5);
+}
+
+// ---------- grid ----------
+function blocked(a, b) { for (const s of S.asteroids) if (segDist(s, a, b) < s.r * 0.8) return true; return false; }
+function linkRange(a, b) {
+  const ra = RELAY[a.type], rb = RELAY[b.type];
+  if (!ra && !rb) return 0;
+  if (ra && rb) return Math.max(DEF[a.type].link, DEF[b.type].link);
+  return ra ? DEF[a.type].link : DEF[b.type].link;
+}
+function canLink(a, b) { const R = linkRange(a, b); return R > 0 && dist(a, b) <= R && !blocked(a, b); }
+function rebuildGrid() {
+  const B = S.buildings, adj = new Map(B.map(b => [b, []]));
+  S.links = [];
+  for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
+    const a = B[i], b = B[j];
+    if (canLink(a, b)) { S.links.push([a, b, Math.random()]); adj.get(a).push(b); adj.get(b).push(a); }
+  }
+  for (const b of B) b.powered = false;
+  S.core.powered = true;
+  const q = [S.core];
+  while (q.length) {
+    const n = q.shift();
+    for (const m of adj.get(n)) if (!m.powered) { m.powered = true; if (RELAY[m.type] && m.prog >= 1) q.push(m); }
+  }
+  S.dirty = false;
+}
+function nearAst(p, reach = DEF.miner.reach) {
+  let best = null, bd = 1e9;
+  for (const a of S.asteroids) { if (a.ore <= 0) continue; const d = dist(a, p) - a.r; if (d <= reach && d < bd) { bd = d; best = a; } }
+  return best;
+}
+function checkPlace(type, x, y) {
+  const d = DEF[type], p = { type, x, y }, res = { ok: false, reason: "", links: [] };
+  if (x < d.r + 10 || y < d.r + 10 || x > W - d.r - 10 || y > H - d.r - 10) { res.reason = "맵 밖입니다"; return res; }
+  for (const a of S.asteroids) if (dist(a, p) < a.r + d.r + 2) { res.reason = "소행성 위에는 지을 수 없습니다"; return res; }
+  for (const b of S.buildings) if (dist(b, p) < b.r + d.r + 4) { res.reason = "다른 건물과 겹칩니다"; return res; }
+  let any = false;
+  for (const b of S.buildings) if (canLink(p, b)) { res.links.push(b); if (RELAY[b.type] && b.powered) any = true; }
+  if (type === "miner" && !nearAst(p)) { res.reason = "채굴기는 소행성 가까이에 지어야 합니다"; return res; }
+  if (!any) { res.reason = "전력망 범위 밖입니다"; return res; }
+  if (S.ore < d.cost) { res.reason = "광석이 부족합니다"; return res; }
+  res.ok = true; return res;
+}
+function tryPlace() {
+  if (!S || !S.build || !ghost || S.over) return;
+  const c = checkPlace(S.build, ghost.x, ghost.y);
+  if (!c.ok) { toast(c.reason); return; }
+  S.ore -= DEF[S.build].cost;
+  S.buildings.push(mkB(S.build, ghost.x, ghost.y, false));
+  S.dirty = true;
+}
+
+// ---------- combat helpers ----------
+function nearestEnemy(p, range) {
+  let best = null, bd = 1e9;
+  for (const e of S.enemies) { if (e.dead) continue; const d = dist(e, p) - e.r; if (d <= range && d < bd) { bd = d; best = e; } }
+  return best;
+}
+function nearestBuilding(p) {
+  let best = null, bd = 1e9;
+  for (const b of S.buildings) { if (b.dead) continue; const d = dist(b, p); if (d < bd) { bd = d; best = b; } }
+  return best;
+}
+function boom(x, y, r, col) { S.fx.push({ x, y, r, col, t: 0, max: 0.5 }); }
+function hurt(e, a) {
+  if (e.dead) return;
+  e.hp -= a;
+  if (e.hp <= 0) { e.dead = true; S.ore += e.bounty; S.kills++; boom(e.x, e.y, e.r * 2.5, COL.hos); }
+}
+function damageB(b, a) {
+  if (b.dead) return;
+  b.hp -= a;
+  if (b.hp <= 0) {
+    b.dead = true; S.dirty = true; boom(b.x, b.y, b.r * 3, COL.ore);
+    if (S.sel === b) select(null);
+    if (b === S.core) endGame(false);
+  }
+}
+function depleted(a) { a.dead = true; boom(a.x, a.y, a.r0 * 1.2, COL.rockEdge); S.dirty = true; }
+function edgePoint() {
+  const s = Math.random() * 4 | 0, m = 40;
+  if (s === 0) return { x: rand(0, W), y: -m };
+  if (s === 1) return { x: W + m, y: rand(0, H) };
+  if (s === 2) return { x: rand(0, W), y: H + m };
+  return { x: -m, y: rand(0, H) };
+}
+function spawnWave() {
+  S.wave++;
+  const w = S.wave, hpM = (1 + 0.12 * (w - 1)) * S.m.diff, list = [];
+  const add = (k, n) => { for (let i = 0; i < n; i++) list.push(k); };
+  add("scout", 2 + Math.floor(w * 0.8)); add("raider", Math.floor(w * 0.6)); add("heavy", Math.max(0, Math.floor((w - 3) / 2)));
+  const groups = w >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
+  list.forEach((k, i) => {
+    const p = pts[i % groups], d = EN[k];
+    S.enemies.push({ kind: k, x: p.x + rand(-60, 60), y: p.y + rand(-60, 60), r: d.r, hp: d.hp * hpM, maxHp: d.hp * hpM,
+      cd: rand(0, 1), side: Math.random() < 0.5 ? -1 : 1, bounty: d.bounty, ang: 0, tgt: null, rt: 0, dead: false });
+  });
+  toast(`웨이브 ${w} 접근 중 (${list.length}기)`);
+}
+function wavesDone() { return S.m.goal && S.m.goal.waves && S.wave >= S.m.goal.waves; }
+
+// ---------- update ----------
+function update(dt) {
+  S.t += dt;
+  if (S.dirty) rebuildGrid();
+  const use = a => { if (S.energy >= a) { S.energy -= a; S.usedAcc += a; return true; } S.starved = 1; return false; };
+
+  let gen = 2; S.energy += 2 * dt;
+  for (const b of S.buildings) {
+    b.beam = null;
+    if (!b.powered) continue;
+    const d = DEF[b.type];
+    if (b.prog < 1) {
+      b.prog = Math.min(1, b.prog + dt / d.build);
+      b.hp = Math.min(b.maxHp, b.hp + b.maxHp * 0.7 * dt / d.build);
+      if (b.prog >= 1 && RELAY[b.type]) S.dirty = true;
+      continue;
+    }
+    if (b.type === "solar") { S.energy += d.gen * dt; gen += d.gen; }
+  }
+  S.gen = gen;
+  S.energy = Math.min(S.eCap, S.energy);
+
+  for (const b of S.buildings) {
+    if (!b.powered || b.prog < 1) continue;
+    const d = DEF[b.type];
+    if (b.type === "miner") {
+      if (!b.ast || b.ast.ore <= 0 || b.ast.dead) b.ast = nearAst(b);
+      if (b.ast) {
+        b.ang = Math.atan2(b.ast.y - b.y, b.ast.x - b.x);
+        if (use(d.use * dt)) {
+          const m = Math.min(b.ast.ore, d.rate * dt);
+          b.ast.ore -= m; S.ore += m; S.oreMined += m; b.beam = b.ast;
+          b.ast.r = b.ast.r0 * (0.45 + 0.55 * b.ast.ore / b.ast.ore0);
+          if (b.ast.ore <= 0) depleted(b.ast);
+        }
+      }
+    } else if (b.type === "laser") {
+      const e = nearestEnemy(b, d.range);
+      if (e) { b.ang = Math.atan2(e.y - b.y, e.x - b.x); if (use(d.use * dt)) { hurt(e, d.dps * dt); b.beam = e; } }
+    } else if (b.type === "missile") {
+      b.cd -= dt;
+      const e = nearestEnemy(b, d.range);
+      if (e) {
+        b.ang = Math.atan2(e.y - b.y, e.x - b.x);
+        if (b.cd <= 0 && S.ore >= d.ammo) {
+          S.ore -= d.ammo; b.cd = d.reload;
+          S.shots.push({ kind: "m", x: b.x, y: b.y, vx: Math.cos(b.ang) * 90, vy: Math.sin(b.ang) * 90, spd: 110, tgt: e, dmg: d.dmg, splash: d.splash, life: 4 });
+        }
+      }
+    } else if (b.type === "repair") {
+      let t = null, worst = 0.999;
+      for (const o of S.buildings) {
+        if (o === b || o.prog < 1 || o.dead) continue;
+        const f = o.hp / o.maxHp;
+        if (f < worst && dist(o, b) <= d.range) { worst = f; t = o; }
+      }
+      if (t && use(d.use * dt)) { t.hp = Math.min(t.maxHp, t.hp + d.heal * dt); b.beam = t; }
+    }
+  }
+  S.rateT += dt;
+  if (S.rateT >= 1) { S.useRate = S.usedAcc / S.rateT; S.usedAcc = 0; S.rateT = 0; S.starved = Math.max(0, S.starved - 0.5); }
+
+  // enemies
+  for (const e of S.enemies) {
+    if (e.dead) continue;
+    const d = EN[e.kind];
+    if (!e.tgt || e.tgt.dead || (e.rt -= dt) <= 0) { e.tgt = nearestBuilding(e); e.rt = 1.5; }
+    if (!e.tgt) continue;
+    const dx = e.tgt.x - e.x, dy = e.tgt.y - e.y, dd = Math.hypot(dx, dy) || 1;
+    e.ang = Math.atan2(dy, dx);
+    if (dd > d.range * 0.85) { e.x += dx / dd * d.spd * dt; e.y += dy / dd * d.spd * dt; }
+    else { e.x += -dy / dd * d.spd * 0.3 * dt * e.side; e.y += dx / dd * d.spd * 0.3 * dt * e.side; }
+    e.cd -= dt;
+    if (dd <= d.range && e.cd <= 0) {
+      e.cd = d.rof;
+      S.shots.push({ kind: "e", x: e.x, y: e.y, vx: 0, vy: 0, spd: 300, tgt: e.tgt, dmg: d.dmg * S.m.diff, life: 3 });
+    }
+  }
+
+  // projectiles
+  for (const s of S.shots) {
+    if (s.dead) continue;
+    if (s.tgt.dead) {
+      const e = s.kind === "m" ? nearestEnemy(s, 220) : null;
+      if (e) s.tgt = e; else { s.dead = true; continue; }
+    }
+    const dx = s.tgt.x - s.x, dy = s.tgt.y - s.y, dd = Math.hypot(dx, dy) || 1;
+    if (s.kind === "m") s.spd = Math.min(340, s.spd + 400 * dt);
+    if (dd <= s.spd * dt + s.tgt.r) {
+      s.dead = true;
+      if (s.kind === "m") {
+        boom(s.tgt.x, s.tgt.y, s.splash, COL.ore);
+        const cx = s.tgt.x, cy = s.tgt.y, main = s.tgt;
+        for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - cx, e.y - cy) <= s.splash + e.r) hurt(e, e === main ? s.dmg : s.dmg * 0.6);
+      } else damageB(s.tgt, s.dmg);
+      continue;
+    }
+    const k = Math.min(1, dt * 8);
+    s.vx += (dx / dd * s.spd - s.vx) * k; s.vy += (dy / dd * s.spd - s.vy) * k;
+    if (s.kind === "e") { s.vx = dx / dd * s.spd; s.vy = dy / dd * s.spd; }
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    if ((s.life -= dt) <= 0) s.dead = true;
+  }
+
+  for (const f of S.fx) f.t += dt;
+  S.fx = S.fx.filter(f => f.t < f.max);
+  S.enemies = S.enemies.filter(e => !e.dead);
+  S.shots = S.shots.filter(s => !s.dead);
+  if (S.buildings.some(b => b.dead)) S.buildings = S.buildings.filter(b => !b.dead);
+  if (S.asteroids.some(a => a.dead)) S.asteroids = S.asteroids.filter(a => !a.dead);
+  if (S.over) return;
+
+  // waves
+  if (!wavesDone()) { S.waveT -= dt; if (S.waveT <= 0) { spawnWave(); S.waveT = S.m.gap; } }
+
+  const g = S.m.goal;
+  if (g && g.ore && S.oreMined >= g.ore) endGame(true);
+  if (g && g.waves && wavesDone() && S.enemies.length === 0) endGame(true);
+}
+
+// ---------- draw ----------
+function poly(n, r, rot = 0) {
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) { const a = rot + i / n * Math.PI * 2; i ? ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+  ctx.closePath();
+}
+function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); }
+function rangeOf(type) { const d = DEF[type]; return d.range || d.link || d.reach || 0; }
+
+function drawB(b, ghostMode, ok) {
+  const d = DEF[b.type];
+  ctx.save(); ctx.translate(b.x, b.y);
+  ctx.globalAlpha = ghostMode ? 0.7 : (b.prog < 1 ? 0.5 : 1);
+  ctx.lineWidth = 1.6; ctx.strokeStyle = ghostMode && !ok ? COL.hos : COL.struct; ctx.fillStyle = COL.fill;
+  switch (b.type) {
+    case "core":
+      poly(6, d.r, Math.PI / 6); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = COL.en; poly(6, d.r * 0.55, Math.PI / 6 + S.t * 0.4); ctx.stroke();
+      circle(0, 0, 3); ctx.fillStyle = COL.en; ctx.fill(); break;
+    case "node":
+      poly(4, d.r, 0); ctx.fill(); ctx.strokeStyle = ghostMode && !ok ? COL.hos : `rgb(${COL.grid})`; ctx.stroke();
+      circle(0, 0, 2); ctx.fillStyle = `rgb(${COL.grid})`; ctx.fill(); break;
+    case "solar":
+      ctx.fillRect(-d.r, -d.r * 0.75, d.r * 2, d.r * 1.5); ctx.strokeRect(-d.r, -d.r * 0.75, d.r * 2, d.r * 1.5);
+      ctx.strokeStyle = COL.en; ctx.lineWidth = 1;
+      ctx.beginPath(); for (let i = -1; i <= 1; i++) { ctx.moveTo(i * d.r * 0.5, -d.r * 0.75); ctx.lineTo(i * d.r * 0.5, d.r * 0.75); } ctx.moveTo(-d.r, 0); ctx.lineTo(d.r, 0); ctx.stroke(); break;
+    case "miner":
+      circle(0, 0, d.r); ctx.fill(); ctx.stroke(); ctx.rotate(b.ang);
+      ctx.beginPath(); ctx.moveTo(d.r + 6, 0); ctx.lineTo(d.r - 3, -5); ctx.lineTo(d.r - 3, 5); ctx.closePath(); ctx.fillStyle = COL.ore; ctx.fill(); break;
+    case "laser":
+      circle(0, 0, d.r); ctx.fill(); ctx.stroke(); ctx.rotate(b.ang);
+      ctx.strokeStyle = COL.en; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(d.r + 7, 0); ctx.stroke(); break;
+    case "missile":
+      poly(8, d.r, Math.PI / 8); ctx.fill(); ctx.stroke(); ctx.rotate(b.ang);
+      ctx.fillStyle = COL.ore; ctx.fillRect(-2, -7, d.r + 3, 4); ctx.fillRect(-2, 3, d.r + 3, 4); break;
+    case "repair":
+      circle(0, 0, d.r); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = COL.heal; ctx.fillRect(-2, -7, 4, 14); ctx.fillRect(-7, -2, 14, 4); break;
+  }
+  ctx.restore();
+  if (ghostMode) return;
+  if (b.prog < 1) {
+    ctx.strokeStyle = COL.en; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(b.x, b.y, d.r + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * b.prog); ctx.stroke();
+  }
+  if (!b.powered) { circle(b.x + d.r * 0.8, b.y - d.r * 0.8, 3.5); ctx.fillStyle = COL.hos; ctx.fill(); }
+  if (b.hp < b.maxHp - 0.5 && b.prog >= 1) bar(b.x, b.y + d.r + 6, d.r * 2, b.hp / b.maxHp, COL.heal);
+}
+function bar(x, y, w, f, col) {
+  ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(x - w / 2, y, w, 3);
+  ctx.fillStyle = col; ctx.fillRect(x - w / 2, y, w * clamp(f, 0, 1), 3);
+}
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cw, ch);
+  ctx.setTransform(dpr * cam.z, 0, 0, dpr * cam.z, dpr * (cw / 2 - cam.x * cam.z), dpr * (ch / 2 - cam.y * cam.z));
+  for (const s of stars) { ctx.fillStyle = `rgba(200,215,255,${s.a})`; ctx.fillRect(s.x, s.y, s.s, s.s); }
+  if (!S) return;
+  const px = 1 / cam.z;
+  ctx.strokeStyle = "rgba(120,150,220,.18)"; ctx.lineWidth = 2 * px; ctx.strokeRect(0, 0, W, H);
+
+  // relay coverage in build mode
+  if (S.build) {
+    ctx.fillStyle = `rgba(${COL.grid},.06)`; ctx.strokeStyle = `rgba(${COL.grid},.2)`; ctx.lineWidth = px;
+    for (const b of S.buildings) if (RELAY[b.type] && b.powered) { circle(b.x, b.y, DEF[b.type].link); ctx.fill(); ctx.stroke(); }
+  }
+
+  // asteroids
+  for (const a of S.asteroids) {
+    ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.rot);
+    ctx.beginPath();
+    a.pts.forEach((k, i) => { const t = i / a.pts.length * Math.PI * 2, x = Math.cos(t) * a.r * k, y = Math.sin(t) * a.r * k; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.closePath(); ctx.fillStyle = COL.rock; ctx.fill(); ctx.strokeStyle = COL.rockEdge; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = COL.ore; ctx.globalAlpha = 0.3 + 0.55 * a.ore / a.ore0;
+    for (const v of a.veins) { circle(v[0] * a.r, v[1] * a.r, v[2] * a.r); ctx.fill(); }
+    ctx.restore();
+  }
+
+  // links
+  ctx.lineWidth = 1.5 * px;
+  for (const [a, b, ph] of S.links) {
+    const live = a.powered && b.powered && (RELAY[a.type] ? a.prog >= 1 : true) && (RELAY[b.type] ? b.prog >= 1 : true);
+    ctx.strokeStyle = `rgba(${COL.grid},${live ? 0.5 : 0.15})`;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    if (live) { const t = (S.t * 0.6 + ph) % 1; circle(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 1.8); ctx.fillStyle = COL.en; ctx.fill(); }
+  }
+
+  // beams
+  for (const b of S.buildings) {
+    if (!b.beam) continue;
+    const t = b.beam;
+    if (b.type === "miner") {
+      const g = Math.atan2(t.y - b.y, t.x - b.x), ex = t.x - Math.cos(g) * t.r * 0.7, ey = t.y - Math.sin(g) * t.r * 0.7;
+      ctx.strokeStyle = COL.ore; ctx.globalAlpha = 0.4 + Math.random() * 0.5; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(ex, ey); ctx.stroke(); ctx.globalAlpha = 1;
+    } else if (b.type === "laser") {
+      ctx.strokeStyle = "#e9fbff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+      ctx.strokeStyle = COL.en; ctx.globalAlpha = 0.35; ctx.lineWidth = 6; ctx.stroke(); ctx.globalAlpha = 1;
+    } else if (b.type === "repair") {
+      ctx.strokeStyle = COL.heal; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.lineDashOffset = -S.t * 20;
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(t.x, t.y); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  // selected range
+  if (S.sel) {
+    const r = rangeOf(S.sel.type);
+    ctx.strokeStyle = "rgba(220,230,255,.35)"; ctx.lineWidth = px; ctx.setLineDash([6 * px, 6 * px]);
+    if (r) { circle(S.sel.x, S.sel.y, r); ctx.stroke(); }
+    ctx.setLineDash([]); ctx.strokeStyle = COL.en; ctx.lineWidth = 2 * px;
+    circle(S.sel.x, S.sel.y, S.sel.r + 8); ctx.stroke();
+  }
+
+  for (const b of S.buildings) drawB(b, false);
+
+  // enemies
+  for (const e of S.enemies) {
+    ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang);
+    ctx.fillStyle = COL.hos; ctx.strokeStyle = "#ffc2ca"; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(e.r * 1.3, 0); ctx.lineTo(-e.r, -e.r * 0.85); ctx.lineTo(-e.r * 0.5, 0); ctx.lineTo(-e.r, e.r * 0.85); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    if (e.kind === "heavy") { ctx.fillStyle = "#5a1a2a"; circle(0, 0, e.r * 0.35); ctx.fill(); }
+    ctx.restore();
+    if (e.hp < e.maxHp) bar(e.x, e.y - e.r - 7, e.r * 2, e.hp / e.maxHp, COL.hos);
+  }
+
+  // shots
+  for (const s of S.shots) {
+    if (s.kind === "m") {
+      ctx.strokeStyle = "rgba(232,169,81,.5)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 0.05, s.y - s.vy * 0.05); ctx.stroke();
+      circle(s.x, s.y, 2.6); ctx.fillStyle = COL.ore; ctx.fill();
+    } else { circle(s.x, s.y, 2); ctx.fillStyle = "#ffb0bb"; ctx.fill(); }
+  }
+
+  // fx
+  for (const f of S.fx) {
+    const k = f.t / f.max;
+    ctx.globalAlpha = 1 - k; ctx.strokeStyle = f.col; ctx.lineWidth = 2;
+    circle(f.x, f.y, f.r * (0.3 + 0.7 * k)); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  // ghost
+  let reason = "";
+  if (S.build && ghost) {
+    const c = checkPlace(S.build, ghost.x, ghost.y), r = rangeOf(S.build);
+    ctx.lineWidth = px * 1.5;
+    for (const b of c.links) { ctx.strokeStyle = c.ok ? "rgba(126,224,160,.7)" : "rgba(255,90,110,.6)"; ctx.beginPath(); ctx.moveTo(ghost.x, ghost.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+    if (r) { ctx.strokeStyle = c.ok ? "rgba(220,230,255,.4)" : "rgba(255,90,110,.4)"; ctx.setLineDash([6 * px, 6 * px]); circle(ghost.x, ghost.y, r); ctx.stroke(); ctx.setLineDash([]); }
+    drawB({ type: S.build, x: ghost.x, y: ghost.y, r: DEF[S.build].r, ang: -Math.PI / 2, prog: 1 }, true, c.ok);
+    if (!c.ok) reason = c.reason;
+  }
+  if (reason) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const sx = (ghost.x - cam.x) * cam.z + cw / 2, sy = (ghost.y - cam.y) * cam.z + ch / 2;
+    ctx.font = '12px "Chakra Petch", system-ui, sans-serif'; ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(14,20,52,.85)"; const w = ctx.measureText(reason).width + 12;
+    ctx.fillRect(sx - w / 2, sy + 22, w, 20); ctx.fillStyle = COL.hos; ctx.fillText(reason, sx, sy + 36);
+  }
+}
+
+// ---------- UI ----------
+let toastTimer = 0;
+function toast(msg, sec = 2.2) { const t = $("toast"); t.style.top = ($("hud").hidden ? 20 : $("hud").offsetHeight) + "px"; t.textContent = msg; t.style.opacity = 1; toastTimer = sec; }
+function buildBar() {
+  const bar = $("bar"); bar.innerHTML = "";
+  ORDER.forEach((k, i) => {
+    const d = DEF[k], b = document.createElement("button");
+    b.className = "bb"; b.dataset.k = k; b.title = `${d.desc} (단축키 ${i + 1})`;
+    b.innerHTML = `<span class="n">${d.name}</span><span class="c">${d.cost}</span>`;
+    b.onclick = () => setBuild(S.build === k ? null : k);
+    bar.appendChild(b);
+  });
+}
+function setBuild(k) {
+  if (!S || S.over) return;
+  S.build = k; ghost = null; if (k) select(null);
+  for (const b of $("bar").children) b.classList.toggle("on", b.dataset.k === k);
+  if (k) toast(`${DEF[k].name}: ${DEF[k].desc}`, 3);
+}
+function select(b) {
+  if (!S) return;
+  S.sel = b;
+  const box = $("info");
+  if (!b) { box.hidden = true; return; }
+  const d = DEF[b.type];
+  box.innerHTML = `<div class="t">${d.name}</div><div id="iS"></div><div id="iH"></div><div class="d">${d.desc}</div>`;
+  if (b.type !== "core") {
+    const btn = document.createElement("button");
+    btn.textContent = `판매 (+${Math.floor(d.cost * 0.5)})`;
+    btn.onclick = () => {
+      if (b.dead) return;
+      b.dead = true; S.ore += Math.floor(d.cost * 0.5); S.buildings = S.buildings.filter(x => x !== b); S.dirty = true; select(null);
+    };
+    box.appendChild(btn);
+  }
+  box.hidden = false; updateInfo();
+}
+function updateInfo() {
+  const b = S && S.sel; if (!b || !$("iS")) return;
+  $("iS").textContent = b.prog < 1 ? (b.powered ? `건설 중 ${Math.floor(b.prog * 100)}%` : "전력 끊김, 건설 중단") : (b.powered ? "가동 중" : "전력 끊김");
+  $("iS").style.color = b.powered ? "" : COL.hos;
+  $("iH").textContent = `내구도 ${Math.ceil(b.hp)} / ${b.maxHp}`;
+}
+function updateCtl() {
+  if (!S) return;
+  $("spdBtn").textContent = S.speed + "×";
+  $("pauseBtn").textContent = S.paused ? "계속" : "일시정지";
+}
+let hudT = 0;
+function hudTick(dt) {
+  if (toastTimer > 0 && (toastTimer -= dt) <= 0) $("toast").style.opacity = 0;
+  if (!S || (hudT += dt) < 0.12) return;
+  hudT = 0;
+  $("oreV").textContent = Math.floor(S.ore);
+  $("enV").textContent = Math.floor(S.energy);
+  $("enBar").firstElementChild.style.width = (S.energy / S.eCap * 100) + "%";
+  const net = S.gen - S.useRate;
+  $("enR").textContent = (net >= 0 ? "+" : "") + net.toFixed(1) + "/s";
+  $("enBox").classList.toggle("starved", S.starved > 0 && S.energy < 5);
+  const alive = S.enemies.length;
+  $("waveV").innerHTML = wavesDone()
+    ? `웨이브 <b>${S.wave}</b> 마지막` + (alive ? `, 남은 적 <b>${alive}</b>` : "")
+    : `웨이브 <b>${S.wave}</b>, 다음 <b>${Math.ceil(S.waveT)}초</b>` + (alive ? `, 적 <b>${alive}</b>` : "");
+  const g = S.m.goal;
+  $("goalV").innerHTML = !g ? `최고 기록 <b>${store.get("orebelt.best") || 0}</b>` :
+    g.ore ? `목표 <b>${Math.floor(S.oreMined)}</b> / ${g.ore}` : `목표 <b>${S.wave}</b> / ${g.waves}`;
+  $("callBtn").disabled = wavesDone() || !!S.over;
+  for (const b of $("bar").children) b.classList.toggle("poor", S.ore < DEF[b.dataset.k].cost);
+  updateInfo();
+}
+$("callBtn").onclick = () => {
+  if (!S || S.over || wavesDone()) return;
+  const bonus = Math.floor(S.waveT * 0.5);
+  S.ore += bonus; spawnWave(); S.waveT = S.m.gap;
+  if (bonus > 0) toast(`조기 호출 보너스 +${bonus}`);
+};
+$("spdBtn").onclick = () => { if (!S) return; S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1; updateCtl(); };
+$("pauseBtn").onclick = () => { if (!S) return; S.paused = !S.paused; updateCtl(); };
+
+function showMenu() {
+  if (S) { S.paused = true; }
+  $("hud").hidden = true; $("bar").hidden = true; $("info").hidden = true;
+  const best = store.get("orebelt.best");
+  const o = $("overlay");
+  o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
+    <p>소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.</p>
+    ${MISSIONS.map((m, i) => `<button class="ms" data-i="${i}"><b>${m.name}</b><span>${m.desc}${!m.goal && best ? ` 최고 웨이브 ${best}` : ""}</span></button>`).join("")}
+    <div class="help">드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
+    건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 손가락을 끌어 위치를 정하고 떼면 건설.<br>
+    건물은 중계기나 코어의 연결선이 닿아야 작동합니다. 소행성은 연결선을 가립니다.<br>
+    단축키: 1–6 건설, Esc 취소, Space 일시정지.</div></div>`;
+  o.hidden = false;
+  o.querySelectorAll(".ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
+}
+function endGame(win) {
+  if (S.over) return;
+  S.over = win ? "win" : "lose"; S.build = null; ghost = null;
+  if (!S.m.goal) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
+  const mm = Math.floor(S.t / 60), ss = String(Math.floor(S.t % 60)).padStart(2, "0");
+  setTimeout(() => {
+    const o = $("overlay");
+    const title = win ? "임무 완료" : (S.m.goal ? "코어가 파괴되었습니다" : `웨이브 ${S.wave}까지 버텼습니다`);
+    o.innerHTML = `<div class="card"><h1 style="font-size:36px">${title}</h1><p>${S.m.name}</p>
+      <dl class="stats"><dt>시간</dt><dd>${mm}:${ss}</dd><dt>채굴한 광석</dt><dd>${Math.floor(S.oreMined)}</dd>
+      <dt>격파</dt><dd>${S.kills}</dd><dt>웨이브</dt><dd>${S.wave}</dd></dl>
+      <button class="ms" id="again"><b>다시 하기</b></button><button class="ms" id="tomenu"><b>임무 선택</b></button></div>`;
+    o.hidden = false; $("info").hidden = true;
+    $("again").onclick = () => newGame(S.mi); $("tomenu").onclick = showMenu;
+  }, 900);
+}
+
+// ---------- input ----------
+const ptrs = new Map();
+let gest = null;
+function setGhost(sx, sy, touch) { const [x, y] = s2w(sx, sy - (touch ? 56 : 0)); ghost = { x, y }; }
+function tap(sx, sy) {
+  if (!S || S.over) return;
+  const [x, y] = s2w(sx, sy);
+  let hit = null;
+  for (const b of S.buildings) if (Math.hypot(b.x - x, b.y - y) <= b.r + 10 / cam.z) hit = b;
+  select(hit);
+}
+cv.addEventListener("pointerdown", e => {
+  cv.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    gest = { mode: "pinch", d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: cam.z, m0: s2w((a.x + b.x) / 2, (a.y + b.y) / 2) };
+    if (e.pointerType !== "mouse") ghost = null;
+    return;
+  }
+  if (ptrs.size > 2) return;
+  const panBtn = e.button === 1 || e.button === 2;
+  const mode = S && S.build && !panBtn ? "ghost" : "pan";
+  gest = { mode, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, touch: e.pointerType !== "mouse" };
+  if (mode === "ghost") setGhost(e.clientX, e.clientY, gest.touch);
+});
+cv.addEventListener("pointermove", e => {
+  if (!ptrs.has(e.pointerId)) { if (e.pointerType === "mouse" && S && S.build) setGhost(e.clientX, e.clientY, false); return; }
+  const p = ptrs.get(e.pointerId); p.x = e.clientX; p.y = e.clientY;
+  if (!gest) return;
+  if (gest.mode === "pinch") {
+    if (ptrs.size < 2) return;
+    const [a, b] = [...ptrs.values()];
+    cam.z = clamp(gest.z0 * Math.hypot(a.x - b.x, a.y - b.y) / gest.d0, ZMIN, ZMAX);
+    cam.x = gest.m0[0] - ((a.x + b.x) / 2 - cw / 2) / cam.z;
+    cam.y = gest.m0[1] - ((a.y + b.y) / 2 - ch / 2) / cam.z;
+    clampCam(); return;
+  }
+  if (Math.hypot(e.clientX - gest.sx, e.clientY - gest.sy) > 6) gest.moved = true;
+  if (gest.mode === "pan") { cam.x -= (e.clientX - gest.lx) / cam.z; cam.y -= (e.clientY - gest.ly) / cam.z; clampCam(); }
+  else setGhost(e.clientX, e.clientY, gest.touch);
+  gest.lx = e.clientX; gest.ly = e.clientY;
+});
+function endPtr(e) {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if (!gest) return;
+  if (gest.mode === "pinch") { if (ptrs.size === 0) gest = null; return; }
+  if (e.type === "pointerup") {
+    if (gest.mode === "ghost") { tryPlace(); if (gest.touch) ghost = null; }
+    else if (!gest.moved) tap(e.clientX, e.clientY);
+  }
+  gest = null;
+}
+cv.addEventListener("pointerup", endPtr);
+cv.addEventListener("pointercancel", endPtr);
+cv.addEventListener("pointerleave", e => { if (e.pointerType === "mouse" && !ptrs.size) ghost = null; });
+cv.addEventListener("contextmenu", e => e.preventDefault());
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  const [wx, wy] = s2w(e.clientX, e.clientY);
+  cam.z = clamp(cam.z * Math.exp(-e.deltaY * 0.0015), ZMIN, ZMAX);
+  cam.x = wx - (e.clientX - cw / 2) / cam.z; cam.y = wy - (e.clientY - ch / 2) / cam.z; clampCam();
+}, { passive: false });
+addEventListener("keydown", e => {
+  if (!S || S.over || !$("overlay").hidden) return;
+  if (e.key >= "1" && e.key <= "6") { const k = ORDER[+e.key - 1]; setBuild(S.build === k ? null : k); }
+  else if (e.key === "Escape") { setBuild(null); select(null); }
+  else if (e.key === " ") { e.preventDefault(); S.paused = !S.paused; updateCtl(); }
+});
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (S && !S.paused && !S.over) { let t = dt * S.speed; while (t > 1e-6) { const s = Math.min(t, 0.025); update(s); t -= s; if (S.over) break; } }
+  else if (S && S.over) { for (const f of S.fx) f.t += dt; S.fx = S.fx.filter(f => f.t < f.max); }
+  draw(); hudTick(dt);
+  requestAnimationFrame(frame);
+}
+showMenu();
+requestAnimationFrame(frame);
+window.__game = { get S() { return S; }, newGame, update, setBuild, tryPlace, setGhostWorld(x, y) { ghost = { x, y }; } };
+</script>
+</body>
+</html>
