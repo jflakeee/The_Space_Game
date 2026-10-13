@@ -122,15 +122,20 @@ const DEF = {
   laser:   { name: "레이저", cost: 60, hp: 140, r: 12, build: 6, range: 150, dps: 25, use: 2.5, desc: "근거리 지속 피해. 사격 중 에너지 소모." },
   missile: { name: "미사일", cost: 90, hp: 150, r: 13, build: 8, range: 240, dmg: 45, splash: 45, reload: 2.2, ammo: 2, desc: "장거리 범위 피해. 발사당 광석 2." },
   slow:    { name: "감속탑", cost: 55, hp: 110, r: 12, build: 5, range: 110, slow: 0.5, use: 1.5, desc: "범위 내 적의 이동과 사격을 늦춤. 작동 중 에너지 소모." },
+  arc:     { name: "아크 코일", cost: 80, hp: 130, r: 12, build: 6, range: 120, dmg: 28, chain: 3, jump: 85, reload: 1.1, shot: 4, desc: "전격이 적 사이를 튀며 여러 기를 동시에 타격. 발사마다 에너지 소모." },
+  decoy:   { name: "미끼 신호기", cost: 25, hp: 260, r: 10, build: 2, taunt: 180, desc: "범위 안의 적이 우선 공격하는 값싼 고내구 신호기." },
   repair:  { name: "수리소", cost: 70, hp: 120, r: 12, build: 6, range: 130, heal: 12, use: 2, desc: "범위 내 건물 수리. 수리 중 에너지 소모." },
 };
-const ORDER = ["node", "solar", "battery", "miner", "laser", "missile", "slow", "repair"];
+const ORDER = ["node", "solar", "battery", "miner", "laser", "missile", "slow", "arc", "decoy", "repair"];
 const EN = {
   scout:  { hp: 40,  spd: 70, r: 7,  range: 80,  dmg: 5,  rof: 0.8, bounty: 4 },
   raider: { hp: 120, spd: 45, r: 10, range: 110, dmg: 12, rof: 1.2, bounty: 8 },
   heavy:  { hp: 420, spd: 28, r: 15, range: 140, dmg: 30, rof: 2.0, bounty: 20 },
   bomber: { hp: 60,  spd: 85, r: 8,  range: 0,   dmg: 45, rof: 0,   bounty: 6, blast: 45 },
   shield: { hp: 160, spd: 40, r: 12, range: 100, dmg: 8,  rof: 1.2, bounty: 12, aura: 95 },
+  sniper: { hp: 70,  spd: 35, r: 9,  range: 250, dmg: 30, rof: 3.0, bounty: 10, bspd: 650 },
+  splitter: { hp: 150, spd: 40, r: 12, range: 100, dmg: 10, rof: 1.2, bounty: 6 },
+  dread:  { hp: 3800, spd: 14, r: 36, range: 220, dmg: 18, rof: 2.6, bounty: 300 },
   boss:   { hp: 1400, spd: 18, r: 30, range: 170, dmg: 25, rof: 0.7, bounty: 150 },
 };
 const MAXLV = 3;
@@ -157,6 +162,8 @@ function st(b, k) {
     case "link": return d.link + 25 * l;
     case "hp": return Math.round(d.hp * (1 + 0.3 * l));
     case "slow": return Math.max(0.3, d.slow - 0.08 * l);
+    case "chain": return d.chain + l;
+    case "taunt": return d.taunt + 30 * l;
   }
   return d[k];
 }
@@ -167,15 +174,15 @@ const LINK_CAP = { core: 20, node: 8 }, capOf = b => LINK_CAP[b.type] || 2;
 const refund = b => b.prog < 1 || b.type === "node" ? b.spent : Math.floor(b.spent * 0.5);
 const DIFFS = [0.75, 1, 1.3];
 let diffIdx = 1;
-const ALL = null, NO_SLOW = ["node", "solar", "battery", "miner", "laser", "missile", "repair"];
+const ALL = null, NO_SLOW = ["node", "solar", "battery", "miner", "laser", "missile", "decoy", "repair"];
 const MISSIONS = [
   { name: "첫 채굴",      desc: "광석 300 채굴. 기본을 익히세요.",       goal: { ore: 300 },   firstWave: 90, gap: 60, diff: 0.6,  ore: 150, map: "scatter", allow: ["node", "solar", "miner", "laser"] },
   { name: "전력 부족",    desc: "광석 800 채굴. 배터리 해금.",           goal: { ore: 800 },   firstWave: 70, gap: 50, diff: 0.7,  ast: 22, map: "cluster", allow: ["node", "solar", "battery", "miner", "laser"] },
   { name: "버티기",       desc: "웨이브 6개 생존. 수리소 해금.",         goal: { waves: 6 },   firstWave: 60, gap: 42, diff: 0.8,  map: "ring",  allow: ["node", "solar", "battery", "miner", "laser", "repair"] },
-  { name: "미사일 시험",  desc: "웨이브 8개 생존. 미사일 해금.",         goal: { waves: 8 },   firstWave: 55, gap: 40, diff: 0.9,  map: "scatter", allow: NO_SLOW },
+  { name: "미사일 시험",  desc: "웨이브 8개 생존. 미사일·미끼 신호기 해금.",         goal: { waves: 8 },   firstWave: 55, gap: 40, diff: 0.9,  map: "scatter", allow: NO_SLOW },
   { name: "광맥 쟁탈",    desc: "광석 2000 채굴. 습격이 잦습니다.",      goal: { ore: 2000 },  firstWave: 45, gap: 35, diff: 0.9,  map: "cluster", allow: NO_SLOW },
   { name: "희박한 벨트",  desc: "광석 1500 채굴. 소행성이 적습니다.",    goal: { ore: 1500 },  firstWave: 50, gap: 38, diff: 1,    ast: 14, map: "scatter", allow: NO_SLOW },
-  { name: "자폭 경보",    desc: "웨이브 10개 생존. 자폭선이 일찍 옵니다. 감속탑 해금.", goal: { waves: 10 }, firstWave: 55, gap: 38, diff: 1, w0: 1, map: "lanes", allow: ALL },
+  { name: "자폭 경보",    desc: "웨이브 10개 생존. 자폭선이 일찍 옵니다. 감속탑·아크 코일 해금.", goal: { waves: 10 }, firstWave: 55, gap: 38, diff: 1, w0: 1, map: "lanes", allow: ALL },
   { name: "실드 함대",    desc: "웨이브 12개 생존. 실드함 다수.",        goal: { waves: 12 },  firstWave: 60, gap: 36, diff: 1,    w0: 2, map: "ring", allow: ALL },
   { name: "고립 기지",    desc: "광석 2500 채굴. 적은 자금으로 시작.",   goal: { ore: 2500 },  firstWave: 40, gap: 30, diff: 1.1,  ore: 80, map: "cluster", allow: ALL },
   { name: "최후의 방어선", desc: "웨이브 15개 생존.",                    goal: { waves: 15 },  firstWave: 45, gap: 34, diff: 1.2,  map: "lanes", allow: ALL },
@@ -214,16 +221,18 @@ if (LANG === "en") {
     missile: ["Missile", "Long-range splash damage. Costs 2 ore per shot."],
     slow: ["Slow Field", "Slows enemy movement and fire in range. Uses energy while active."],
     repair: ["Repair Bay", "Repairs buildings in range. Uses energy while repairing."],
+    arc: ["Arc Coil", "Lightning jumps between enemies, hitting several at once. Uses energy per shot."],
+    decoy: ["Decoy Beacon", "Cheap, sturdy beacon that nearby enemies attack first."],
   };
   for (const k in EN_B) [DEF[k].name, DEF[k].desc] = EN_B[k];
   const EN_M = [
     ["First Dig", "Mine 300 ore. Learn the basics."],
     ["Power Shortage", "Mine 800 ore. Battery unlocked."],
     ["Hold Out", "Survive 6 waves. Repair Bay unlocked."],
-    ["Missile Trial", "Survive 8 waves. Missile unlocked."],
+    ["Missile Trial", "Survive 8 waves. Missile and Decoy unlocked."],
     ["Vein Rush", "Mine 2000 ore. Frequent raids."],
     ["Thin Belt", "Mine 1500 ore. Few asteroids."],
-    ["Bomber Alert", "Survive 10 waves. Bombers arrive early. Slow Field unlocked."],
+    ["Bomber Alert", "Survive 10 waves. Bombers arrive early. Slow Field and Arc Coil unlocked."],
     ["Shield Fleet", "Survive 12 waves. Many shield ships."],
     ["Isolated Base", "Mine 2500 ore. Low starting funds."],
     ["Last Line", "Survive 15 waves."],
@@ -267,7 +276,7 @@ function noise(dur, vol, fq, delay = 0) {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   s.connect(f).connect(g).connect(AU.master); s.start(t); s.stop(t + dur);
 }
-const SFX_GAP = { laser: 0.12, hit: 0.1, boom: 0.07, launch: 0.08, kill: 0.05, done: 0.1 };
+const SFX_GAP = { zap: 0.08, laser: 0.12, hit: 0.1, boom: 0.07, launch: 0.08, kill: 0.05, done: 0.1 };
 function sfx(n) {
   if (!AU.ctx || AU.muted || AU.ctx.state !== "running") return;
   const now = AU.ctx.currentTime;
@@ -284,6 +293,7 @@ function sfx(n) {
     case "done": tone("sine", 660, 660, 0.07, 0.08); tone("sine", 990, 990, 0.1, 0.08, 0.07); break;
     case "up": [523, 659, 784].forEach((f, i) => tone("triangle", f, f, 0.12, 0.12, i * 0.07)); break;
     case "err": tone("square", 160, 120, 0.12, 0.07); break;
+    case "zap": noise(0.12, 0.12, 7000); tone("square", 1200, 300, 0.1, 0.035); break;
     case "alarm": for (let i = 0; i < 2; i++) tone("square", 520, 380, 0.22, 0.06, i * 0.28); break;
     case "win": [523, 659, 784, 1046].forEach((f, i) => tone("triangle", f, f, 0.25, 0.14, i * 0.12)); break;
     case "lose": [392, 330, 262, 196].forEach((f, i) => tone("sawtooth", f, f * 0.98, 0.3, 0.07, i * 0.18)); break;
@@ -515,6 +525,8 @@ function nearestEnemy(p, range) {
 }
 function nearestBuilding(p) {
   let best = null, bd = 1e9;
+  for (const b of S.buildings) { if (b.dead || b.type !== "decoy" || b.prog < 1 || !b.powered) continue; const d = dist(b, p); if (d <= st(b, "taunt") && d < bd) { bd = d; best = b; } }
+  if (best) return best;
   for (const b of S.buildings) { if (b.dead) continue; const d = dist(b, p); if (d < bd) { bd = d; best = b; } }
   return best;
 }
@@ -524,7 +536,8 @@ function hurt(e, a) {
   e.hp -= e.shielded ? a * 0.5 : a;
   if (e.hp <= 0) {
     e.dead = true; S.ore += e.bounty; S.kills++; boom(e.x, e.y, e.r * 2.5, COL.hos);
-    if (e.kind === "boss") { shake(12); sfx("bigboom"); burst(e.x, e.y, 60, COL.ore, 220, 1.2, 3); } else sfx("kill");
+    if (e.kind === "boss" || e.kind === "dread") { shake(e.kind === "dread" ? 14 : 12); sfx("bigboom"); burst(e.x, e.y, e.kind === "dread" ? 90 : 60, COL.ore, 240, 1.3, 3); } else sfx("kill");
+    if (e.kind === "splitter") for (let i = 0; i < 3; i++) S.enemies.push(mkE("scout", e.x + rand(-14, 14), e.y + rand(-14, 14), e.hpM));
   }
 }
 function damageB(b, a) {
@@ -547,7 +560,7 @@ function edgePoint() {
 function mkE(k, x, y, hpM) {
   const d = EN[k];
   return { kind: k, x, y, r: d.r, hp: d.hp * hpM, maxHp: d.hp * hpM, hpM, cd: rand(0, 1), side: Math.random() < 0.5 ? -1 : 1,
-    bounty: d.bounty, ang: 0, tgt: null, rt: 0, dead: false, spawnT: 6, shielded: false };
+    bounty: d.bounty, ang: 0, tgt: null, rt: 0, dead: false, spawnT: 6, vT: 2, shielded: false };
 }
 function spawnWave() {
   S.wave++;
@@ -556,14 +569,16 @@ function spawnWave() {
   add("scout", 2 + Math.floor(c * 0.8)); add("raider", Math.floor(c * 0.5)); add("heavy", Math.max(0, Math.floor((c - 2) / 3)));
   if (c >= 4) add("bomber", Math.floor((c - 1) / 3));
   if (c >= 5) add("shield", Math.floor((c - 2) / 3));
-  const boss = w % 5 === 0;
+  if (c >= 3) add("splitter", Math.floor((c - 1) / 4));
+  if (c >= 6) add("sniper", Math.floor((c - 3) / 3));
+  const boss = w % 5 === 0, bossKind = w % 10 === 0 ? "dread" : "boss";
   const groups = c >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
   list.forEach((k, i) => { const p = pts[i % groups]; S.enemies.push(mkE(k, p.x + rand(-60, 60), p.y + rand(-60, 60), hpM)); });
-  const fresh = [...new Set(list.concat(boss ? ["boss"] : []))].find(k => { try { return !(JSON.parse(store.get("orebelt.seen")) || []).includes(k); } catch { return true; } });
-  if (boss) S.enemies.push(mkE("boss", pts[0].x, pts[0].y, hpM));
+  const fresh = [...new Set(list.concat(boss ? [bossKind] : []))].find(k => { try { return !(JSON.parse(store.get("orebelt.seen")) || []).includes(k); } catch { return true; } });
+  if (boss) S.enemies.push(mkE(bossKind, pts[0].x, pts[0].y, hpM));
   sfx("alarm");
   if (fresh) { seenHint(fresh); return; }
-  toast(boss ? L(`웨이브 ${w}: 모함 출현!`, `Wave ${w}: mothership incoming!`) : L(`웨이브 ${w} 접근 중 (${list.length}기)`, `Wave ${w} incoming (${list.length} ships)`), boss ? 3 : 2.2);
+  toast(boss ? (bossKind === "dread" ? L(`웨이브 ${w}: 요새함 출현!`, `Wave ${w}: dreadnought incoming!`) : L(`웨이브 ${w}: 모함 출현!`, `Wave ${w}: mothership incoming!`)) : L(`웨이브 ${w} 접근 중 (${list.length}기)`, `Wave ${w} incoming (${list.length} ships)`), boss ? 3 : 2.2);
 }
 function wavesDone() { return S.m.goal && S.m.goal.waves && S.wave >= S.m.goal.waves; }
 
@@ -606,6 +621,21 @@ function update(dt) {
           if (b.ast.ore <= 0) depleted(b.ast);
         }
       }
+    } else if (b.type === "arc") {
+      b.cd -= dt;
+      const e0 = b.cd <= 0 ? nearestEnemy(b, st(b, "range")) : null;
+      if (e0 && use(st(b, "shot"))) {
+        b.cd = st(b, "reload"); const hit = [e0], pts = [[b.x, b.y], [e0.x, e0.y]]; let dmg = st(b, "dmg"), cur = e0;
+        hurt(e0, dmg);
+        for (let i = 1; i < st(b, "chain"); i++) {
+          let nx = null, nd = 1e9;
+          for (const x of S.enemies) if (!x.dead && !hit.includes(x)) { const dd = dist(x, cur); if (dd <= DEF.arc.jump && dd < nd) { nd = dd; nx = x; } }
+          if (!nx) break;
+          dmg *= 0.85; hurt(nx, dmg); hit.push(nx); pts.push([nx.x, nx.y]); cur = nx;
+        }
+        b.arcs = pts; b.arcT = 0.16; sfx("zap");
+      }
+      if (b.arcT > 0) b.arcT -= dt;
     } else if (b.type === "laser" && b.br === "lance") {
       b.cd -= dt;
       let e = null;
@@ -663,6 +693,15 @@ function update(dt) {
       }
       continue;
     }
+    if (e.kind === "dread") {
+      if ((e.vT -= dt) <= 0) {
+        e.vT = 3;
+        const near = S.buildings.filter(b => !b.dead && dist(b, e) <= d.range + 60).sort(() => Math.random() - 0.5).slice(0, 4);
+        for (const b of near) S.shots.push({ kind: "e", x: e.x, y: e.y, vx: 0, vy: 0, spd: 220, tgt: b, dmg: 20 * S.dm, life: 4, big: true });
+        if (near.length) sfx("launch");
+      }
+      if (e.hp < e.maxHp * 0.5 && (e.spawnT -= dt) <= 0) { e.spawnT = 10; for (let i = 0; i < 2; i++) S.enemies.push(mkE("bomber", e.x + rand(-40, 40), e.y + rand(-40, 40), e.hpM)); }
+    }
     if (e.kind === "boss" && (e.spawnT -= dt) <= 0) {
       e.spawnT = 8;
       for (let i = 0; i < 2; i++) S.enemies.push(mkE("scout", e.x + rand(-30, 30), e.y + rand(-30, 30), e.hpM));
@@ -672,7 +711,7 @@ function update(dt) {
     e.cd -= dt * (0.4 + 0.6 * (e.slowF || 1));
     if (dd <= d.range && e.cd <= 0) {
       e.cd = d.rof;
-      S.shots.push({ kind: "e", x: e.x, y: e.y, vx: 0, vy: 0, spd: 300, tgt: e.tgt, dmg: d.dmg * S.dm, life: 3 });
+      S.shots.push({ kind: "e", x: e.x, y: e.y, vx: 0, vy: 0, spd: d.bspd || 300, tgt: e.tgt, dmg: d.dmg * S.dm, life: 3, snipe: e.kind === "sniper" });
     }
   }
 
@@ -765,6 +804,13 @@ function drawB(b, ghostMode, ok) {
     case "slow":
       circle(0, 0, d.r); ctx.fill(); ctx.stroke(); ctx.strokeStyle = COL.slow; ctx.lineWidth = 1.6;
       circle(0, 0, d.r * 0.55); ctx.stroke(); circle(0, 0, 2.5); ctx.fillStyle = COL.slow; ctx.fill(); break;
+    case "arc":
+      circle(0, 0, d.r); ctx.fill(); ctx.stroke(); ctx.strokeStyle = "#bfe8ff"; ctx.lineWidth = 1.8; ctx.beginPath();
+      ctx.moveTo(-5, -7); ctx.lineTo(1, -2); ctx.lineTo(-3, 1); ctx.lineTo(5, 7); ctx.stroke(); break;
+    case "decoy": {
+      poly(3, d.r * 1.2, -Math.PI / 2); ctx.fill(); ctx.stroke();
+      const k = 0.5 + 0.5 * Math.sin((S ? S.t : 0) * 5); ctx.fillStyle = `rgba(232,169,81,${0.4 + 0.6 * k})`; circle(0, 1, 3); ctx.fill(); break;
+    }
     case "repair":
       circle(0, 0, d.r); ctx.fill(); ctx.stroke();
       ctx.fillStyle = COL.heal; ctx.fillRect(-2, -7, 4, 14); ctx.fillRect(-7, -2, 14, 4); break;
@@ -842,6 +888,16 @@ function draw() {
     }
   }
 
+  for (const b of S.buildings) if (b.arcT > 0 && b.arcs) {
+    ctx.globalAlpha = b.arcT / 0.16; ctx.strokeStyle = "#e6f7ff"; ctx.lineWidth = 2; ctx.beginPath();
+    b.arcs.forEach(([x, y], i) => {
+      if (!i) { ctx.moveTo(x, y); return; }
+      const [px, py] = b.arcs[i - 1];
+      for (let k = 1; k < 4; k++) ctx.lineTo(px + (x - px) * k / 4 + rand(-6, 6), py + (y - py) * k / 4 + rand(-6, 6));
+      ctx.lineTo(x, y);
+    });
+    ctx.stroke(); ctx.strokeStyle = "#7fd0ff"; ctx.lineWidth = 6; ctx.globalAlpha *= 0.3; ctx.stroke(); ctx.globalAlpha = 1;
+  }
   for (const b of S.buildings) if (b.shotT > 0) {
     ctx.globalAlpha = b.shotT / 0.18; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.sx, b.sy); ctx.stroke();
     ctx.strokeStyle = COL.en; ctx.lineWidth = 10; ctx.globalAlpha *= 0.35; ctx.stroke(); ctx.globalAlpha = 1;
@@ -875,7 +931,8 @@ function draw() {
       ctx.strokeStyle = "rgba(232,169,81,.5)"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 0.05, s.y - s.vy * 0.05); ctx.stroke();
       circle(s.x, s.y, 2.6); ctx.fillStyle = COL.ore; ctx.fill();
-    } else { circle(s.x, s.y, 2); ctx.fillStyle = "#ffb0bb"; ctx.fill(); }
+    } else if (s.snipe) { ctx.strokeStyle = "#ffd0d8"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - (s.tgt.x - s.x) * 0.08, s.y - (s.tgt.y - s.y) * 0.08); ctx.stroke(); }
+    else { circle(s.x, s.y, s.big ? 3.5 : 2); ctx.fillStyle = s.big ? COL.hos : "#ffb0bb"; ctx.fill(); }
   }
 
   // fx
@@ -937,6 +994,8 @@ function statLine(b) {
     case "laser": return b.br === "lance" ? L(`피해 ${f("dmg", 0)}, 사거리 ${f("range", 0)}, 재장전 ${f("reload")}s`, `Damage ${f("dmg", 0)}, range ${f("range", 0)}, reload ${f("reload")}s`)
       : L(`${f("dps", 0)} dps, 사거리 ${f("range", 0)}`, `${f("dps", 0)} dps, range ${f("range", 0)}`);
     case "missile": return L(`피해 ${f("dmg", 0)}, 사거리 ${f("range", 0)}, 재장전 ${f("reload")}s`, `Damage ${f("dmg", 0)}, range ${f("range", 0)}, reload ${f("reload")}s`);
+    case "arc": return L(`피해 ${f("dmg", 0)}, 연쇄 ${f("chain", 0)}, 사거리 ${f("range", 0)}`, `Damage ${f("dmg", 0)}, chain ${f("chain", 0)}, range ${f("range", 0)}`);
+    case "decoy": return L(`유인 범위 ${f("taunt", 0)}`, `Taunt radius ${f("taunt", 0)}`);
     case "slow": return L(`감속 ${Math.round((1 - st(b, "slow")) * 100)}%, 범위 ${f("range", 0)}`, `Slow ${Math.round((1 - st(b, "slow")) * 100)}%, range ${f("range", 0)}`);
     case "repair": return L(`수리 ${f("heal", 0)}/s, 범위 ${f("range", 0)}`, `Repair ${f("heal", 0)}/s, range ${f("range", 0)}`);
   }
@@ -1170,7 +1229,7 @@ addEventListener("keydown", e => {
     return;
   }
   if (!$("overlay").hidden) return;
-  if (e.key >= "1" && e.key <= "9" && S.allow[+e.key - 1]) { const k = S.allow[+e.key - 1]; setBuild(S.build === k ? null : k); }
+  if (/^[0-9]$/.test(e.key) && S.allow[(+e.key + 9) % 10]) { const k = S.allow[(+e.key + 9) % 10]; setBuild(S.build === k ? null : k); }
   else if (e.key === "u" || e.key === "U") upgrade(S.sel);
   else if ((e.key === "r" || e.key === "R") && S.sel && S.sel.type === "laser" && S.sel.lvl === 1) upgrade(S.sel, "rapid");
   else if ((e.key === "l" || e.key === "L") && S.sel && S.sel.type === "laser" && S.sel.lvl === 1) upgrade(S.sel, "lance");
@@ -1255,7 +1314,10 @@ const EINFO = {
   heavy:  { n: () => L("중형선", "Heavy"),   d: () => L("느리지만 단단하고 사거리가 깁니다. 저격 레이저나 미사일로 상대하세요.", "Slow, tough and long-ranged. Counter with Lance lasers or missiles.") },
   bomber: { n: () => L("자폭선", "Bomber"),  d: () => L("가장 가까운 건물로 돌진해 범위 폭발합니다. 감속탑과 외곽 레이저로 접근 전에 처치하세요.", "Rams the nearest building and explodes. Slow fields and outer lasers stop it early.") },
   shield: { n: () => L("실드함", "Shield Ship"), d: () => L("주변 아군이 받는 피해를 절반으로 줄입니다. 실드함 자신은 보호받지 못하니 먼저 노리세요.", "Halves damage taken by nearby allies, but not itself. Kill it first.") },
-  boss:   { n: () => L("모함", "Mothership"), d: () => L("5웨이브마다 등장. 체력이 매우 높고 정찰기를 계속 내보냅니다. 저격 레이저가 효과적입니다.", "Every 5th wave. Huge HP, keeps launching scouts. Lance lasers excel.") },
+  sniper: { n: () => L("저격선", "Sniper"), d: () => L("레이저보다 긴 사거리에서 강한 한 발을 쏩니다. 저격 레이저나 미사일로 끌어내리세요.", "Outranges lasers with heavy shots. Bring it down with Lance lasers or missiles.") },
+  splitter: { n: () => L("분열선", "Splitter"), d: () => L("파괴되면 정찰기 3기로 나뉩니다. 아크 코일이나 속사 레이저로 뒷정리하세요.", "Splits into 3 scouts when destroyed. Arc coils and Rapid lasers mop up.") },
+  dread:  { n: () => L("요새함", "Dreadnought"), d: () => L("10웨이브마다 등장하는 최종 보스. 여러 건물에 동시 포격하고, 체력이 절반 이하가 되면 자폭선을 내보냅니다. 미끼 신호기로 포격을 분산하세요.", "Final boss every 10th wave. Shells several buildings at once and launches bombers below half HP. Spread its fire with decoys.") },
+  boss:   { n: () => L("모함", "Mothership"), d: () => L("5웨이브마다 등장(10의 배수 제외). 체력이 매우 높고 정찰기를 계속 내보냅니다. 저격 레이저가 효과적입니다.", "Every 5th wave (except 10s). Huge HP, keeps launching scouts. Lance lasers excel.") },
 };
 function drawEnemyBody(e, t) {
   ctx.fillStyle = COL.hos; ctx.strokeStyle = "#ffc2ca"; ctx.lineWidth = 1.2;
@@ -1265,6 +1327,15 @@ function drawEnemyBody(e, t) {
     ctx.fillStyle = `rgba(255,220,120,${0.35 + 0.65 * k})`; circle(0, 0, e.r * 0.45); ctx.fill();
   } else if (e.kind === "shield") {
     poly(6, e.r, 0); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#ffe0e5"; circle(0, 0, e.r * 0.3); ctx.fill();
+  } else if (e.kind === "sniper") {
+    ctx.beginPath(); ctx.moveTo(e.r * 1.8, 0); ctx.lineTo(-e.r * 0.6, -e.r * 0.6); ctx.lineTo(-e.r, 0); ctx.lineTo(-e.r * 0.6, e.r * 0.6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "#ffe0e5"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(e.r * 2.4, 0); ctx.stroke();
+  } else if (e.kind === "splitter") {
+    for (const [ox, oy] of [[e.r * 0.4, 0], [-e.r * 0.4, -e.r * 0.5], [-e.r * 0.4, e.r * 0.5]]) { circle(ox, oy, e.r * 0.55); ctx.fill(); ctx.stroke(); }
+  } else if (e.kind === "dread") {
+    poly(6, e.r, 0); ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = "#5a1a2a"; poly(6, e.r * 0.5, 0); ctx.fill();
+    ctx.fillStyle = COL.hos; ctx.fillRect(-e.r * 0.6, -e.r * 1.25, e.r * 1.1, e.r * 0.35); ctx.fillRect(-e.r * 0.6, e.r * 0.9, e.r * 1.1, e.r * 0.35);
   } else if (e.kind === "boss") {
     ctx.beginPath(); ctx.moveTo(e.r * 1.2, 0); ctx.lineTo(e.r * 0.2, -e.r * 0.6); ctx.lineTo(-e.r, -e.r * 0.9); ctx.lineTo(-e.r * 0.7, 0);
     ctx.lineTo(-e.r, e.r * 0.9); ctx.lineTo(e.r * 0.2, e.r * 0.6); ctx.closePath();
