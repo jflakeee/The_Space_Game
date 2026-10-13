@@ -71,6 +71,7 @@ h1 i{font-style:normal;color:var(--ore)}
   <div id="goalV"></div>
   <div class="ctl">
     <button id="callBtn" title="다음 웨이브를 바로 부르고 남은 시간만큼 광석 보너스">웨이브 호출</button>
+    <button id="muteBtn" title="효과음">소리 켜짐</button>
     <button id="spdBtn" title="게임 속도">1×</button>
     <button id="pauseBtn" title="일시정지 (Space)">일시정지</button>
   </div>
@@ -152,6 +153,76 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
 
+// ---------- audio (WebAudio synth) ----------
+const AU = { ctx: null, master: null, noise: null, muted: store.get("orebelt.mute") === "1", last: {} };
+function auInit() {
+  if (AU.ctx) { if (AU.ctx.state === "suspended") AU.ctx.resume(); return; }
+  try {
+    const C = window.AudioContext || window.webkitAudioContext;
+    AU.ctx = new C(); AU.master = AU.ctx.createGain(); AU.master.gain.value = AU.muted ? 0 : 0.35; AU.master.connect(AU.ctx.destination);
+    const len = AU.ctx.sampleRate, buf = AU.ctx.createBuffer(1, len, AU.ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    AU.noise = buf;
+  } catch { AU.ctx = null; }
+}
+addEventListener("pointerdown", auInit); addEventListener("keydown", auInit);
+function tone(type, f0, f1, dur, vol, delay = 0) {
+  const c = AU.ctx, t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(AU.master); o.start(t); o.stop(t + dur + 0.02);
+}
+function noise(dur, vol, fq, delay = 0) {
+  const c = AU.ctx, t = c.currentTime + delay, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  s.buffer = AU.noise; f.type = "lowpass"; f.frequency.setValueAtTime(fq, t); f.frequency.exponentialRampToValueAtTime(80, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f).connect(g).connect(AU.master); s.start(t); s.stop(t + dur);
+}
+const SFX_GAP = { laser: 0.12, hit: 0.1, boom: 0.07, launch: 0.08, kill: 0.05, done: 0.1 };
+function sfx(n) {
+  if (!AU.ctx || AU.muted || AU.ctx.state !== "running") return;
+  const now = AU.ctx.currentTime;
+  if (SFX_GAP[n] && now - (AU.last[n] || 0) < SFX_GAP[n]) return;
+  AU.last[n] = now;
+  switch (n) {
+    case "laser": tone("sawtooth", 1400, 700, 0.07, 0.03); break;
+    case "launch": noise(0.25, 0.1, 2500); tone("square", 300, 120, 0.2, 0.035); break;
+    case "boom": noise(0.35, 0.28, 1200); tone("sine", 120, 40, 0.3, 0.18); break;
+    case "bigboom": noise(0.9, 0.5, 900); tone("sine", 90, 25, 0.8, 0.35); break;
+    case "kill": noise(0.15, 0.12, 3000); tone("square", 600, 150, 0.12, 0.04); break;
+    case "hit": tone("square", 180, 90, 0.08, 0.05); break;
+    case "place": tone("triangle", 520, 780, 0.08, 0.12); break;
+    case "done": tone("sine", 660, 660, 0.07, 0.08); tone("sine", 990, 990, 0.1, 0.08, 0.07); break;
+    case "up": [523, 659, 784].forEach((f, i) => tone("triangle", f, f, 0.12, 0.12, i * 0.07)); break;
+    case "err": tone("square", 160, 120, 0.12, 0.07); break;
+    case "alarm": for (let i = 0; i < 2; i++) tone("square", 520, 380, 0.22, 0.06, i * 0.28); break;
+    case "win": [523, 659, 784, 1046].forEach((f, i) => tone("triangle", f, f, 0.25, 0.14, i * 0.12)); break;
+    case "lose": [392, 330, 262, 196].forEach((f, i) => tone("sawtooth", f, f * 0.98, 0.3, 0.07, i * 0.18)); break;
+  }
+}
+function setMute(m) {
+  AU.muted = m; store.set("orebelt.mute", m ? "1" : "0");
+  if (AU.master) AU.master.gain.value = m ? 0 : 0.35;
+  $("muteBtn").textContent = m ? "소리 꺼짐" : "소리 켜짐";
+}
+
+// ---------- particles / shake ----------
+function burst(x, y, n, col, spd = 120, life = 0.6, size = 2) {
+  if (!S) return;
+  for (let i = 0; i < n && S.parts.length < 700; i++) {
+    const a = rand(0, 6.28), v = rand(0.2, 1) * spd;
+    S.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, max: rand(0.5, 1) * life, col, s: rand(0.6, 1.4) * size });
+  }
+}
+function shake(a) { if (S) S.shake = Math.min(14, S.shake + a); }
+function stepFx(dt) {
+  for (const f of S.fx) f.t += dt;
+  S.fx = S.fx.filter(f => f.t < f.max);
+  const k = Math.max(0, 1 - 2 * dt);
+  for (const p of S.parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= k; p.vy *= k; }
+  S.parts = S.parts.filter(p => p.t < p.max);
+}
+
 // ---------- canvas / camera ----------
 const cv = $("c"), ctx = cv.getContext("2d");
 let cw, ch, dpr;
@@ -199,7 +270,7 @@ function mkB(type, x, y, built) {
 function newGame(mi) {
   const m = MISSIONS[mi];
   S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave,
-    asteroids: genAsteroids(m.ast || 30), buildings: [], enemies: [], shots: [], fx: [], links: [],
+    asteroids: genAsteroids(m.ast || 30), buildings: [], enemies: [], shots: [], fx: [], parts: [], shake: 0, links: [],
     dirty: true, speed: 1, paused: false, over: null, kills: 0, build: null, sel: null,
     gen: 0, usedAcc: 0, rateT: 0, useRate: 0, starved: 0 };
   S.core = mkB("core", W / 2, H / 2, true);
@@ -257,9 +328,9 @@ function checkPlace(type, x, y) {
 function tryPlace() {
   if (!S || !S.build || !ghost || S.over) return;
   const c = checkPlace(S.build, ghost.x, ghost.y);
-  if (!c.ok) { toast(c.reason); return; }
+  if (!c.ok) { toast(c.reason); sfx("err"); return; }
   S.ore -= DEF[S.build].cost;
-  S.buildings.push(mkB(S.build, ghost.x, ghost.y, false));
+  S.buildings.push(mkB(S.build, ghost.x, ghost.y, false)); sfx("place");
   S.dirty = true;
 }
 
@@ -274,17 +345,20 @@ function nearestBuilding(p) {
   for (const b of S.buildings) { if (b.dead) continue; const d = dist(b, p); if (d < bd) { bd = d; best = b; } }
   return best;
 }
-function boom(x, y, r, col) { S.fx.push({ x, y, r, col, t: 0, max: 0.5 }); }
+function boom(x, y, r, col) { S.fx.push({ x, y, r, col, t: 0, max: 0.5 }); burst(x, y, Math.min(40, Math.round(r * 0.6)), col, r * 3.5, 0.7, 2); }
 function hurt(e, a) {
   if (e.dead) return;
   e.hp -= e.shielded ? a * 0.5 : a;
-  if (e.hp <= 0) { e.dead = true; S.ore += e.bounty; S.kills++; boom(e.x, e.y, e.r * 2.5, COL.hos); }
+  if (e.hp <= 0) {
+    e.dead = true; S.ore += e.bounty; S.kills++; boom(e.x, e.y, e.r * 2.5, COL.hos);
+    if (e.kind === "boss") { shake(12); sfx("bigboom"); burst(e.x, e.y, 60, COL.ore, 220, 1.2, 3); } else sfx("kill");
+  }
 }
 function damageB(b, a) {
   if (b.dead) return;
-  b.hp -= a;
+  b.hp -= a; b.flash = 0.12; sfx("hit");
   if (b.hp <= 0) {
-    b.dead = true; S.dirty = true; boom(b.x, b.y, b.r * 3, COL.ore);
+    b.dead = true; S.dirty = true; boom(b.x, b.y, b.r * 3, COL.ore); shake(b === S.core ? 14 : 5); sfx("boom");
     if (S.sel === b) select(null);
     if (b === S.core) endGame(false);
   }
@@ -313,6 +387,7 @@ function spawnWave() {
   const groups = c >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
   list.forEach((k, i) => { const p = pts[i % groups]; S.enemies.push(mkE(k, p.x + rand(-60, 60), p.y + rand(-60, 60), hpM)); });
   if (boss) S.enemies.push(mkE("boss", pts[0].x, pts[0].y, hpM));
+  sfx("alarm");
   toast(boss ? `웨이브 ${w}: 모함 출현!` : `웨이브 ${w} 접근 중 (${list.length}기)`, boss ? 3 : 2.2);
 }
 function wavesDone() { return S.m.goal && S.m.goal.waves && S.wave >= S.m.goal.waves; }
@@ -331,7 +406,7 @@ function update(dt) {
     if (b.prog < 1) {
       b.prog = Math.min(1, b.prog + dt / d.build);
       b.hp = Math.min(b.maxHp, b.hp + b.maxHp * 0.7 * dt / d.build);
-      if (b.prog >= 1 && RELAY[b.type]) S.dirty = true;
+      if (b.prog >= 1) { burst(b.x, b.y, 12, COL.en, 70, 0.5); sfx("done"); if (RELAY[b.type]) S.dirty = true; }
       continue;
     }
     if (b.type === "solar") { const g = st(b, "gen"); S.energy += g * dt; gen += g; }
@@ -350,20 +425,21 @@ function update(dt) {
         if (use(st(b, "use") * dt)) {
           const m = Math.min(b.ast.ore, st(b, "rate") * dt);
           b.ast.ore -= m; S.ore += m; S.oreMined += m; b.beam = b.ast;
+          if (Math.random() < dt * 5) { const g = b.ang + Math.PI; burst(b.ast.x + Math.cos(g) * b.ast.r * 0.7, b.ast.y + Math.sin(g) * b.ast.r * 0.7, 2, COL.ore, 50, 0.4, 1.5); }
           b.ast.r = b.ast.r0 * (0.45 + 0.55 * b.ast.ore / b.ast.ore0);
           if (b.ast.ore <= 0) depleted(b.ast);
         }
       }
     } else if (b.type === "laser") {
       const e = nearestEnemy(b, st(b, "range"));
-      if (e) { b.ang = Math.atan2(e.y - b.y, e.x - b.x); if (use(st(b, "use") * dt)) { hurt(e, st(b, "dps") * dt); b.beam = e; } }
+      if (e) { b.ang = Math.atan2(e.y - b.y, e.x - b.x); if (use(st(b, "use") * dt)) { hurt(e, st(b, "dps") * dt); b.beam = e; sfx("laser"); if (Math.random() < dt * 12) burst(e.x, e.y, 1, "#e9fbff", 90, 0.3, 1.5); } }
     } else if (b.type === "missile") {
       b.cd -= dt;
       const e = nearestEnemy(b, st(b, "range"));
       if (e) {
         b.ang = Math.atan2(e.y - b.y, e.x - b.x);
         if (b.cd <= 0 && S.ore >= d.ammo) {
-          S.ore -= d.ammo; b.cd = st(b, "reload");
+          S.ore -= d.ammo; b.cd = st(b, "reload"); sfx("launch");
           S.shots.push({ kind: "m", x: b.x, y: b.y, vx: Math.cos(b.ang) * 90, vy: Math.sin(b.ang) * 90, spd: 110, tgt: e, dmg: st(b, "dmg"), splash: d.splash, life: 4 });
         }
       }
@@ -394,7 +470,7 @@ function update(dt) {
     if (e.kind === "bomber") {
       e.x += dx / dd * d.spd * dt; e.y += dy / dd * d.spd * dt;
       if (dd <= e.r + e.tgt.r + 2) {
-        e.dead = true; boom(e.x, e.y, d.blast, COL.hos);
+        e.dead = true; boom(e.x, e.y, d.blast, COL.hos); shake(4); sfx("boom");
         for (const b of S.buildings) if (Math.hypot(b.x - e.x, b.y - e.y) <= d.blast + b.r) damageB(b, d.dmg * S.m.diff);
       }
       continue;
@@ -424,7 +500,7 @@ function update(dt) {
     if (dd <= s.spd * dt + s.tgt.r) {
       s.dead = true;
       if (s.kind === "m") {
-        boom(s.tgt.x, s.tgt.y, s.splash, COL.ore);
+        boom(s.tgt.x, s.tgt.y, s.splash, COL.ore); sfx("boom");
         const cx = s.tgt.x, cy = s.tgt.y, main = s.tgt;
         for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - cx, e.y - cy) <= s.splash + e.r) hurt(e, e === main ? s.dmg : s.dmg * 0.6);
       } else damageB(s.tgt, s.dmg);
@@ -434,11 +510,12 @@ function update(dt) {
     s.vx += (dx / dd * s.spd - s.vx) * k; s.vy += (dy / dd * s.spd - s.vy) * k;
     if (s.kind === "e") { s.vx = dx / dd * s.spd; s.vy = dy / dd * s.spd; }
     s.x += s.vx * dt; s.y += s.vy * dt;
+    if (s.kind === "m" && Math.random() < 0.6 && S.parts.length < 700) S.parts.push({ x: s.x, y: s.y, vx: rand(-15, 15), vy: rand(-15, 15), t: 0, max: 0.45, col: "#8d93ad", s: 2 });
     if ((s.life -= dt) <= 0) s.dead = true;
   }
 
-  for (const f of S.fx) f.t += dt;
-  S.fx = S.fx.filter(f => f.t < f.max);
+  stepFx(dt);
+  for (const b of S.buildings) if (b.flash > 0) b.flash -= dt;
   S.enemies = S.enemies.filter(e => !e.dead);
   S.shots = S.shots.filter(s => !s.dead);
   if (S.buildings.some(b => b.dead)) S.buildings = S.buildings.filter(b => !b.dead);
@@ -498,6 +575,7 @@ function drawB(b, ghostMode, ok) {
       ctx.fillStyle = COL.heal; ctx.fillRect(-2, -7, 4, 14); ctx.fillRect(-7, -2, 14, 4); break;
   }
   ctx.restore();
+  if (!ghostMode && b.flash > 0) { ctx.globalAlpha = b.flash / 0.12 * 0.6; circle(b.x, b.y, d.r + 2); ctx.fillStyle = "#fff"; ctx.fill(); ctx.globalAlpha = 1; }
   if (ghostMode) return;
   for (let i = 1; i < (b.lvl || 1); i++) { circle(b.x - d.r + (i - 1) * 6, b.y - d.r - 5, 2); ctx.fillStyle = COL.ore; ctx.fill(); }
   if (b.prog < 1) {
@@ -515,7 +593,8 @@ function bar(x, y, w, f, col) {
 function draw() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cw, ch);
-  ctx.setTransform(dpr * cam.z, 0, 0, dpr * cam.z, dpr * (cw / 2 - cam.x * cam.z), dpr * (ch / 2 - cam.y * cam.z));
+  const sk = S ? S.shake : 0, ox = rand(-sk, sk), oy = rand(-sk, sk);
+  ctx.setTransform(dpr * cam.z, 0, 0, dpr * cam.z, dpr * (cw / 2 - cam.x * cam.z + ox), dpr * (ch / 2 - cam.y * cam.z + oy));
   for (const s of stars) { ctx.fillStyle = `rgba(200,215,255,${s.a})`; ctx.fillRect(s.x, s.y, s.s, s.s); }
   if (!S) return;
   const px = 1 / cam.z;
@@ -614,6 +693,8 @@ function draw() {
     ctx.globalAlpha = 1 - k; ctx.strokeStyle = f.col; ctx.lineWidth = 2;
     circle(f.x, f.y, f.r * (0.3 + 0.7 * k)); ctx.stroke(); ctx.globalAlpha = 1;
   }
+  for (const p of S.parts) { ctx.globalAlpha = 1 - p.t / p.max; ctx.fillStyle = p.col; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
+  ctx.globalAlpha = 1;
 
   // ghost
   let reason = "";
@@ -673,7 +754,7 @@ function upgrade(b) {
   S.ore -= c; b.spent += c; b.lvl++;
   const nh = st(b, "hp"); b.hp += nh - b.maxHp; b.maxHp = nh;
   if (RELAY[b.type]) S.dirty = true;
-  boom(b.x, b.y, b.r * 2.2, COL.en);
+  boom(b.x, b.y, b.r * 2.2, COL.en); sfx("up");
   updateInfo();
 }
 function select(b) {
@@ -740,6 +821,8 @@ $("callBtn").onclick = () => {
   if (bonus > 0) toast(`조기 호출 보너스 +${bonus}`);
 };
 $("spdBtn").onclick = () => { if (!S) return; S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1; updateCtl(); };
+$("muteBtn").onclick = () => { auInit(); setMute(!AU.muted); };
+setMute(AU.muted);
 $("pauseBtn").onclick = () => { if (!S) return; S.paused = !S.paused; updateCtl(); };
 
 function loadProg() { try { const p = JSON.parse(store.get("orebelt.progress")); return p && p.stars ? p : { stars: [] }; } catch { return { stars: [] }; } }
@@ -773,7 +856,7 @@ function showMenu() {
 }
 function endGame(win) {
   if (S.over) return;
-  S.over = win ? "win" : "lose"; S.build = null; ghost = null;
+  S.over = win ? "win" : "lose"; S.build = null; ghost = null; sfx(win ? "win" : "lose");
   const coreF = Math.max(0, S.core.hp / S.core.maxHp);
   let stars = 0;
   if (win && S.m.goal) { stars = coreF >= 0.75 ? 3 : coreF >= 0.4 ? 2 : 1; saveStars(S.mi, stars); }
@@ -873,7 +956,8 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (S && !S.paused && !S.over) { let t = dt * S.speed; while (t > 1e-6) { const s = Math.min(t, 0.025); update(s); t -= s; if (S.over) break; } }
-  else if (S && S.over) { for (const f of S.fx) f.t += dt; S.fx = S.fx.filter(f => f.t < f.max); }
+  else if (S && S.over) stepFx(dt);
+  if (S && S.shake > 0) S.shake = Math.max(0, S.shake - dt * 30);
   draw(); hudTick(dt);
   requestAnimationFrame(frame);
 }
