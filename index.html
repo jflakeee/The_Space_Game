@@ -54,6 +54,13 @@ h1 i{font-style:normal;color:var(--ore)}
 .ms em{display:block;font-style:normal;color:var(--ore);font-size:13px;letter-spacing:2px;margin-top:4px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid .ms{margin:0}.ms.wide{grid-column:1/-1}
 .prog{color:var(--dim);font-size:13px;margin:-8px 0 12px}.prog b{color:var(--ore)}
+#tip{position:fixed;left:50%;transform:translateX(-50%);width:min(460px,calc(100vw - 24px));background:var(--panel);border:1px solid var(--en);
+  border-radius:8px;padding:8px 8px 8px 12px;font-size:13px;line-height:1.5;display:flex;gap:10px;align-items:center}
+#tip>span{color:var(--en);font-variant-numeric:tabular-nums;flex:0 0 auto}#tip>div{flex:1}#tip b{color:var(--ore)}
+#tip button{flex:0 0 auto;font-size:12px;padding:4px 8px}
+.bb.hint{border-color:var(--ore);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 3px rgba(232,169,81,.4)}}
+.ms.resume{border-color:var(--en);margin-bottom:12px}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
@@ -79,6 +86,7 @@ h1 i{font-style:normal;color:var(--ore)}
 <div id="bar" hidden></div>
 <div id="info" hidden></div>
 <div id="toast"></div>
+<div id="tip" hidden></div>
 <div id="overlay"></div>
 
 <script>
@@ -267,7 +275,7 @@ function mkB(type, x, y, built) {
   return { id: uid++, type, x, y, r: d.r, maxHp: d.hp, hp: built ? d.hp : d.hp * 0.3, prog: built ? 1 : 0,
     lvl: 1, spent: d.cost, powered: false, cd: 0, ast: null, beam: null, ang: -Math.PI / 2, dead: false };
 }
-function newGame(mi) {
+function newGame(mi, silent = false) {
   const m = MISSIONS[mi];
   S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave,
     asteroids: genAsteroids(m.ast || 30), buildings: [], enemies: [], shots: [], fx: [], parts: [], shake: 0, links: [],
@@ -278,8 +286,10 @@ function newGame(mi) {
   cam.x = W / 2; cam.y = H / 2; cam.z = clamp(Math.min(cw / 760, ch / 600), 0.45, 1.4);
   ghost = null;
   $("overlay").hidden = true; $("hud").hidden = false; $("bar").hidden = false; $("info").hidden = true;
-  buildBar(); updateCtl();
-  toast(mi === 0 ? "중계기로 전력망을 넓히고, 소행성 옆에 채굴기를 지으세요" : `${mi + 1 > 10 ? "" : mi + 1 + ". "}${m.name}: ${m.desc}`, 5);
+  S.tut = !silent && mi === 0 ? 0 : null; S.tutT = 0; S.saveT = 0;
+  if (!silent) clearSave();
+  buildBar(); updateCtl(); renderTip();
+  if (!silent && mi !== 0) toast(`${m.goal ? mi + 1 + ". " : ""}${m.name}: ${m.desc}`, 5);
 }
 
 // ---------- grid ----------
@@ -523,7 +533,7 @@ function update(dt) {
   if (S.over) return;
 
   // waves
-  if (!wavesDone()) { S.waveT -= dt; if (S.waveT <= 0) { spawnWave(); S.waveT = S.m.gap; } }
+  if (!wavesDone() && !(S.tut != null && S.tut < 4)) { S.waveT -= dt; if (S.waveT <= 0) { spawnWave(); S.waveT = S.m.gap; } }
 
   const g = S.m.goal;
   if (g && g.ore && S.oreMined >= g.ore) endGame(true);
@@ -717,7 +727,8 @@ function draw() {
 
 // ---------- UI ----------
 let toastTimer = 0;
-function toast(msg, sec = 2.2) { const t = $("toast"); t.style.top = ($("hud").hidden ? 20 : $("hud").offsetHeight) + "px"; t.textContent = msg; t.style.opacity = 1; toastTimer = sec; }
+function placeToast() { const tip = $("tip"); $("toast").style.top = (($("hud").hidden ? 20 : $("hud").offsetHeight) + (tip.hidden ? 0 : tip.offsetHeight + 8)) + "px"; }
+function toast(msg, sec = 2.2) { const t = $("toast"); placeToast(); t.textContent = msg; t.style.opacity = 1; toastTimer = sec; }
 function buildBar() {
   const bar = $("bar"); bar.innerHTML = "";
   S.allow.forEach((k, i) => {
@@ -790,13 +801,14 @@ function updateInfo() {
 function updateCtl() {
   if (!S) return;
   $("spdBtn").textContent = S.speed + "×";
-  $("pauseBtn").textContent = S.paused ? "계속" : "일시정지";
+  $("pauseBtn").textContent = "일시정지";
 }
 let hudT = 0;
 function hudTick(dt) {
   if (toastTimer > 0 && (toastTimer -= dt) <= 0) $("toast").style.opacity = 0;
   if (!S || (hudT += dt) < 0.12) return;
-  hudT = 0;
+  if (!S.over && (S.saveT += hudT) > 10) { S.saveT = 0; saveGame(); }
+  hudT = 0; tutTick(); if (toastTimer > 0) placeToast();
   $("oreV").textContent = Math.floor(S.ore);
   $("enV").textContent = Math.floor(S.energy);
   $("enBar").firstElementChild.style.width = (S.energy / S.eCap * 100) + "%";
@@ -823,7 +835,7 @@ $("callBtn").onclick = () => {
 $("spdBtn").onclick = () => { if (!S) return; S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1; updateCtl(); };
 $("muteBtn").onclick = () => { auInit(); setMute(!AU.muted); };
 setMute(AU.muted);
-$("pauseBtn").onclick = () => { if (!S) return; S.paused = !S.paused; updateCtl(); };
+$("pauseBtn").onclick = () => setPause(true);
 
 function loadProg() { try { const p = JSON.parse(store.get("orebelt.progress")); return p && p.stars ? p : { stars: [] }; } catch { return { stars: [] }; } }
 function saveStars(i, n) { const p = loadProg(); p.stars[i] = Math.max(p.stars[i] || 0, n); store.set("orebelt.progress", JSON.stringify(p)); }
@@ -832,14 +844,15 @@ function unlocked(i, p) { return i === 0 || (MISSIONS[i].goal ? (p.stars[i - 1] 
 const starStr = n => "★".repeat(n) + "☆".repeat(3 - n);
 function showMenu() {
   if (S) S.paused = true;
-  toastTimer = 0; $("toast").style.opacity = 0;
+  toastTimer = 0; $("toast").style.opacity = 0; $("tip").hidden = true;
   $("hud").hidden = true; $("bar").hidden = true; $("info").hidden = true;
-  const p = loadProg(), best = store.get("orebelt.best");
+  const p = loadProg(), best = store.get("orebelt.best"), sv = readSave();
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
     <p>소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.</p>
     <div class="prog">획득한 별 <b>${total}</b> / ${maxStars}</div>
+    ${sv ? `<button class="ms resume" id="resume"><b>이어하기</b><span>${MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${MISSIONS[sv.mi].name}, 웨이브 ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
       if (!m.goal) return `<button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` 최고 웨이브 ${best}` : "") : `${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`}</span></button>`;
@@ -852,11 +865,12 @@ function showMenu() {
     별점은 임무 완료 시 코어 내구도로 정해집니다.<br>
     단축키: 숫자 건설, U 업그레이드, Esc 취소, Space 일시정지.</div></div>`;
   o.hidden = false;
-  o.querySelectorAll(".ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
+  o.querySelectorAll(".grid .ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
+  if (sv) $("resume").onclick = loadGame;
 }
 function endGame(win) {
   if (S.over) return;
-  S.over = win ? "win" : "lose"; S.build = null; ghost = null; sfx(win ? "win" : "lose");
+  S.over = win ? "win" : "lose"; S.build = null; ghost = null; clearSave(); renderTip(); sfx(win ? "win" : "lose");
   const coreF = Math.max(0, S.core.hp / S.core.maxHp);
   let stars = 0;
   if (win && S.m.goal) { stars = coreF >= 0.75 ? 3 : coreF >= 0.4 ? 2 : 1; saveStars(S.mi, stars); }
@@ -944,12 +958,85 @@ cv.addEventListener("wheel", e => {
   cam.x = wx - (e.clientX - cw / 2) / cam.z; cam.y = wy - (e.clientY - ch / 2) / cam.z; clampCam();
 }, { passive: false });
 addEventListener("keydown", e => {
-  if (!S || S.over || !$("overlay").hidden) return;
+  if (!S || S.over) return;
+  if (S.paused && $("pResume") && !$("overlay").hidden) {
+    if (e.key === " " || e.key === "Escape") { e.preventDefault(); setPause(false); }
+    return;
+  }
+  if (!$("overlay").hidden) return;
   if (e.key >= "1" && e.key <= "9" && S.allow[+e.key - 1]) { const k = S.allow[+e.key - 1]; setBuild(S.build === k ? null : k); }
   else if (e.key === "u" || e.key === "U") upgrade(S.sel);
-  else if (e.key === "Escape") { setBuild(null); select(null); }
-  else if (e.key === " ") { e.preventDefault(); S.paused = !S.paused; updateCtl(); }
+  else if (e.key === "Escape") { if (S.build || S.sel) { setBuild(null); select(null); } else setPause(true); }
+  else if (e.key === " ") { e.preventDefault(); setPause(true); }
 });
+
+// ---------- save / load ----------
+const SAVE_KEY = "orebelt.save";
+function saveGame() {
+  if (!S || S.over || !S.core || S.core.dead) return;
+  const data = { v: 1, mi: S.mi, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
+    ast: S.asteroids.map(a => [a.x, a.y, a.r, a.r0, a.ore, a.ore0, a.rot, a.pts, a.veins]),
+    b: S.buildings.map(b => [b.type, b.x, b.y, b.hp, b.maxHp, b.prog, b.lvl, b.spent, b.cd]),
+    e: S.enemies.map(e => [e.kind, e.x, e.y, e.hp, e.maxHp, e.hpM, e.cd, e.side, e.spawnT]),
+    cam: [cam.x, cam.y, cam.z] };
+  store.set(SAVE_KEY, JSON.stringify(data));
+}
+function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 1 && MISSIONS[d.mi] ? d : null; } catch { return null; } }
+function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
+function loadGame() {
+  const d = readSave(); if (!d) return;
+  newGame(d.mi, true);
+  Object.assign(S, { t: d.t, ore: d.ore, energy: d.energy, oreMined: d.oreMined, wave: d.wave, waveT: d.waveT, kills: d.kills });
+  S.asteroids = d.ast.map(([x, y, r, r0, ore, ore0, rot, pts, veins]) => ({ x, y, r, r0, ore, ore0, rot, pts, veins }));
+  S.buildings = d.b.map(([type, x, y, hp, maxHp, prog, lvl, spent, cd]) => Object.assign(mkB(type, x, y, prog >= 1), { hp, maxHp, prog, lvl, spent, cd }));
+  S.core = S.buildings.find(b => b.type === "core");
+  if (!S.core) { clearSave(); newGame(d.mi); return; }
+  S.enemies = d.e.map(([k, x, y, hp, maxHp, hpM, cd, side, spawnT]) => Object.assign(mkE(k, x, y, hpM), { hp, maxHp, cd, side, spawnT }));
+  S.dirty = true;
+  [cam.x, cam.y, cam.z] = d.cam;
+  toast(`이어하기: ${S.m.name}`);
+}
+addEventListener("pagehide", saveGame);
+document.addEventListener("visibilitychange", () => { if (document.hidden && S && !S.over) { saveGame(); if (!S.paused && $("overlay").hidden) setPause(true); } });
+
+// ---------- pause ----------
+function setPause(p) {
+  if (!S || S.over) return;
+  S.paused = p; updateCtl();
+  const o = $("overlay");
+  if (!p) { o.hidden = true; return; }
+  saveGame();
+  o.innerHTML = `<div class="card"><h1 style="font-size:36px">일시정지</h1><p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}, 웨이브 ${S.wave}</p>
+    <button class="ms" id="pResume"><b>계속</b></button><button class="ms" id="pRestart"><b>다시 시작</b></button><button class="ms" id="pMenu"><b>임무 선택</b></button>
+    <div class="help">진행 상황은 자동 저장됩니다. 임무 선택 화면에서 이어할 수 있습니다.</div></div>`;
+  o.hidden = false;
+  $("pResume").onclick = () => setPause(false);
+  $("pRestart").onclick = () => newGame(S.mi);
+  $("pMenu").onclick = () => { saveGame(); showMenu(); };
+}
+
+// ---------- tutorial ----------
+const has = k => S.buildings.some(b => b.type === k);
+const TUT = [
+  { text: "아래에서 <b>채굴기</b>를 고르세요.", hint: "miner", done: () => S.build === "miner" || has("miner") },
+  { text: "광석 반점이 있는 소행성 옆, 코어의 파란 범위 안에 놓으세요.", hint: "miner", done: () => has("miner") },
+  { text: "<b>태양광</b>으로 에너지를 늘리세요. 채굴기와 포탑은 에너지를 씁니다.", hint: "solar", done: () => has("solar") },
+  { text: "<b>중계기</b>로 전력망을 넓히면 먼 소행성에도 닿습니다. 소행성은 연결선을 가립니다.", hint: "node", done: () => has("node") },
+  { text: "곧 해적이 옵니다. <b>레이저</b>를 코어 근처에 지으세요.", hint: "laser", done: () => has("laser") },
+  { text: "건물을 누르면 업그레이드와 판매를 할 수 있습니다. 목표는 광석 300입니다.", hint: null, done: () => S.t - S.tutT > 8 },
+];
+function renderTip() {
+  const tip = $("tip"), step = S && S.tut != null && !S.over ? TUT[S.tut] : null;
+  for (const b of $("bar").children) b.classList.toggle("hint", !!step && b.dataset.k === step.hint);
+  if (!step) { tip.hidden = true; return; }
+  tip.innerHTML = `<span>${S.tut + 1}/${TUT.length}</span><div>${step.text}</div><button id="tipSkip">건너뛰기</button>`;
+  tip.style.top = $("hud").offsetHeight + "px"; tip.hidden = false;
+  $("tipSkip").onclick = () => { S.tut = null; renderTip(); };
+}
+function tutTick() {
+  if (!S || S.tut == null || S.over) return;
+  if (TUT[S.tut].done()) { S.tut++; S.tutT = S.t; if (S.tut >= TUT.length) S.tut = null; else sfx("done"); renderTip(); }
+}
 
 // ---------- loop ----------
 let last = performance.now();
