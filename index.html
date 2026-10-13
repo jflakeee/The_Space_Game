@@ -84,18 +84,38 @@ const RELAY = { core: 1, node: 1 };
 const DEF = {
   core:    { name: "코어",   cost: 0,  hp: 600, r: 22, link: 160, build: 0, desc: "기지 본체. 에너지 +2/s. 파괴되면 패배." },
   node:    { name: "중계기", cost: 15, hp: 80,  r: 8,  link: 150, build: 2, desc: "전력망을 확장. 소행성이 연결을 가립니다." },
-  solar:   { name: "태양광", cost: 30, hp: 90,  r: 12, build: 4, gen: 1.6, desc: "에너지 +1.6/s." },
-  miner:   { name: "채굴기", cost: 40, hp: 110, r: 11, build: 5, use: 0.6, rate: 2.2, reach: 70, desc: "가까운 소행성에서 광석 채굴. 에너지 0.6/s." },
-  laser:   { name: "레이저", cost: 60, hp: 140, r: 12, build: 6, range: 140, dps: 22, use: 2.5, desc: "근거리 지속 피해. 사격 중 에너지 2.5/s." },
+  solar:   { name: "태양광", cost: 30, hp: 90,  r: 12, build: 4, gen: 1.6, desc: "에너지 생산." },
+  battery: { name: "배터리", cost: 50, hp: 100, r: 11, build: 4, cap: 100, desc: "에너지 저장량 증가." },
+  miner:   { name: "채굴기", cost: 40, hp: 110, r: 11, build: 5, use: 0.6, rate: 2.2, reach: 70, desc: "가까운 소행성에서 광석 채굴." },
+  laser:   { name: "레이저", cost: 60, hp: 140, r: 12, build: 6, range: 140, dps: 22, use: 2.5, desc: "근거리 지속 피해. 사격 중 에너지 소모." },
   missile: { name: "미사일", cost: 90, hp: 150, r: 13, build: 8, range: 240, dmg: 45, splash: 45, reload: 2.2, ammo: 2, desc: "장거리 범위 피해. 발사당 광석 2." },
-  repair:  { name: "수리소", cost: 70, hp: 120, r: 12, build: 6, range: 130, heal: 12, use: 2, desc: "범위 내 건물 수리. 수리 중 에너지 2/s." },
+  repair:  { name: "수리소", cost: 70, hp: 120, r: 12, build: 6, range: 130, heal: 12, use: 2, desc: "범위 내 건물 수리. 수리 중 에너지 소모." },
 };
-const ORDER = ["node", "solar", "miner", "laser", "missile", "repair"];
+const ORDER = ["node", "solar", "battery", "miner", "laser", "missile", "repair"];
 const EN = {
   scout:  { hp: 40,  spd: 70, r: 7,  range: 80,  dmg: 5,  rof: 0.8, bounty: 4 },
   raider: { hp: 120, spd: 45, r: 10, range: 110, dmg: 12, rof: 1.2, bounty: 8 },
   heavy:  { hp: 420, spd: 28, r: 15, range: 140, dmg: 30, rof: 2.0, bounty: 20 },
+  bomber: { hp: 60,  spd: 85, r: 8,  range: 0,   dmg: 60, rof: 0,   bounty: 6, blast: 45 },
+  shield: { hp: 160, spd: 40, r: 12, range: 100, dmg: 8,  rof: 1.2, bounty: 12, aura: 95 },
+  boss:   { hp: 1800, spd: 18, r: 30, range: 170, dmg: 25, rof: 0.7, bounty: 150 },
 };
+const MAXLV = 3;
+function st(b, k) {
+  const d = DEF[b.type], l = (b.lvl || 1) - 1;
+  switch (k) {
+    case "gen": return b.type === "core" ? 2 + 1.5 * l : d.gen * (1 + 0.5 * l);
+    case "rate": case "dps": case "dmg": case "heal": return d[k] * (1 + 0.5 * l);
+    case "use": return d.use * (1 + 0.25 * l);
+    case "range": return d.range + (b.type === "missile" ? 20 : 15) * l;
+    case "reload": return d.reload * (1 - 0.15 * l);
+    case "cap": return d.cap * (1 + l);
+    case "link": return d.link + 25 * l;
+    case "hp": return Math.round(d.hp * (1 + 0.3 * l));
+  }
+  return d[k];
+}
+const upCost = b => Math.round((DEF[b.type].cost || 100) * (b.lvl === 1 ? 0.8 : 1.2));
 const MISSIONS = [
   { name: "채굴 계약", desc: "광석 1500 채굴. 해적은 약합니다.", goal: { ore: 1500 }, firstWave: 60, gap: 45, diff: 0.8 },
   { name: "방어선",    desc: "웨이브 12개를 버티세요.",          goal: { waves: 12 }, firstWave: 45, gap: 38, diff: 1 },
@@ -161,7 +181,7 @@ let S = null, uid = 1, ghost = null;
 function mkB(type, x, y, built) {
   const d = DEF[type];
   return { id: uid++, type, x, y, r: d.r, maxHp: d.hp, hp: built ? d.hp : d.hp * 0.3, prog: built ? 1 : 0,
-    powered: false, cd: 0, ast: null, beam: null, ang: -Math.PI / 2, dead: false };
+    lvl: 1, spent: d.cost, powered: false, cd: 0, ast: null, beam: null, ang: -Math.PI / 2, dead: false };
 }
 function newGame(mi) {
   const m = MISSIONS[mi];
@@ -183,11 +203,12 @@ function blocked(a, b) { for (const s of S.asteroids) if (segDist(s, a, b) < s.r
 function linkRange(a, b) {
   const ra = RELAY[a.type], rb = RELAY[b.type];
   if (!ra && !rb) return 0;
-  if (ra && rb) return Math.max(DEF[a.type].link, DEF[b.type].link);
-  return ra ? DEF[a.type].link : DEF[b.type].link;
+  if (ra && rb) return Math.max(st(a, "link"), st(b, "link"));
+  return ra ? st(a, "link") : st(b, "link");
 }
 function canLink(a, b) { const R = linkRange(a, b); return R > 0 && dist(a, b) <= R && !blocked(a, b); }
 function rebuildGrid() {
+  if (S.core.dead) return;
   const B = S.buildings, adj = new Map(B.map(b => [b, []]));
   S.links = [];
   for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
@@ -243,7 +264,7 @@ function nearestBuilding(p) {
 function boom(x, y, r, col) { S.fx.push({ x, y, r, col, t: 0, max: 0.5 }); }
 function hurt(e, a) {
   if (e.dead) return;
-  e.hp -= a;
+  e.hp -= e.shielded ? a * 0.5 : a;
   if (e.hp <= 0) { e.dead = true; S.ore += e.bounty; S.kills++; boom(e.x, e.y, e.r * 2.5, COL.hos); }
 }
 function damageB(b, a) {
@@ -263,18 +284,23 @@ function edgePoint() {
   if (s === 2) return { x: rand(0, W), y: H + m };
   return { x: -m, y: rand(0, H) };
 }
+function mkE(k, x, y, hpM) {
+  const d = EN[k];
+  return { kind: k, x, y, r: d.r, hp: d.hp * hpM, maxHp: d.hp * hpM, hpM, cd: rand(0, 1), side: Math.random() < 0.5 ? -1 : 1,
+    bounty: d.bounty, ang: 0, tgt: null, rt: 0, dead: false, spawnT: 6, shielded: false };
+}
 function spawnWave() {
   S.wave++;
   const w = S.wave, hpM = (1 + 0.12 * (w - 1)) * S.m.diff, list = [];
   const add = (k, n) => { for (let i = 0; i < n; i++) list.push(k); };
   add("scout", 2 + Math.floor(w * 0.8)); add("raider", Math.floor(w * 0.6)); add("heavy", Math.max(0, Math.floor((w - 3) / 2)));
+  if (w >= 4) add("bomber", Math.floor((w - 2) / 2));
+  if (w >= 5) add("shield", Math.floor((w - 2) / 3));
+  const boss = w % 5 === 0;
   const groups = w >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
-  list.forEach((k, i) => {
-    const p = pts[i % groups], d = EN[k];
-    S.enemies.push({ kind: k, x: p.x + rand(-60, 60), y: p.y + rand(-60, 60), r: d.r, hp: d.hp * hpM, maxHp: d.hp * hpM,
-      cd: rand(0, 1), side: Math.random() < 0.5 ? -1 : 1, bounty: d.bounty, ang: 0, tgt: null, rt: 0, dead: false });
-  });
-  toast(`웨이브 ${w} 접근 중 (${list.length}기)`);
+  list.forEach((k, i) => { const p = pts[i % groups]; S.enemies.push(mkE(k, p.x + rand(-60, 60), p.y + rand(-60, 60), hpM)); });
+  if (boss) S.enemies.push(mkE("boss", pts[0].x, pts[0].y, hpM));
+  toast(boss ? `웨이브 ${w}: 모함 출현!` : `웨이브 ${w} 접근 중 (${list.length}기)`, boss ? 3 : 2.2);
 }
 function wavesDone() { return S.m.goal && S.m.goal.waves && S.wave >= S.m.goal.waves; }
 
@@ -284,7 +310,7 @@ function update(dt) {
   if (S.dirty) rebuildGrid();
   const use = a => { if (S.energy >= a) { S.energy -= a; S.usedAcc += a; return true; } S.starved = 1; return false; };
 
-  let gen = 2; S.energy += 2 * dt;
+  let gen = st(S.core, "gen"), cap = 150; S.energy += gen * dt;
   for (const b of S.buildings) {
     b.beam = null;
     if (!b.powered) continue;
@@ -295,9 +321,10 @@ function update(dt) {
       if (b.prog >= 1 && RELAY[b.type]) S.dirty = true;
       continue;
     }
-    if (b.type === "solar") { S.energy += d.gen * dt; gen += d.gen; }
+    if (b.type === "solar") { const g = st(b, "gen"); S.energy += g * dt; gen += g; }
+    else if (b.type === "battery") cap += st(b, "cap");
   }
-  S.gen = gen;
+  S.gen = gen; S.eCap = cap;
   S.energy = Math.min(S.eCap, S.energy);
 
   for (const b of S.buildings) {
@@ -307,24 +334,24 @@ function update(dt) {
       if (!b.ast || b.ast.ore <= 0 || b.ast.dead) b.ast = nearAst(b);
       if (b.ast) {
         b.ang = Math.atan2(b.ast.y - b.y, b.ast.x - b.x);
-        if (use(d.use * dt)) {
-          const m = Math.min(b.ast.ore, d.rate * dt);
+        if (use(st(b, "use") * dt)) {
+          const m = Math.min(b.ast.ore, st(b, "rate") * dt);
           b.ast.ore -= m; S.ore += m; S.oreMined += m; b.beam = b.ast;
           b.ast.r = b.ast.r0 * (0.45 + 0.55 * b.ast.ore / b.ast.ore0);
           if (b.ast.ore <= 0) depleted(b.ast);
         }
       }
     } else if (b.type === "laser") {
-      const e = nearestEnemy(b, d.range);
-      if (e) { b.ang = Math.atan2(e.y - b.y, e.x - b.x); if (use(d.use * dt)) { hurt(e, d.dps * dt); b.beam = e; } }
+      const e = nearestEnemy(b, st(b, "range"));
+      if (e) { b.ang = Math.atan2(e.y - b.y, e.x - b.x); if (use(st(b, "use") * dt)) { hurt(e, st(b, "dps") * dt); b.beam = e; } }
     } else if (b.type === "missile") {
       b.cd -= dt;
-      const e = nearestEnemy(b, d.range);
+      const e = nearestEnemy(b, st(b, "range"));
       if (e) {
         b.ang = Math.atan2(e.y - b.y, e.x - b.x);
         if (b.cd <= 0 && S.ore >= d.ammo) {
-          S.ore -= d.ammo; b.cd = d.reload;
-          S.shots.push({ kind: "m", x: b.x, y: b.y, vx: Math.cos(b.ang) * 90, vy: Math.sin(b.ang) * 90, spd: 110, tgt: e, dmg: d.dmg, splash: d.splash, life: 4 });
+          S.ore -= d.ammo; b.cd = st(b, "reload");
+          S.shots.push({ kind: "m", x: b.x, y: b.y, vx: Math.cos(b.ang) * 90, vy: Math.sin(b.ang) * 90, spd: 110, tgt: e, dmg: st(b, "dmg"), splash: d.splash, life: 4 });
         }
       }
     } else if (b.type === "repair") {
@@ -332,15 +359,18 @@ function update(dt) {
       for (const o of S.buildings) {
         if (o === b || o.prog < 1 || o.dead) continue;
         const f = o.hp / o.maxHp;
-        if (f < worst && dist(o, b) <= d.range) { worst = f; t = o; }
+        if (f < worst && dist(o, b) <= st(b, "range")) { worst = f; t = o; }
       }
-      if (t && use(d.use * dt)) { t.hp = Math.min(t.maxHp, t.hp + d.heal * dt); b.beam = t; }
+      if (t && use(st(b, "use") * dt)) { t.hp = Math.min(t.maxHp, t.hp + st(b, "heal") * dt); b.beam = t; }
     }
   }
   S.rateT += dt;
   if (S.rateT >= 1) { S.useRate = S.usedAcc / S.rateT; S.usedAcc = 0; S.rateT = 0; S.starved = Math.max(0, S.starved - 0.5); }
 
-  // enemies
+  // enemies (sim)
+  for (const e of S.enemies) e.shielded = false;
+  for (const sh of S.enemies) if (sh.kind === "shield" && !sh.dead)
+    for (const e of S.enemies) if (e !== sh && Math.hypot(e.x - sh.x, e.y - sh.y) <= EN.shield.aura) e.shielded = true;
   for (const e of S.enemies) {
     if (e.dead) continue;
     const d = EN[e.kind];
@@ -348,6 +378,18 @@ function update(dt) {
     if (!e.tgt) continue;
     const dx = e.tgt.x - e.x, dy = e.tgt.y - e.y, dd = Math.hypot(dx, dy) || 1;
     e.ang = Math.atan2(dy, dx);
+    if (e.kind === "bomber") {
+      e.x += dx / dd * d.spd * dt; e.y += dy / dd * d.spd * dt;
+      if (dd <= e.r + e.tgt.r + 2) {
+        e.dead = true; boom(e.x, e.y, d.blast, COL.hos);
+        for (const b of S.buildings) if (Math.hypot(b.x - e.x, b.y - e.y) <= d.blast + b.r) damageB(b, d.dmg * S.m.diff);
+      }
+      continue;
+    }
+    if (e.kind === "boss" && (e.spawnT -= dt) <= 0) {
+      e.spawnT = 8;
+      for (let i = 0; i < 2; i++) S.enemies.push(mkE("scout", e.x + rand(-30, 30), e.y + rand(-30, 30), e.hpM));
+    }
     if (dd > d.range * 0.85) { e.x += dx / dd * d.spd * dt; e.y += dy / dd * d.spd * dt; }
     else { e.x += -dy / dd * d.spd * 0.3 * dt * e.side; e.y += dx / dd * d.spd * 0.3 * dt * e.side; }
     e.cd -= dt;
@@ -405,7 +447,7 @@ function poly(n, r, rot = 0) {
   ctx.closePath();
 }
 function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); }
-function rangeOf(type) { const d = DEF[type]; return d.range || d.link || d.reach || 0; }
+function rangeOf(b) { const d = DEF[b.type]; return d.range ? st(b, "range") : d.link ? st(b, "link") : d.reach || 0; }
 
 function drawB(b, ghostMode, ok) {
   const d = DEF[b.type];
@@ -424,6 +466,11 @@ function drawB(b, ghostMode, ok) {
       ctx.fillRect(-d.r, -d.r * 0.75, d.r * 2, d.r * 1.5); ctx.strokeRect(-d.r, -d.r * 0.75, d.r * 2, d.r * 1.5);
       ctx.strokeStyle = COL.en; ctx.lineWidth = 1;
       ctx.beginPath(); for (let i = -1; i <= 1; i++) { ctx.moveTo(i * d.r * 0.5, -d.r * 0.75); ctx.lineTo(i * d.r * 0.5, d.r * 0.75); } ctx.moveTo(-d.r, 0); ctx.lineTo(d.r, 0); ctx.stroke(); break;
+    case "battery": {
+      ctx.fillRect(-d.r * 0.7, -d.r, d.r * 1.4, d.r * 2); ctx.strokeRect(-d.r * 0.7, -d.r, d.r * 1.4, d.r * 2);
+      const f = S.eCap ? S.energy / S.eCap : 0;
+      ctx.fillStyle = COL.en; ctx.fillRect(-d.r * 0.45, d.r * 0.8 - d.r * 1.6 * f, d.r * 0.9, d.r * 1.6 * f); break;
+    }
     case "miner":
       circle(0, 0, d.r); ctx.fill(); ctx.stroke(); ctx.rotate(b.ang);
       ctx.beginPath(); ctx.moveTo(d.r + 6, 0); ctx.lineTo(d.r - 3, -5); ctx.lineTo(d.r - 3, 5); ctx.closePath(); ctx.fillStyle = COL.ore; ctx.fill(); break;
@@ -439,6 +486,7 @@ function drawB(b, ghostMode, ok) {
   }
   ctx.restore();
   if (ghostMode) return;
+  for (let i = 1; i < (b.lvl || 1); i++) { circle(b.x - d.r + (i - 1) * 6, b.y - d.r - 5, 2); ctx.fillStyle = COL.ore; ctx.fill(); }
   if (b.prog < 1) {
     ctx.strokeStyle = COL.en; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(b.x, b.y, d.r + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * b.prog); ctx.stroke();
@@ -463,7 +511,7 @@ function draw() {
   // relay coverage in build mode
   if (S.build) {
     ctx.fillStyle = `rgba(${COL.grid},.06)`; ctx.strokeStyle = `rgba(${COL.grid},.2)`; ctx.lineWidth = px;
-    for (const b of S.buildings) if (RELAY[b.type] && b.powered) { circle(b.x, b.y, DEF[b.type].link); ctx.fill(); ctx.stroke(); }
+    for (const b of S.buildings) if (RELAY[b.type] && b.powered) { circle(b.x, b.y, st(b, "link")); ctx.fill(); ctx.stroke(); }
   }
 
   // asteroids
@@ -505,7 +553,7 @@ function draw() {
 
   // selected range
   if (S.sel) {
-    const r = rangeOf(S.sel.type);
+    const r = rangeOf(S.sel);
     ctx.strokeStyle = "rgba(220,230,255,.35)"; ctx.lineWidth = px; ctx.setLineDash([6 * px, 6 * px]);
     if (r) { circle(S.sel.x, S.sel.y, r); ctx.stroke(); }
     ctx.setLineDash([]); ctx.strokeStyle = COL.en; ctx.lineWidth = 2 * px;
@@ -518,10 +566,23 @@ function draw() {
   for (const e of S.enemies) {
     ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang);
     ctx.fillStyle = COL.hos; ctx.strokeStyle = "#ffc2ca"; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(e.r * 1.3, 0); ctx.lineTo(-e.r, -e.r * 0.85); ctx.lineTo(-e.r * 0.5, 0); ctx.lineTo(-e.r, e.r * 0.85); ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    if (e.kind === "heavy") { ctx.fillStyle = "#5a1a2a"; circle(0, 0, e.r * 0.35); ctx.fill(); }
+    if (e.kind === "bomber") {
+      const k = 0.5 + 0.5 * Math.sin(S.t * 12);
+      ctx.fillStyle = `rgb(255,${Math.round(90 + 90 * k)},70)`; poly(4, e.r * 1.25, 0); ctx.fill(); ctx.stroke();
+    } else if (e.kind === "shield") {
+      poly(6, e.r, 0); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#ffe0e5"; circle(0, 0, e.r * 0.3); ctx.fill();
+    } else if (e.kind === "boss") {
+      ctx.beginPath(); ctx.moveTo(e.r * 1.2, 0); ctx.lineTo(e.r * 0.2, -e.r * 0.6); ctx.lineTo(-e.r, -e.r * 0.9); ctx.lineTo(-e.r * 0.7, 0);
+      ctx.lineTo(-e.r, e.r * 0.9); ctx.lineTo(e.r * 0.2, e.r * 0.6); ctx.closePath();
+      ctx.fill(); ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#5a1a2a"; circle(-e.r * 0.1, 0, e.r * 0.3); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.moveTo(e.r * 1.3, 0); ctx.lineTo(-e.r, -e.r * 0.85); ctx.lineTo(-e.r * 0.5, 0); ctx.lineTo(-e.r, e.r * 0.85); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      if (e.kind === "heavy") { ctx.fillStyle = "#5a1a2a"; circle(0, 0, e.r * 0.35); ctx.fill(); }
+    }
     ctx.restore();
+    if (e.kind === "shield") { ctx.strokeStyle = "rgba(255,150,170,.2)"; ctx.lineWidth = 1 / cam.z; circle(e.x, e.y, EN.shield.aura); ctx.stroke(); }
+    if (e.shielded) { ctx.strokeStyle = "rgba(255,205,215,.75)"; ctx.lineWidth = 1.3; circle(e.x, e.y, e.r + 4); ctx.stroke(); }
     if (e.hp < e.maxHp) bar(e.x, e.y - e.r - 7, e.r * 2, e.hp / e.maxHp, COL.hos);
   }
 
@@ -544,7 +605,7 @@ function draw() {
   // ghost
   let reason = "";
   if (S.build && ghost) {
-    const c = checkPlace(S.build, ghost.x, ghost.y), r = rangeOf(S.build);
+    const c = checkPlace(S.build, ghost.x, ghost.y), r = rangeOf({ type: S.build });
     ctx.lineWidth = px * 1.5;
     for (const b of c.links) { ctx.strokeStyle = c.ok ? "rgba(126,224,160,.7)" : "rgba(255,90,110,.6)"; ctx.beginPath(); ctx.moveTo(ghost.x, ghost.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
     if (r) { ctx.strokeStyle = c.ok ? "rgba(220,230,255,.4)" : "rgba(255,90,110,.4)"; ctx.setLineDash([6 * px, 6 * px]); circle(ghost.x, ghost.y, r); ctx.stroke(); ctx.setLineDash([]); }
@@ -579,19 +640,42 @@ function setBuild(k) {
   for (const b of $("bar").children) b.classList.toggle("on", b.dataset.k === k);
   if (k) toast(`${DEF[k].name}: ${DEF[k].desc}`, 3);
 }
+function statLine(b) {
+  const f = (k, n = 1) => st(b, k).toFixed(n);
+  switch (b.type) {
+    case "core": case "solar": return `에너지 +${f("gen")}/s`;
+    case "node": return `연결 거리 ${f("link", 0)}`;
+    case "battery": return `저장량 +${f("cap", 0)}`;
+    case "miner": return `채굴 ${f("rate")}/s, 에너지 ${f("use")}/s`;
+    case "laser": return `${f("dps", 0)} dps, 사거리 ${f("range", 0)}`;
+    case "missile": return `피해 ${f("dmg", 0)}, 사거리 ${f("range", 0)}, 재장전 ${f("reload")}s`;
+    case "repair": return `수리 ${f("heal", 0)}/s, 범위 ${f("range", 0)}`;
+  }
+  return "";
+}
+function upgrade(b) {
+  if (!S || !b || b.dead || b.lvl >= MAXLV || b.prog < 1) return;
+  const c = upCost(b);
+  if (S.ore < c) { toast("광석이 부족합니다"); return; }
+  S.ore -= c; b.spent += c; b.lvl++;
+  const nh = st(b, "hp"); b.hp += nh - b.maxHp; b.maxHp = nh;
+  if (RELAY[b.type]) S.dirty = true;
+  boom(b.x, b.y, b.r * 2.2, COL.en);
+  updateInfo();
+}
 function select(b) {
   if (!S) return;
   S.sel = b;
   const box = $("info");
   if (!b) { box.hidden = true; return; }
   const d = DEF[b.type];
-  box.innerHTML = `<div class="t">${d.name}</div><div id="iS"></div><div id="iH"></div><div class="d">${d.desc}</div>`;
+  box.innerHTML = `<div class="t">${d.name} <span id="iL"></span></div><div id="iS"></div><div id="iH"></div><div id="iX"></div><div class="d">${d.desc}</div>`;
+  const up = document.createElement("button"); up.id = "iU"; up.onclick = () => upgrade(S.sel); box.appendChild(up);
   if (b.type !== "core") {
-    const btn = document.createElement("button");
-    btn.textContent = `판매 (+${Math.floor(d.cost * 0.5)})`;
+    const btn = document.createElement("button"); btn.id = "iSell";
     btn.onclick = () => {
       if (b.dead) return;
-      b.dead = true; S.ore += Math.floor(d.cost * 0.5); S.buildings = S.buildings.filter(x => x !== b); S.dirty = true; select(null);
+      b.dead = true; S.ore += Math.floor(b.spent * 0.5); S.buildings = S.buildings.filter(x => x !== b); S.dirty = true; select(null);
     };
     box.appendChild(btn);
   }
@@ -599,9 +683,15 @@ function select(b) {
 }
 function updateInfo() {
   const b = S && S.sel; if (!b || !$("iS")) return;
+  $("iL").textContent = `Lv ${b.lvl}`;
   $("iS").textContent = b.prog < 1 ? (b.powered ? `건설 중 ${Math.floor(b.prog * 100)}%` : "전력 끊김, 건설 중단") : (b.powered ? "가동 중" : "전력 끊김");
   $("iS").style.color = b.powered ? "" : COL.hos;
   $("iH").textContent = `내구도 ${Math.ceil(b.hp)} / ${b.maxHp}`;
+  $("iX").textContent = statLine(b);
+  const up = $("iU");
+  if (b.lvl >= MAXLV) { up.textContent = "최대 레벨"; up.disabled = true; }
+  else { const c = upCost(b); up.textContent = `업그레이드 (${c})`; up.disabled = b.prog < 1 || S.ore < c; }
+  const sl = $("iSell"); if (sl) sl.textContent = `판매 (+${Math.floor(b.spent * 0.5)})`;
 }
 function updateCtl() {
   if (!S) return;
@@ -650,7 +740,8 @@ function showMenu() {
     <div class="help">드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
     건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 손가락을 끌어 위치를 정하고 떼면 건설.<br>
     건물은 중계기나 코어의 연결선이 닿아야 작동합니다. 소행성은 연결선을 가립니다.<br>
-    단축키: 1–6 건설, Esc 취소, Space 일시정지.</div></div>`;
+    건물을 누르면 업그레이드(최대 Lv 3)와 판매를 할 수 있습니다.<br>
+    단축키: 1–7 건설, U 업그레이드, Esc 취소, Space 일시정지.</div></div>`;
   o.hidden = false;
   o.querySelectorAll(".ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
 }
@@ -737,7 +828,8 @@ cv.addEventListener("wheel", e => {
 }, { passive: false });
 addEventListener("keydown", e => {
   if (!S || S.over || !$("overlay").hidden) return;
-  if (e.key >= "1" && e.key <= "6") { const k = ORDER[+e.key - 1]; setBuild(S.build === k ? null : k); }
+  if (e.key >= "1" && e.key <= "7") { const k = ORDER[+e.key - 1]; setBuild(S.build === k ? null : k); }
+  else if (e.key === "u" || e.key === "U") upgrade(S.sel);
   else if (e.key === "Escape") { setBuild(null); select(null); }
   else if (e.key === " ") { e.preventDefault(); S.paused = !S.paused; updateCtl(); }
 });
