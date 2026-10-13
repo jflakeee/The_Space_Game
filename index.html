@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Ore Belt</title>
+<meta name="theme-color" content="#0c1230">
+<meta name="description" content="소행성 채굴 + 타워 디펜스 웹게임">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&display=swap" rel="stylesheet">
@@ -1052,6 +1060,7 @@ function frame(now) {
 }
 showMenu();
 requestAnimationFrame(frame);
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
 window.__game = { get S() { return S; }, newGame, update, setBuild, tryPlace, checkPlace, upgrade, DEF, MISSIONS, setGhostWorld(x, y) { ghost = { x, y }; } };
 </script>
 </body>

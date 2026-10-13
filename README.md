@@ -26,8 +26,14 @@ GitHub → Settings → Pages → Source: `main` / `/ (root)`
 ## 연출
 WebAudio로 직접 합성한 효과음(외부 파일 없음, HUD에서 끄기 가능), 폭발 파편, 미사일 연기, 채굴 불꽃, 피격 섬광, 화면 흔들림.
 
+## 앱으로 설치 (PWA)
+오프라인 플레이 가능. 첫 접속 후 캐시되며, 업데이트는 다음 실행 때 반영됩니다.
+- Android Chrome: 메뉴 → 홈 화면에 추가 / 앱 설치
+- iOS Safari: 공유 → 홈 화면에 추가
+- PC Chrome/Edge: 주소창 오른쪽 설치 아이콘
+
 ## 구조
-단일 `index.html` (Canvas 2D + 바닐라 JS, 의존성 없음). 로컬: `python -m http.server`
+`index.html` 하나에 게임 전체 (Canvas 2D + 바닐라 JS, 의존성 없음). `sw.js`, `manifest.webmanifest`, 아이콘은 PWA용. 로컬: `python -m http.server`
 
 | 건물 | 비용 | 역할 |
 |---|---|---|
