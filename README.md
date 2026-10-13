@@ -13,6 +13,11 @@ cd The_Space_Game && git add . && git commit -m "Ore Belt" && git push
 ```
 GitHub → Settings → Pages → Source: `main` / `/ (root)`
 
+## 캠페인
+임무 10개 + 무한 모드. 임무를 깨면 다음 임무가 열리고, 무한 모드는 5번 임무 완료 후 열립니다.
+별점은 완료 시 코어 내구도 기준(75% 이상 ★3, 40% 이상 ★2). 진행 상황은 브라우저에 저장됩니다.
+건물은 임무 1–4에 걸쳐 단계적으로 해금됩니다.
+
 ## 구조
 단일 `index.html` (Canvas 2D + 바닐라 JS, 의존성 없음). 로컬: `python -m http.server`
 

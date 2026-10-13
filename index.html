@@ -45,12 +45,16 @@ button:disabled{opacity:.4;cursor:default}
   padding:6px 12px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
 #overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,12,34,.8);padding:20px;overflow:auto}
 #overlay[hidden]{display:none}
-.card{max-width:420px;width:100%}
+.card{max-width:480px;width:100%;margin:auto}
 h1{font-size:52px;line-height:1;margin:0 0 10px;font-weight:600;letter-spacing:-.01em}
 h1 i{font-style:normal;color:var(--ore)}
 .card p{color:var(--dim);margin:0 0 20px;line-height:1.6}
 .ms{display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 14px}
 .ms b{display:block;font-size:16px}.ms span{color:var(--dim);font-size:13px}
+.ms em{display:block;font-style:normal;color:var(--ore);font-size:13px;letter-spacing:2px;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid .ms{margin:0}.ms.wide{grid-column:1/-1}
+.prog{color:var(--dim);font-size:13px;margin:-8px 0 12px}.prog b{color:var(--ore)}
+.stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
 .stats dt{color:var(--dim)}.stats dd{margin:0}
@@ -116,10 +120,19 @@ function st(b, k) {
   return d[k];
 }
 const upCost = b => Math.round((DEF[b.type].cost || 100) * (b.lvl === 1 ? 0.8 : 1.2));
+const ALL = null;
 const MISSIONS = [
-  { name: "채굴 계약", desc: "광석 1500 채굴. 해적은 약합니다.", goal: { ore: 1500 }, firstWave: 60, gap: 45, diff: 0.8 },
-  { name: "방어선",    desc: "웨이브 12개를 버티세요.",          goal: { waves: 12 }, firstWave: 45, gap: 38, diff: 1 },
-  { name: "무한 벨트", desc: "끝없는 웨이브. 얼마나 버틸까요?",   goal: null,          firstWave: 40, gap: 32, diff: 1.1 },
+  { name: "첫 채굴",      desc: "광석 300 채굴. 기본을 익히세요.",       goal: { ore: 300 },   firstWave: 90, gap: 60, diff: 0.6,  ore: 150, allow: ["node", "solar", "miner", "laser"] },
+  { name: "전력 부족",    desc: "광석 800 채굴. 배터리 해금.",           goal: { ore: 800 },   firstWave: 70, gap: 50, diff: 0.7,  ast: 22, allow: ["node", "solar", "battery", "miner", "laser"] },
+  { name: "버티기",       desc: "웨이브 6개 생존. 수리소 해금.",         goal: { waves: 6 },   firstWave: 60, gap: 42, diff: 0.8,  allow: ["node", "solar", "battery", "miner", "laser", "repair"] },
+  { name: "미사일 시험",  desc: "웨이브 8개 생존. 미사일 해금.",         goal: { waves: 8 },   firstWave: 55, gap: 40, diff: 0.9,  allow: ALL },
+  { name: "광맥 쟁탈",    desc: "광석 2000 채굴. 습격이 잦습니다.",      goal: { ore: 2000 },  firstWave: 45, gap: 35, diff: 0.9,  allow: ALL },
+  { name: "자폭 경보",    desc: "웨이브 10개 생존. 자폭선이 일찍 옵니다.", goal: { waves: 10 }, firstWave: 50, gap: 38, diff: 1,    w0: 2, allow: ALL },
+  { name: "희박한 벨트",  desc: "광석 1500 채굴. 소행성이 적습니다.",    goal: { ore: 1500 },  firstWave: 50, gap: 38, diff: 1,    ast: 14, allow: ALL },
+  { name: "실드 함대",    desc: "웨이브 12개 생존. 실드함 다수.",        goal: { waves: 12 },  firstWave: 45, gap: 36, diff: 1.05, w0: 3, allow: ALL },
+  { name: "고립 기지",    desc: "광석 2500 채굴. 적은 자금으로 시작.",   goal: { ore: 2500 },  firstWave: 40, gap: 30, diff: 1.1,  ore: 80, allow: ALL },
+  { name: "최후의 방어선", desc: "웨이브 15개 생존.",                    goal: { waves: 15 },  firstWave: 45, gap: 34, diff: 1.2,  allow: ALL },
+  { name: "무한 벨트",    desc: "끝없는 웨이브. 얼마나 버틸까요?",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  allow: ALL },
 ];
 const COL = { bg: "#0c1230", ore: "#e8a951", en: "#6fd6ec", grid: "92,143,224", hos: "#ff5a6e", heal: "#7ee0a0",
   struct: "#cfd8ec", fill: "#1b2450", rock: "#37364f", rockEdge: "#57557a" };
@@ -163,7 +176,7 @@ function makeAst(x, y, r) {
     pts: Array.from({ length: n }, () => rand(0.8, 1.12)),
     veins: Array.from({ length: 3 + (Math.random() * 3 | 0) }, () => { const a = rand(0, 6.28), d = rand(0, 0.55); return [Math.cos(a) * d, Math.sin(a) * d, rand(0.08, 0.16)]; }) };
 }
-function genAsteroids() {
+function genAsteroids(count = 30) {
   const A = [], cx = W / 2, cy = H / 2;
   const add = (x, y, r) => {
     if (x < r + 30 || x > W - r - 30 || y < r + 30 || y > H - r - 30) return;
@@ -172,7 +185,7 @@ function genAsteroids() {
     A.push(makeAst(x, y, r));
   };
   for (let k = 0; A.length < 4 && k < 500; k++) { const g = rand(0, 6.28), d = rand(140, 230); add(cx + Math.cos(g) * d, cy + Math.sin(g) * d, rand(20, 30)); }
-  for (let k = 0; A.length < 30 && k < 4000; k++) add(rand(0, W), rand(0, H), rand(16, 48));
+  for (let k = 0; A.length < count && k < 4000; k++) add(rand(0, W), rand(0, H), rand(16, 48));
   return A;
 }
 
@@ -185,8 +198,8 @@ function mkB(type, x, y, built) {
 }
 function newGame(mi) {
   const m = MISSIONS[mi];
-  S = { mi, m, t: 0, ore: 120, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave,
-    asteroids: genAsteroids(), buildings: [], enemies: [], shots: [], fx: [], links: [],
+  S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave,
+    asteroids: genAsteroids(m.ast || 30), buildings: [], enemies: [], shots: [], fx: [], links: [],
     dirty: true, speed: 1, paused: false, over: null, kills: 0, build: null, sel: null,
     gen: 0, usedAcc: 0, rateT: 0, useRate: 0, starved: 0 };
   S.core = mkB("core", W / 2, H / 2, true);
@@ -195,7 +208,7 @@ function newGame(mi) {
   ghost = null;
   $("overlay").hidden = true; $("hud").hidden = false; $("bar").hidden = false; $("info").hidden = true;
   buildBar(); updateCtl();
-  toast("중계기로 전력망을 넓히고, 소행성 옆에 채굴기를 지으세요", 5);
+  toast(mi === 0 ? "중계기로 전력망을 넓히고, 소행성 옆에 채굴기를 지으세요" : `${mi + 1 > 10 ? "" : mi + 1 + ". "}${m.name}: ${m.desc}`, 5);
 }
 
 // ---------- grid ----------
@@ -291,13 +304,13 @@ function mkE(k, x, y, hpM) {
 }
 function spawnWave() {
   S.wave++;
-  const w = S.wave, hpM = (1 + 0.12 * (w - 1)) * S.m.diff, list = [];
+  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.12 * (w - 1)) * S.m.diff, list = [];
   const add = (k, n) => { for (let i = 0; i < n; i++) list.push(k); };
-  add("scout", 2 + Math.floor(w * 0.8)); add("raider", Math.floor(w * 0.6)); add("heavy", Math.max(0, Math.floor((w - 3) / 2)));
-  if (w >= 4) add("bomber", Math.floor((w - 2) / 2));
-  if (w >= 5) add("shield", Math.floor((w - 2) / 3));
+  add("scout", 2 + Math.floor(c * 0.8)); add("raider", Math.floor(c * 0.6)); add("heavy", Math.max(0, Math.floor((c - 3) / 2)));
+  if (c >= 4) add("bomber", Math.floor((c - 2) / 2));
+  if (c >= 5) add("shield", Math.floor((c - 2) / 3));
   const boss = w % 5 === 0;
-  const groups = w >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
+  const groups = c >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
   list.forEach((k, i) => { const p = pts[i % groups]; S.enemies.push(mkE(k, p.x + rand(-60, 60), p.y + rand(-60, 60), hpM)); });
   if (boss) S.enemies.push(mkE("boss", pts[0].x, pts[0].y, hpM));
   toast(boss ? `웨이브 ${w}: 모함 출현!` : `웨이브 ${w} 접근 중 (${list.length}기)`, boss ? 3 : 2.2);
@@ -626,7 +639,7 @@ let toastTimer = 0;
 function toast(msg, sec = 2.2) { const t = $("toast"); t.style.top = ($("hud").hidden ? 20 : $("hud").offsetHeight) + "px"; t.textContent = msg; t.style.opacity = 1; toastTimer = sec; }
 function buildBar() {
   const bar = $("bar"); bar.innerHTML = "";
-  ORDER.forEach((k, i) => {
+  S.allow.forEach((k, i) => {
     const d = DEF[k], b = document.createElement("button");
     b.className = "bb"; b.dataset.k = k; b.title = `${d.desc} (단축키 ${i + 1})`;
     b.innerHTML = `<span class="n">${d.name}</span><span class="c">${d.cost}</span>`;
@@ -635,7 +648,7 @@ function buildBar() {
   });
 }
 function setBuild(k) {
-  if (!S || S.over) return;
+  if (!S || S.over || (k && !S.allow.includes(k))) return;
   S.build = k; ghost = null; if (k) select(null);
   for (const b of $("bar").children) b.classList.toggle("on", b.dataset.k === k);
   if (k) toast(`${DEF[k].name}: ${DEF[k].desc}`, 3);
@@ -729,35 +742,56 @@ $("callBtn").onclick = () => {
 $("spdBtn").onclick = () => { if (!S) return; S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1; updateCtl(); };
 $("pauseBtn").onclick = () => { if (!S) return; S.paused = !S.paused; updateCtl(); };
 
+function loadProg() { try { const p = JSON.parse(store.get("orebelt.progress")); return p && p.stars ? p : { stars: [] }; } catch { return { stars: [] }; } }
+function saveStars(i, n) { const p = loadProg(); p.stars[i] = Math.max(p.stars[i] || 0, n); store.set("orebelt.progress", JSON.stringify(p)); }
+const ENDLESS_UNLOCK = 4;
+function unlocked(i, p) { return i === 0 || (MISSIONS[i].goal ? (p.stars[i - 1] || 0) > 0 : (p.stars[ENDLESS_UNLOCK] || 0) > 0); }
+const starStr = n => "★".repeat(n) + "☆".repeat(3 - n);
 function showMenu() {
-  if (S) { S.paused = true; }
+  if (S) S.paused = true;
+  toastTimer = 0; $("toast").style.opacity = 0;
   $("hud").hidden = true; $("bar").hidden = true; $("info").hidden = true;
-  const best = store.get("orebelt.best");
+  const p = loadProg(), best = store.get("orebelt.best");
+  const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
     <p>소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.</p>
-    ${MISSIONS.map((m, i) => `<button class="ms" data-i="${i}"><b>${m.name}</b><span>${m.desc}${!m.goal && best ? ` 최고 웨이브 ${best}` : ""}</span></button>`).join("")}
+    <div class="prog">획득한 별 <b>${total}</b> / ${maxStars}</div>
+    <div class="grid">${MISSIONS.map((m, i) => {
+      const ok = unlocked(i, p), n = p.stars[i] || 0;
+      if (!m.goal) return `<button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` 최고 웨이브 ${best}` : "") : `${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`}</span></button>`;
+      return `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : "잠김"}</span><em>${starStr(n)}</em></button>`;
+    }).join("")}</div>
     <div class="help">드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
     건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 손가락을 끌어 위치를 정하고 떼면 건설.<br>
     건물은 중계기나 코어의 연결선이 닿아야 작동합니다. 소행성은 연결선을 가립니다.<br>
     건물을 누르면 업그레이드(최대 Lv 3)와 판매를 할 수 있습니다.<br>
-    단축키: 1–7 건설, U 업그레이드, Esc 취소, Space 일시정지.</div></div>`;
+    별점은 임무 완료 시 코어 내구도로 정해집니다.<br>
+    단축키: 숫자 건설, U 업그레이드, Esc 취소, Space 일시정지.</div></div>`;
   o.hidden = false;
   o.querySelectorAll(".ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
 }
 function endGame(win) {
   if (S.over) return;
   S.over = win ? "win" : "lose"; S.build = null; ghost = null;
+  const coreF = Math.max(0, S.core.hp / S.core.maxHp);
+  let stars = 0;
+  if (win && S.m.goal) { stars = coreF >= 0.75 ? 3 : coreF >= 0.4 ? 2 : 1; saveStars(S.mi, stars); }
   if (!S.m.goal) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
   const mm = Math.floor(S.t / 60), ss = String(Math.floor(S.t % 60)).padStart(2, "0");
+  const next = S.mi + 1, hasNext = win && MISSIONS[next] && MISSIONS[next].goal;
   setTimeout(() => {
     const o = $("overlay");
     const title = win ? "임무 완료" : (S.m.goal ? "코어가 파괴되었습니다" : `웨이브 ${S.wave}까지 버텼습니다`);
-    o.innerHTML = `<div class="card"><h1 style="font-size:36px">${title}</h1><p>${S.m.name}</p>
-      <dl class="stats"><dt>시간</dt><dd>${mm}:${ss}</dd><dt>채굴한 광석</dt><dd>${Math.floor(S.oreMined)}</dd>
-      <dt>격파</dt><dd>${S.kills}</dd><dt>웨이브</dt><dd>${S.wave}</dd></dl>
+    o.innerHTML = `<div class="card"><h1 style="font-size:36px">${title}</h1>
+      ${stars ? `<div class="stars">${starStr(stars)}</div>` : ""}
+      <p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}</p>
+      <dl class="stats"><dt>시간</dt><dd>${mm}:${ss}</dd><dt>코어 내구도</dt><dd>${Math.round(coreF * 100)}%</dd>
+      <dt>채굴한 광석</dt><dd>${Math.floor(S.oreMined)}</dd><dt>격파</dt><dd>${S.kills}</dd><dt>웨이브</dt><dd>${S.wave}</dd></dl>
+      ${hasNext ? `<button class="ms" id="next"><b>다음 임무: ${MISSIONS[next].name}</b></button>` : ""}
       <button class="ms" id="again"><b>다시 하기</b></button><button class="ms" id="tomenu"><b>임무 선택</b></button></div>`;
-    o.hidden = false; $("info").hidden = true;
+    o.hidden = false; $("info").hidden = true; toastTimer = 0; $("toast").style.opacity = 0;
+    if (hasNext) $("next").onclick = () => newGame(next);
     $("again").onclick = () => newGame(S.mi); $("tomenu").onclick = showMenu;
   }, 900);
 }
@@ -828,7 +862,7 @@ cv.addEventListener("wheel", e => {
 }, { passive: false });
 addEventListener("keydown", e => {
   if (!S || S.over || !$("overlay").hidden) return;
-  if (e.key >= "1" && e.key <= "7") { const k = ORDER[+e.key - 1]; setBuild(S.build === k ? null : k); }
+  if (e.key >= "1" && e.key <= "9" && S.allow[+e.key - 1]) { const k = S.allow[+e.key - 1]; setBuild(S.build === k ? null : k); }
   else if (e.key === "u" || e.key === "U") upgrade(S.sel);
   else if (e.key === "Escape") { setBuild(null); select(null); }
   else if (e.key === " ") { e.preventDefault(); S.paused = !S.paused; updateCtl(); }
