@@ -72,6 +72,10 @@ h1 i{font-style:normal;color:var(--ore)}
 @keyframes pulse{50%{box-shadow:0 0 0 3px rgba(232,169,81,.4)}}
 .ms.daily{border-color:rgba(183,156,255,.6)}.ms.daily b{color:#d2c4ff}
 .ms.resume{border-color:var(--en);margin-bottom:12px}
+.cx{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.cx img{width:56px;height:56px;flex:0 0 56px;background:rgba(27,36,80,.6);border-radius:8px}
+.cx b{display:block;font-size:15px}.cx small{color:var(--ore);font-size:12px;font-variant-numeric:tabular-nums}.cx p{margin:4px 0 0;font-size:13px;line-height:1.5}
+.card h3{margin:20px 0 4px;font-size:14px;color:var(--en);font-weight:600}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
@@ -362,7 +366,7 @@ function musicTick() {
 }
 
 // ---------- canvas / camera ----------
-const cv = $("c"), ctx = cv.getContext("2d");
+const cv = $("c"); let ctx = cv.getContext("2d");
 let cw, ch, dpr;
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -551,8 +555,10 @@ function spawnWave() {
   const boss = w % 5 === 0;
   const groups = c >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
   list.forEach((k, i) => { const p = pts[i % groups]; S.enemies.push(mkE(k, p.x + rand(-60, 60), p.y + rand(-60, 60), hpM)); });
+  const fresh = [...new Set(list.concat(boss ? ["boss"] : []))].find(k => { try { return !(JSON.parse(store.get("orebelt.seen")) || []).includes(k); } catch { return true; } });
   if (boss) S.enemies.push(mkE("boss", pts[0].x, pts[0].y, hpM));
   sfx("alarm");
+  if (fresh) { seenHint(fresh); return; }
   toast(boss ? L(`웨이브 ${w}: 모함 출현!`, `Wave ${w}: mothership incoming!`) : L(`웨이브 ${w} 접근 중 (${list.length}기)`, `Wave ${w} incoming (${list.length} ships)`), boss ? 3 : 2.2);
 }
 function wavesDone() { return S.m.goal && S.m.goal.waves && S.wave >= S.m.goal.waves; }
@@ -725,7 +731,7 @@ function drawB(b, ghostMode, ok) {
   switch (b.type) {
     case "core":
       poly(6, d.r, Math.PI / 6); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = COL.en; poly(6, d.r * 0.55, Math.PI / 6 + S.t * 0.4); ctx.stroke();
+      ctx.strokeStyle = COL.en; poly(6, d.r * 0.55, Math.PI / 6 + (S ? S.t : 0) * 0.4); ctx.stroke();
       circle(0, 0, 3); ctx.fillStyle = COL.en; ctx.fill(); break;
     case "node":
       poly(4, d.r, 0); ctx.fill(); ctx.strokeStyle = ghostMode && !ok ? COL.hos : `rgb(${COL.grid})`; ctx.stroke();
@@ -736,7 +742,7 @@ function drawB(b, ghostMode, ok) {
       ctx.beginPath(); for (let i = -1; i <= 1; i++) { ctx.moveTo(i * d.r * 0.5, -d.r * 0.75); ctx.lineTo(i * d.r * 0.5, d.r * 0.75); } ctx.moveTo(-d.r, 0); ctx.lineTo(d.r, 0); ctx.stroke(); break;
     case "battery": {
       ctx.fillRect(-d.r * 0.7, -d.r, d.r * 1.4, d.r * 2); ctx.strokeRect(-d.r * 0.7, -d.r, d.r * 1.4, d.r * 2);
-      const f = S.eCap ? S.energy / S.eCap : 0;
+      const f = S && S.eCap ? S.energy / S.eCap : 0.7;
       ctx.fillStyle = COL.en; ctx.fillRect(-d.r * 0.45, d.r * 0.8 - d.r * 1.6 * f, d.r * 0.9, d.r * 1.6 * f); break;
     }
     case "miner":
@@ -851,22 +857,7 @@ function draw() {
   // enemies
   for (const e of S.enemies) {
     ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang);
-    ctx.fillStyle = COL.hos; ctx.strokeStyle = "#ffc2ca"; ctx.lineWidth = 1.2;
-    if (e.kind === "bomber") {
-      const k = 0.5 + 0.5 * Math.sin(S.t * 12);
-      poly(4, e.r * 1.25, 0); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = `rgba(255,220,120,${0.35 + 0.65 * k})`; circle(0, 0, e.r * 0.45); ctx.fill();
-    } else if (e.kind === "shield") {
-      poly(6, e.r, 0); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#ffe0e5"; circle(0, 0, e.r * 0.3); ctx.fill();
-    } else if (e.kind === "boss") {
-      ctx.beginPath(); ctx.moveTo(e.r * 1.2, 0); ctx.lineTo(e.r * 0.2, -e.r * 0.6); ctx.lineTo(-e.r, -e.r * 0.9); ctx.lineTo(-e.r * 0.7, 0);
-      ctx.lineTo(-e.r, e.r * 0.9); ctx.lineTo(e.r * 0.2, e.r * 0.6); ctx.closePath();
-      ctx.fill(); ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#5a1a2a"; circle(-e.r * 0.1, 0, e.r * 0.3); ctx.fill();
-    } else {
-      ctx.beginPath(); ctx.moveTo(e.r * 1.3, 0); ctx.lineTo(-e.r, -e.r * 0.85); ctx.lineTo(-e.r * 0.5, 0); ctx.lineTo(-e.r, e.r * 0.85); ctx.closePath();
-      ctx.fill(); ctx.stroke();
-      if (e.kind === "heavy") { ctx.fillStyle = "#5a1a2a"; circle(0, 0, e.r * 0.35); ctx.fill(); }
-    }
+    drawEnemyBody(e, S.t);
     ctx.restore();
     if (e.kind === "shield") { ctx.strokeStyle = "rgba(255,150,170,.2)"; ctx.lineWidth = 1 / cam.z; circle(e.x, e.y, EN.shield.aura); ctx.stroke(); }
     if (e.slowF < 1) { ctx.strokeStyle = COL.slow; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); circle(e.x, e.y, e.r + 7); ctx.stroke(); ctx.setLineDash([]); }
@@ -1056,6 +1047,7 @@ function showMenu() {
       return `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
+    <button class="ms" id="cxBtn"><b>${L("도감", "Codex")}</b><span>${L("건물과 적 정보, 상대법", "Buildings, enemies and counters")}</span></button>
     <div class="help">${L(`드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
     건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 손가락을 끌어 위치를 정하고 떼면 건설.<br>
     건물은 중계기나 코어의 연결선이 닿아야 작동합니다. 소행성은 연결선을 가립니다.<br>
@@ -1073,6 +1065,7 @@ function showMenu() {
   o.querySelectorAll(".grid .ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
   if (sv) $("resume").onclick = loadGame;
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
+  $("cxBtn").onclick = () => showCodex(showMenu);
   $("diffBtn").onclick = () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); showMenu(); };
   $("langBtn").onclick = () => setLang(LANG === "en" ? "ko" : "en");
 }
@@ -1218,11 +1211,12 @@ function setPause(p) {
   if (!p) { o.hidden = true; return; }
   saveGame(); toastTimer = 0; $("toast").style.opacity = 0;
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("일시정지", "Paused")}</h1><p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}, ${L("웨이브", "wave")} ${S.wave}</p>
-    <button class="ms" id="pResume"><b>${L("계속", "Resume")}</b></button><button class="ms" id="pRestart"><b>${L("다시 시작", "Restart")}</b></button><button class="ms" id="pMenu"><b>${L("임무 선택", "Missions")}</b></button>
+    <button class="ms" id="pResume"><b>${L("계속", "Resume")}</b></button><button class="ms" id="pRestart"><b>${L("다시 시작", "Restart")}</b></button><button class="ms" id="pCodex"><b>${L("도감", "Codex")}</b></button><button class="ms" id="pMenu"><b>${L("임무 선택", "Missions")}</b></button>
     <div class="help">${L("진행 상황은 자동 저장됩니다. 임무 선택 화면에서 이어할 수 있습니다.", "Progress is saved automatically. Continue from the mission screen.")}</div></div>`;
   o.hidden = false;
   $("pResume").onclick = () => setPause(false);
   $("pRestart").onclick = () => newGame(S.mi);
+  $("pCodex").onclick = () => showCodex(() => setPause(true));
   $("pMenu").onclick = () => { saveGame(); showMenu(); };
 }
 
@@ -1247,6 +1241,65 @@ function renderTip() {
 function tutTick() {
   if (!S || S.tut == null || S.over) return;
   if (TUT[S.tut].done()) { S.tut++; S.tutT = S.t; if (S.tut >= TUT.length) S.tut = null; else sfx("done"); renderTip(); }
+}
+
+// ---------- codex ----------
+const EINFO = {
+  scout:  { n: () => L("정찰기", "Scout"),   d: () => L("빠르고 약합니다. 수가 많으니 속사 레이저로 정리하세요.", "Fast and fragile, but numerous. Rapid lasers clean them up.") },
+  raider: { n: () => L("약탈선", "Raider"),  d: () => L("주력 전투함. 레이저 사거리 근처에서 교전합니다.", "The backbone of a raid. Fights near laser range.") },
+  heavy:  { n: () => L("중형선", "Heavy"),   d: () => L("느리지만 단단하고 사거리가 깁니다. 저격 레이저나 미사일로 상대하세요.", "Slow, tough and long-ranged. Counter with Lance lasers or missiles.") },
+  bomber: { n: () => L("자폭선", "Bomber"),  d: () => L("가장 가까운 건물로 돌진해 범위 폭발합니다. 감속탑과 외곽 레이저로 접근 전에 처치하세요.", "Rams the nearest building and explodes. Slow fields and outer lasers stop it early.") },
+  shield: { n: () => L("실드함", "Shield Ship"), d: () => L("주변 아군이 받는 피해를 절반으로 줄입니다. 실드함 자신은 보호받지 못하니 먼저 노리세요.", "Halves damage taken by nearby allies, but not itself. Kill it first.") },
+  boss:   { n: () => L("모함", "Mothership"), d: () => L("5웨이브마다 등장. 체력이 매우 높고 정찰기를 계속 내보냅니다. 저격 레이저가 효과적입니다.", "Every 5th wave. Huge HP, keeps launching scouts. Lance lasers excel.") },
+};
+function drawEnemyBody(e, t) {
+  ctx.fillStyle = COL.hos; ctx.strokeStyle = "#ffc2ca"; ctx.lineWidth = 1.2;
+  if (e.kind === "bomber") {
+    const k = 0.5 + 0.5 * Math.sin(t * 12);
+    poly(4, e.r * 1.25, 0); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = `rgba(255,220,120,${0.35 + 0.65 * k})`; circle(0, 0, e.r * 0.45); ctx.fill();
+  } else if (e.kind === "shield") {
+    poly(6, e.r, 0); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#ffe0e5"; circle(0, 0, e.r * 0.3); ctx.fill();
+  } else if (e.kind === "boss") {
+    ctx.beginPath(); ctx.moveTo(e.r * 1.2, 0); ctx.lineTo(e.r * 0.2, -e.r * 0.6); ctx.lineTo(-e.r, -e.r * 0.9); ctx.lineTo(-e.r * 0.7, 0);
+    ctx.lineTo(-e.r, e.r * 0.9); ctx.lineTo(e.r * 0.2, e.r * 0.6); ctx.closePath();
+    ctx.fill(); ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#5a1a2a"; circle(-e.r * 0.1, 0, e.r * 0.3); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.moveTo(e.r * 1.3, 0); ctx.lineTo(-e.r, -e.r * 0.85); ctx.lineTo(-e.r * 0.5, 0); ctx.lineTo(-e.r, e.r * 0.85); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    if (e.kind === "heavy") { ctx.fillStyle = "#5a1a2a"; circle(0, 0, e.r * 0.35); ctx.fill(); }
+  }
+}
+function iconURL(fn, size = 56) {
+  const c = document.createElement("canvas"); c.width = c.height = size * 2;
+  const old = ctx; ctx = c.getContext("2d");
+  try { ctx.setTransform(2, 0, 0, 2, size, size); fn(); } finally { ctx = old; }
+  return c.toDataURL();
+}
+function bIcon(type, br) { const r = DEF[type].r, sc = Math.min(1.6, 20 / r); return iconURL(() => { ctx.scale(sc, sc); drawB({ type, x: 0, y: 0, r, ang: -Math.PI / 4, prog: 1, br, lvl: 1, powered: true, hp: 1, maxHp: 1 }, false); }); }
+function eIcon(kind) { const r = EN[kind].r, sc = Math.min(1.8, 18 / r); return iconURL(() => { ctx.scale(sc, sc); ctx.rotate(-Math.PI / 2); drawEnemyBody({ kind, r }, 0.2); }); }
+function showCodex(back) {
+  const o = $("overlay"), row = (img, title, sub, body) => `<div class="cx"><img src="${img}" alt=""><div><b>${title}</b><small>${sub}</small><p>${body}</p></div></div>`;
+  const bRows = ["core", ...ORDER].map(k => { const d = DEF[k];
+    const stat = [d.cost ? `${L("비용", "Cost")} ${d.cost}` : "", `${L("내구도", "HP")} ${d.hp}`, d.range ? `${L("사거리", "Range")} ${d.range}` : "", d.link ? `${L("연결", "Links")} ${LINK_CAP[k]}` : ""].filter(Boolean).join(" · ");
+    return row(bIcon(k), d.name, stat, d.desc); }).join("")
+    + row(bIcon("laser", "rapid"), `${DEF.laser.name} (${BR.rapid()})`, "Lv 2+", BRD.rapid())
+    + row(bIcon("laser", "lance"), `${DEF.laser.name} (${BR.lance()})`, "Lv 2+", BRD.lance());
+  const eRows = Object.keys(EN).map(k => { const d = EN[k];
+    const stat = [`${L("체력", "HP")} ${d.hp}`, `${L("속도", "Speed")} ${d.spd}`, d.range ? `${L("사거리", "Range")} ${d.range}` : L("근접 자폭", "Melee blast")].join(" · ");
+    return row(eIcon(k), EINFO[k].n(), stat, EINFO[k].d()); }).join("");
+  o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("도감", "Codex")}</h1>
+    <h3>${L("건물", "Buildings")}</h3>${bRows}<h3>${L("적", "Enemies")}</h3>${eRows}
+    <p class="help">${L("적 체력은 웨이브와 난이도에 따라 늘어납니다.", "Enemy HP scales with wave and difficulty.")}</p>
+    <button class="ms" id="cxBack"><b>${L("돌아가기", "Back")}</b></button></div>`;
+  o.hidden = false; o.scrollTop = 0;
+  $("cxBack").onclick = back;
+}
+function seenHint(kind) {
+  let seen = []; try { seen = JSON.parse(store.get("orebelt.seen")) || []; } catch {}
+  if (seen.includes(kind)) return;
+  seen.push(kind); store.set("orebelt.seen", JSON.stringify(seen));
+  toast(`${L("새 적", "New enemy")}: ${EINFO[kind].n()}. ${EINFO[kind].d()}`, 6);
 }
 
 // ---------- loop ----------
