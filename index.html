@@ -100,7 +100,7 @@ const DEF = {
   solar:   { name: "태양광", cost: 30, hp: 90,  r: 12, build: 4, gen: 1.6, desc: "에너지 생산." },
   battery: { name: "배터리", cost: 50, hp: 100, r: 11, build: 4, cap: 100, desc: "에너지 저장량 증가." },
   miner:   { name: "채굴기", cost: 40, hp: 110, r: 11, build: 5, use: 0.6, rate: 2.2, reach: 70, desc: "가까운 소행성에서 광석 채굴." },
-  laser:   { name: "레이저", cost: 60, hp: 140, r: 12, build: 6, range: 140, dps: 22, use: 2.5, desc: "근거리 지속 피해. 사격 중 에너지 소모." },
+  laser:   { name: "레이저", cost: 60, hp: 140, r: 12, build: 6, range: 150, dps: 25, use: 2.5, desc: "근거리 지속 피해. 사격 중 에너지 소모." },
   missile: { name: "미사일", cost: 90, hp: 150, r: 13, build: 8, range: 240, dmg: 45, splash: 45, reload: 2.2, ammo: 2, desc: "장거리 범위 피해. 발사당 광석 2." },
   repair:  { name: "수리소", cost: 70, hp: 120, r: 12, build: 6, range: 130, heal: 12, use: 2, desc: "범위 내 건물 수리. 수리 중 에너지 소모." },
 };
@@ -109,9 +109,9 @@ const EN = {
   scout:  { hp: 40,  spd: 70, r: 7,  range: 80,  dmg: 5,  rof: 0.8, bounty: 4 },
   raider: { hp: 120, spd: 45, r: 10, range: 110, dmg: 12, rof: 1.2, bounty: 8 },
   heavy:  { hp: 420, spd: 28, r: 15, range: 140, dmg: 30, rof: 2.0, bounty: 20 },
-  bomber: { hp: 60,  spd: 85, r: 8,  range: 0,   dmg: 60, rof: 0,   bounty: 6, blast: 45 },
+  bomber: { hp: 60,  spd: 85, r: 8,  range: 0,   dmg: 45, rof: 0,   bounty: 6, blast: 45 },
   shield: { hp: 160, spd: 40, r: 12, range: 100, dmg: 8,  rof: 1.2, bounty: 12, aura: 95 },
-  boss:   { hp: 1800, spd: 18, r: 30, range: 170, dmg: 25, rof: 0.7, bounty: 150 },
+  boss:   { hp: 1400, spd: 18, r: 30, range: 170, dmg: 25, rof: 0.7, bounty: 150 },
 };
 const MAXLV = 3;
 function st(b, k) {
@@ -136,9 +136,9 @@ const MISSIONS = [
   { name: "버티기",       desc: "웨이브 6개 생존. 수리소 해금.",         goal: { waves: 6 },   firstWave: 60, gap: 42, diff: 0.8,  allow: ["node", "solar", "battery", "miner", "laser", "repair"] },
   { name: "미사일 시험",  desc: "웨이브 8개 생존. 미사일 해금.",         goal: { waves: 8 },   firstWave: 55, gap: 40, diff: 0.9,  allow: ALL },
   { name: "광맥 쟁탈",    desc: "광석 2000 채굴. 습격이 잦습니다.",      goal: { ore: 2000 },  firstWave: 45, gap: 35, diff: 0.9,  allow: ALL },
-  { name: "자폭 경보",    desc: "웨이브 10개 생존. 자폭선이 일찍 옵니다.", goal: { waves: 10 }, firstWave: 50, gap: 38, diff: 1,    w0: 2, allow: ALL },
   { name: "희박한 벨트",  desc: "광석 1500 채굴. 소행성이 적습니다.",    goal: { ore: 1500 },  firstWave: 50, gap: 38, diff: 1,    ast: 14, allow: ALL },
-  { name: "실드 함대",    desc: "웨이브 12개 생존. 실드함 다수.",        goal: { waves: 12 },  firstWave: 45, gap: 36, diff: 1.05, w0: 3, allow: ALL },
+  { name: "자폭 경보",    desc: "웨이브 10개 생존. 자폭선이 일찍 옵니다.", goal: { waves: 10 }, firstWave: 55, gap: 38, diff: 1,    w0: 1, allow: ALL },
+  { name: "실드 함대",    desc: "웨이브 12개 생존. 실드함 다수.",        goal: { waves: 12 },  firstWave: 60, gap: 36, diff: 1,    w0: 2, allow: ALL },
   { name: "고립 기지",    desc: "광석 2500 채굴. 적은 자금으로 시작.",   goal: { ore: 2500 },  firstWave: 40, gap: 30, diff: 1.1,  ore: 80, allow: ALL },
   { name: "최후의 방어선", desc: "웨이브 15개 생존.",                    goal: { waves: 15 },  firstWave: 45, gap: 34, diff: 1.2,  allow: ALL },
   { name: "무한 벨트",    desc: "끝없는 웨이브. 얼마나 버틸까요?",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  allow: ALL },
@@ -278,7 +278,7 @@ function mkB(type, x, y, built) {
 function newGame(mi, silent = false) {
   const m = MISSIONS[mi];
   S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave,
-    asteroids: genAsteroids(m.ast || 30), buildings: [], enemies: [], shots: [], fx: [], parts: [], shake: 0, links: [],
+    asteroids: genAsteroids(m.ast || 30), buildings: [], enemies: [], shots: [], fx: [], parts: [], shake: 0, links: [], lost: 0,
     dirty: true, speed: 1, paused: false, over: null, kills: 0, build: null, sel: null,
     gen: 0, usedAcc: 0, rateT: 0, useRate: 0, starved: 0 };
   S.core = mkB("core", W / 2, H / 2, true);
@@ -368,7 +368,7 @@ function damageB(b, a) {
   if (b.dead) return;
   b.hp -= a; b.flash = 0.12; sfx("hit");
   if (b.hp <= 0) {
-    b.dead = true; S.dirty = true; boom(b.x, b.y, b.r * 3, COL.ore); shake(b === S.core ? 14 : 5); sfx("boom");
+    b.dead = true; S.dirty = true; boom(b.x, b.y, b.r * 3, COL.ore); shake(b === S.core ? 14 : 5); sfx("boom"); if (b !== S.core) S.lost++;
     if (S.sel === b) select(null);
     if (b === S.core) endGame(false);
   }
@@ -388,10 +388,10 @@ function mkE(k, x, y, hpM) {
 }
 function spawnWave() {
   S.wave++;
-  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.12 * (w - 1)) * S.m.diff, list = [];
+  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.08 * (w - 1)) * S.m.diff, list = [];
   const add = (k, n) => { for (let i = 0; i < n; i++) list.push(k); };
-  add("scout", 2 + Math.floor(c * 0.8)); add("raider", Math.floor(c * 0.6)); add("heavy", Math.max(0, Math.floor((c - 3) / 2)));
-  if (c >= 4) add("bomber", Math.floor((c - 2) / 2));
+  add("scout", 2 + Math.floor(c * 0.8)); add("raider", Math.floor(c * 0.5)); add("heavy", Math.max(0, Math.floor((c - 2) / 3)));
+  if (c >= 4) add("bomber", Math.floor((c - 1) / 3));
   if (c >= 5) add("shield", Math.floor((c - 2) / 3));
   const boss = w % 5 === 0;
   const groups = c >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
@@ -864,7 +864,7 @@ function showMenu() {
     건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 손가락을 끌어 위치를 정하고 떼면 건설.<br>
     건물은 중계기나 코어의 연결선이 닿아야 작동합니다. 소행성은 연결선을 가립니다.<br>
     건물을 누르면 업그레이드(최대 Lv 3)와 판매를 할 수 있습니다.<br>
-    별점은 임무 완료 시 코어 내구도로 정해집니다.<br>
+    별점은 잃은 건물 수로 정해집니다(3개 이하 ★3, 10개 이하 ★2).<br>
     단축키: 숫자 건설, U 업그레이드, Esc 취소, Space 일시정지.</div></div>`;
   o.hidden = false;
   o.querySelectorAll(".grid .ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
@@ -875,7 +875,7 @@ function endGame(win) {
   S.over = win ? "win" : "lose"; S.build = null; ghost = null; clearSave(); renderTip(); sfx(win ? "win" : "lose");
   const coreF = Math.max(0, S.core.hp / S.core.maxHp);
   let stars = 0;
-  if (win && S.m.goal) { stars = coreF >= 0.75 ? 3 : coreF >= 0.4 ? 2 : 1; saveStars(S.mi, stars); }
+  if (win && S.m.goal) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; saveStars(S.mi, stars); }
   if (!S.m.goal) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
   const mm = Math.floor(S.t / 60), ss = String(Math.floor(S.t % 60)).padStart(2, "0");
   const next = S.mi + 1, hasNext = win && MISSIONS[next] && MISSIONS[next].goal;
@@ -885,7 +885,7 @@ function endGame(win) {
     o.innerHTML = `<div class="card"><h1 style="font-size:36px">${title}</h1>
       ${stars ? `<div class="stars">${starStr(stars)}</div>` : ""}
       <p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}</p>
-      <dl class="stats"><dt>시간</dt><dd>${mm}:${ss}</dd><dt>코어 내구도</dt><dd>${Math.round(coreF * 100)}%</dd>
+      <dl class="stats"><dt>시간</dt><dd>${mm}:${ss}</dd><dt>코어 내구도</dt><dd>${Math.round(coreF * 100)}%</dd><dt>잃은 건물</dt><dd>${S.lost}</dd>
       <dt>채굴한 광석</dt><dd>${Math.floor(S.oreMined)}</dd><dt>격파</dt><dd>${S.kills}</dd><dt>웨이브</dt><dd>${S.wave}</dd></dl>
       ${hasNext ? `<button class="ms" id="next"><b>다음 임무: ${MISSIONS[next].name}</b></button>` : ""}
       <button class="ms" id="again"><b>다시 하기</b></button><button class="ms" id="tomenu"><b>임무 선택</b></button></div>`;
@@ -1052,7 +1052,7 @@ function frame(now) {
 }
 showMenu();
 requestAnimationFrame(frame);
-window.__game = { get S() { return S; }, newGame, update, setBuild, tryPlace, setGhostWorld(x, y) { ghost = { x, y }; } };
+window.__game = { get S() { return S; }, newGame, update, setBuild, tryPlace, checkPlace, upgrade, DEF, MISSIONS, setGhostWorld(x, y) { ghost = { x, y }; } };
 </script>
 </body>
 </html>
