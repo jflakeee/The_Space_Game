@@ -76,6 +76,10 @@ h1 i{font-style:normal;color:var(--ore)}
 .cx img{width:56px;height:56px;flex:0 0 56px;background:rgba(27,36,80,.6);border-radius:8px}
 .cx b{display:block;font-size:15px}.cx small{color:var(--ore);font-size:12px;font-variant-numeric:tabular-nums}.cx p{margin:4px 0 0;font-size:13px;line-height:1.5}
 .card h3{margin:20px 0 4px;font-size:14px;color:var(--en);font-weight:600}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.setrow button{min-width:120px}
+body.big #hud{font-size:15px}body.big .res b{font-size:21px}body.big #hud button{padding:8px 12px;font-size:14px}
+body.big .bb{min-width:92px;padding:9px 12px;font-size:16px}body.big #info{width:250px;font-size:15px}body.big #tip{font-size:15px}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
@@ -299,7 +303,7 @@ function burst(x, y, n, col, spd = 120, life = 0.6, size = 2) {
     S.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, max: rand(0.5, 1) * life, col, s: rand(0.6, 1.4) * size });
   }
 }
-function shake(a) { if (S) S.shake = Math.min(14, S.shake + a); }
+function shake(a) { if (S && SET.shake) S.shake = Math.min(14, S.shake + a); }
 function stepFx(dt) {
   for (const f of S.fx) f.t += dt;
   S.fx = S.fx.filter(f => f.t < f.max);
@@ -774,7 +778,7 @@ function drawB(b, ghostMode, ok) {
     ctx.beginPath(); ctx.arc(b.x, b.y, d.r + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * b.prog); ctx.stroke();
   }
   if (!b.powered) { circle(b.x + d.r * 0.8, b.y - d.r * 0.8, 3.5); ctx.fillStyle = COL.hos; ctx.fill(); }
-  if (b.hp < b.maxHp - 0.5 && b.prog >= 1) bar(b.x, b.y + d.r + 6, d.r * 2, b.hp / b.maxHp, COL.heal);
+  if ((SET.bars || b.hp < b.maxHp - 0.5) && b.prog >= 1 && b.maxHp > 1) bar(b.x, b.y + d.r + 6, d.r * 2, b.hp / b.maxHp, COL.heal);
 }
 function bar(x, y, w, f, col) {
   ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(x - w / 2, y, w, 3);
@@ -862,7 +866,7 @@ function draw() {
     if (e.kind === "shield") { ctx.strokeStyle = "rgba(255,150,170,.2)"; ctx.lineWidth = 1 / cam.z; circle(e.x, e.y, EN.shield.aura); ctx.stroke(); }
     if (e.slowF < 1) { ctx.strokeStyle = COL.slow; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); circle(e.x, e.y, e.r + 7); ctx.stroke(); ctx.setLineDash([]); }
     if (e.shielded) { ctx.strokeStyle = "rgba(255,205,215,.75)"; ctx.lineWidth = 1.3; circle(e.x, e.y, e.r + 4); ctx.stroke(); }
-    if (e.hp < e.maxHp) bar(e.x, e.y - e.r - 7, e.r * 2, e.hp / e.maxHp, COL.hos);
+    if (SET.bars || e.hp < e.maxHp) bar(e.x, e.y - e.r - 7, e.r * 2, e.hp / e.maxHp, COL.hos);
   }
 
   // shots
@@ -995,7 +999,7 @@ function hudTick(dt) {
   if (toastTimer > 0 && (toastTimer -= dt) <= 0) $("toast").style.opacity = 0;
   if (!S || (hudT += dt) < 0.12) return;
   if (!S.over && (S.saveT += hudT) > 10) { S.saveT = 0; saveGame(); }
-  hudT = 0; tutTick(); if (toastTimer > 0) placeToast();
+  hudT = 0; tutTick(); if (!$("tip").hidden) $("tip").style.top = $("hud").offsetHeight + "px"; if (toastTimer > 0) placeToast();
   $("oreV").textContent = Math.floor(S.ore);
   $("enV").textContent = Math.floor(S.energy);
   $("enBar").firstElementChild.style.width = (S.energy / S.eCap * 100) + "%";
@@ -1039,7 +1043,7 @@ function showMenu() {
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
     <p>${L("소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.", "Build a base in the middle of an asteroid belt. Lay a power grid, mine ore, and hold off the pirates.")}</p>
-    <div class="prog">${L("획득한 별", "Stars")} <b>${total}</b> / ${maxStars} <button id="diffBtn" class="lang">${[L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard")][diffIdx]}</button><button id="langBtn" class="lang">${L("English", "한국어")}</button></div>
+    <div class="prog">${L("획득한 별", "Stars")} <b>${total}</b> / ${maxStars} <button id="diffBtn" class="lang">${[L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard")][diffIdx]}</button><button id="setBtn" class="lang">${L("설정", "Settings")}</button></div>
     ${sv ? `<button class="ms resume" id="resume"><b>${L("이어하기", "Continue")}</b><span>${sv.mi >= 0 && MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${sv.mi === -1 ? L("일일 도전", "Daily Challenge") : MISSIONS[sv.mi].name}, ${L("웨이브", "wave")} ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
@@ -1054,20 +1058,20 @@ function showMenu() {
     건물을 누르면 업그레이드(최대 Lv 3)와 판매를 할 수 있습니다.<br>
     별점은 잃은 건물 수로 정해집니다(3개 이하 ★3, 10개 이하 ★2, 쉬움은 최대 ★2). 짓는 중인 건물과 중계기는 판매 시 전액 환불.<br>
     레이저는 Lv 2에서 속사/저격으로 갈라집니다. 중계기는 8개, 코어는 20개까지 연결됩니다.<br>
-    단축키: 숫자 건설, U 업그레이드(R/L 레이저 분기), Space 정지(정지 중에도 건설 가능), Esc 취소/메뉴.`, `Drag to pan; scroll wheel or pinch to zoom.<br>
+    단축키: 숫자 건설, U 업그레이드(R/L 레이저 분기), Space 정지(정지 중에도 건설 가능), Esc 취소/메뉴, WASD·방향키 이동, +/- 확대.`, `Drag to pan; scroll wheel or pinch to zoom.<br>
     Pick a building, then tap the map to build. On touch, drag to position and release to build.<br>
     Buildings only work when linked to a relay or the core. Asteroids block links.<br>
     Tap a building to upgrade it (up to Lv 3) or sell it.<br>
     Stars depend on buildings lost (3 or fewer ★3, 10 or fewer ★2; Easy caps at ★2). Unfinished buildings and relays sell for a full refund.<br>
     Lasers branch into Rapid or Lance at Lv 2. Relays hold 8 links, the core 20.<br>
-    Keys: numbers build, U upgrade (R/L laser branch), Space stop (you can still build), Esc cancel/menu.`)}</div></div>`;
+    Keys: numbers build, U upgrade (R/L laser branch), Space stop (you can still build), Esc cancel/menu, WASD/arrows pan, +/- zoom.`)}</div></div>`;
   o.hidden = false;
   o.querySelectorAll(".grid .ms").forEach(b => b.onclick = () => newGame(+b.dataset.i));
   if (sv) $("resume").onclick = loadGame;
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
   $("cxBtn").onclick = () => showCodex(showMenu);
   $("diffBtn").onclick = () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); showMenu(); };
-  $("langBtn").onclick = () => setLang(LANG === "en" ? "ko" : "en");
+  $("setBtn").onclick = () => showSettings(showMenu);
 }
 function endGame(win) {
   if (S.over) return;
@@ -1211,12 +1215,13 @@ function setPause(p) {
   if (!p) { o.hidden = true; return; }
   saveGame(); toastTimer = 0; $("toast").style.opacity = 0;
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("일시정지", "Paused")}</h1><p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}, ${L("웨이브", "wave")} ${S.wave}</p>
-    <button class="ms" id="pResume"><b>${L("계속", "Resume")}</b></button><button class="ms" id="pRestart"><b>${L("다시 시작", "Restart")}</b></button><button class="ms" id="pCodex"><b>${L("도감", "Codex")}</b></button><button class="ms" id="pMenu"><b>${L("임무 선택", "Missions")}</b></button>
+    <button class="ms" id="pResume"><b>${L("계속", "Resume")}</b></button><button class="ms" id="pRestart"><b>${L("다시 시작", "Restart")}</b></button><button class="ms" id="pCodex"><b>${L("도감", "Codex")}</b></button><button class="ms" id="pSet"><b>${L("설정", "Settings")}</b></button><button class="ms" id="pMenu"><b>${L("임무 선택", "Missions")}</b></button>
     <div class="help">${L("진행 상황은 자동 저장됩니다. 임무 선택 화면에서 이어할 수 있습니다.", "Progress is saved automatically. Continue from the mission screen.")}</div></div>`;
   o.hidden = false;
   $("pResume").onclick = () => setPause(false);
   $("pRestart").onclick = () => newGame(S.mi);
   $("pCodex").onclick = () => showCodex(() => setPause(true));
+  $("pSet").onclick = () => showSettings(() => setPause(true));
   $("pMenu").onclick = () => { saveGame(); showMenu(); };
 }
 
@@ -1302,17 +1307,61 @@ function seenHint(kind) {
   toast(`${L("새 적", "New enemy")}: ${EINFO[kind].n()}. ${EINFO[kind].d()}`, 6);
 }
 
+// ---------- settings ----------
+const SET = (() => { let v = {}; try { v = JSON.parse(store.get("orebelt.settings")) || {}; } catch {}
+  const rm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return Object.assign({ shake: rm ? 0 : 1, ui: 0, bars: 0 }, v); })();
+function saveSet() { store.set("orebelt.settings", JSON.stringify(SET)); document.body.classList.toggle("big", !!SET.ui); }
+function showSettings(back) {
+  const o = $("overlay");
+  const opts = [
+    ["lang", L("언어", "Language"), () => LANG === "en" ? "English" : "한국어", () => setLang(LANG === "en" ? "ko" : "en")],
+    ["diff", L("난이도", "Difficulty"), () => [L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard")][diffIdx], () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); }],
+    ["snd", L("소리", "Sound"), () => [L("전체 켬", "All on"), L("효과음만", "Effects only"), L("끔", "Off")][soundMode], () => { auInit(); setSound((soundMode + 1) % 3); }],
+    ["shk", L("화면 흔들림", "Screen shake"), () => SET.shake ? L("켬", "On") : L("끔", "Off"), () => { SET.shake ^= 1; saveSet(); }],
+    ["ui", L("UI 크기", "UI size"), () => SET.ui ? L("크게", "Large") : L("보통", "Normal"), () => { SET.ui ^= 1; saveSet(); }],
+    ["bar", L("체력바", "Health bars"), () => SET.bars ? L("항상 표시", "Always") : L("피해 시", "When damaged"), () => { SET.bars ^= 1; saveSet(); }],
+  ];
+  o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("설정", "Settings")}</h1>
+    ${opts.map(([id, label]) => `<div class="setrow"><span>${label}</span><button id="set_${id}"></button></div>`).join("")}
+    <p class="help">${L("난이도 변경은 다음 판부터 적용됩니다.", "Difficulty changes apply from the next game.")}</p>
+    <button class="ms" id="setReset"><b>${L("진행 초기화", "Reset progress")}</b><span>${L("별, 기록, 저장된 판을 모두 지웁니다", "Clears stars, records and saved game")}</span></button>
+    <button class="ms" id="setBack"><b>${L("돌아가기", "Back")}</b></button></div>`;
+  o.hidden = false;
+  const refresh = () => opts.forEach(([id, , val]) => { $("set_" + id).textContent = val(); });
+  opts.forEach(([id, , , act]) => { $("set_" + id).onclick = () => { act(); refresh(); }; });
+  refresh();
+  $("setReset").onclick = () => {
+    if (!confirm(L("정말 모든 진행을 지울까요?", "Really erase all progress?"))) return;
+    for (const k of ["orebelt.progress", "orebelt.best", "orebelt.daily", "orebelt.seen", SAVE_KEY]) try { localStorage.removeItem(k); } catch {}
+    toast(L("진행을 초기화했습니다", "Progress reset"));
+  };
+  $("setBack").onclick = back;
+}
+const keys = new Set();
+addEventListener("keydown", e => { if (/^(Arrow|[wasdWASD]$)/.test(e.key)) { keys.add(e.key.toLowerCase()); if (e.key.startsWith("Arrow")) e.preventDefault(); }
+  else if ((e.key === "+" || e.key === "=" || e.key === "-") && S && $("overlay").hidden) { cam.z = clamp(cam.z * (e.key === "-" ? 0.85 : 1.18), ZMIN, ZMAX); } });
+addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
+addEventListener("blur", () => keys.clear());
+function keyPan(dt) {
+  if (!S || !keys.size || !$("overlay").hidden) return;
+  const h = (keys.has("d") || keys.has("arrowright")) - (keys.has("a") || keys.has("arrowleft"));
+  const v = (keys.has("s") || keys.has("arrowdown")) - (keys.has("w") || keys.has("arrowup"));
+  cam.x += h * 600 * dt / cam.z; cam.y += v * 600 * dt / cam.z; clampCam();
+}
+
 // ---------- loop ----------
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (S && !S.paused && !S.over) { let t = dt * S.speed; while (t > 1e-6) { const s = Math.min(t, 0.025); update(s); t -= s; if (S.over) break; } }
   else if (S && S.over) stepFx(dt);
+  keyPan(dt);
   if (S && S.shake > 0) S.shake = Math.max(0, S.shake - dt * 30);
   draw(); hudTick(dt); musicTick();
   requestAnimationFrame(frame);
 }
-applyStaticText();
+applyStaticText(); saveSet();
 showMenu();
 requestAnimationFrame(frame);
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
