@@ -65,7 +65,7 @@ h1 i{font-style:normal;color:var(--ore)}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
 .stats dt{color:var(--dim)}.stats dd{margin:0}
-@media (max-width:520px){h1{font-size:42px}.res b{font-size:16px}#info{bottom:80px;width:190px}}
+@media (max-width:520px){#hud{font-size:12px;gap:4px 12px}#hud button{padding:5px 8px;font-size:12px}h1{font-size:42px}.res b{font-size:16px}#info{bottom:80px;width:190px}}
 </style>
 </head>
 <body>
@@ -95,7 +95,7 @@ h1 i{font-style:normal;color:var(--ore)}
 const W = 1800, H = 1200, ZMIN = 0.3, ZMAX = 2.5;
 const RELAY = { core: 1, node: 1 };
 const DEF = {
-  core:    { name: "코어",   cost: 0,  hp: 600, r: 22, link: 160, build: 0, desc: "기지 본체. 에너지 +2/s. 파괴되면 패배." },
+  core:    { name: "코어",   cost: 0,  hp: 600, r: 22, link: 160, build: 0, desc: "기지 본체. 에너지를 생산하며, 파괴되면 패배." },
   node:    { name: "중계기", cost: 15, hp: 80,  r: 8,  link: 150, build: 2, desc: "전력망을 확장. 소행성이 연결을 가립니다." },
   solar:   { name: "태양광", cost: 30, hp: 90,  r: 12, build: 4, gen: 1.6, desc: "에너지 생산." },
   battery: { name: "배터리", cost: 50, hp: 100, r: 11, build: 4, cap: 100, desc: "에너지 저장량 증가." },
@@ -283,7 +283,7 @@ function newGame(mi, silent = false) {
     gen: 0, usedAcc: 0, rateT: 0, useRate: 0, starved: 0 };
   S.core = mkB("core", W / 2, H / 2, true);
   S.buildings.push(S.core);
-  cam.x = W / 2; cam.y = H / 2; cam.z = clamp(Math.min(cw / 760, ch / 600), 0.45, 1.4);
+  cam.x = W / 2; cam.y = H / 2; cam.z = clamp(Math.min(cw / 560, ch / 640), 0.5, 1.4);
   ghost = null;
   $("overlay").hidden = true; $("hud").hidden = false; $("bar").hidden = false; $("info").hidden = true;
   S.tut = !silent && mi === 0 ? 0 : null; S.tutT = 0; S.saveT = 0;
@@ -670,7 +670,8 @@ function draw() {
     ctx.fillStyle = COL.hos; ctx.strokeStyle = "#ffc2ca"; ctx.lineWidth = 1.2;
     if (e.kind === "bomber") {
       const k = 0.5 + 0.5 * Math.sin(S.t * 12);
-      ctx.fillStyle = `rgb(255,${Math.round(90 + 90 * k)},70)`; poly(4, e.r * 1.25, 0); ctx.fill(); ctx.stroke();
+      poly(4, e.r * 1.25, 0); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = `rgba(255,220,120,${0.35 + 0.65 * k})`; circle(0, 0, e.r * 0.45); ctx.fill();
     } else if (e.kind === "shield") {
       poly(6, e.r, 0); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#ffe0e5"; circle(0, 0, e.r * 0.3); ctx.fill();
     } else if (e.kind === "boss") {
@@ -721,7 +722,8 @@ function draw() {
     const sx = (ghost.x - cam.x) * cam.z + cw / 2, sy = (ghost.y - cam.y) * cam.z + ch / 2;
     ctx.font = '12px "Chakra Petch", system-ui, sans-serif'; ctx.textAlign = "center";
     ctx.fillStyle = "rgba(14,20,52,.85)"; const w = ctx.measureText(reason).width + 12;
-    ctx.fillRect(sx - w / 2, sy + 22, w, 20); ctx.fillStyle = COL.hos; ctx.fillText(reason, sx, sy + 36);
+    const tx = clamp(sx, w / 2 + 6, cw - w / 2 - 6), ty = clamp(sy + 22, 6, ch - 110);
+    ctx.fillRect(tx - w / 2, ty, w, 20); ctx.fillStyle = COL.hos; ctx.fillText(reason, tx, ty + 14);
   }
 }
 
@@ -1005,7 +1007,7 @@ function setPause(p) {
   S.paused = p; updateCtl();
   const o = $("overlay");
   if (!p) { o.hidden = true; return; }
-  saveGame();
+  saveGame(); toastTimer = 0; $("toast").style.opacity = 0;
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">일시정지</h1><p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}, 웨이브 ${S.wave}</p>
     <button class="ms" id="pResume"><b>계속</b></button><button class="ms" id="pRestart"><b>다시 시작</b></button><button class="ms" id="pMenu"><b>임무 선택</b></button>
     <div class="help">진행 상황은 자동 저장됩니다. 임무 선택 화면에서 이어할 수 있습니다.</div></div>`;
