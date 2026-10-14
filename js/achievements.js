@@ -3,7 +3,7 @@
 // ---------- achievements & stats ----------
 const STATS = (() => { let v = {}; try { v = JSON.parse(store.get("orebelt.stats")) || {}; } catch {}
   return Object.assign({ games: 0, wins: 0, ore: 0, kills: 0, built: 0, upgrades: 0, lost: 0, time: 0, boss: 0, dread: 0 }, v); })();
-const saveStats = () => store.set("orebelt.stats", JSON.stringify(STATS));
+const saveStats = () => { if (S && S.replay) return; store.set("orebelt.stats", JSON.stringify(STATS)); };
 const ACH_GOT = new Set((() => { try { return JSON.parse(store.get("orebelt.ach")) || []; } catch { return []; } })());
 const totalStars = () => loadProg().stars.reduce((a, b) => a + (b || 0), 0);
 const ACH = [
@@ -28,7 +28,7 @@ const ACH = [
   ["hard", "강철 의지", "Iron Will", "어려움으로 10번 임무 완료", "Complete mission 10 on Hard", null],
 ];
 function ach(id) {
-  if (ACH_GOT.has(id)) return;
+  if (ACH_GOT.has(id) || (S && S.replay)) return;
   const a = ACH.find(x => x[0] === id); if (!a) return;
   ACH_GOT.add(id); store.set("orebelt.ach", JSON.stringify([...ACH_GOT]));
   if (S) (S.newAch = S.newAch || []).push(L(a[1], a[2]));

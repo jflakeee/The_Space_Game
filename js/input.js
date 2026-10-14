@@ -72,7 +72,7 @@ cv.addEventListener("wheel", e => {
   cam.x = wx - (e.clientX - cw / 2) / cam.z; cam.y = wy - (e.clientY - ch / 2) / cam.z; clampCam();
 }, { passive: false });
 addEventListener("keydown", e => {
-  if (!S || S.over || S.editor) return;
+  if (!S || S.over || S.editor || S.replay) return;
   if (S.paused && $("pResume") && !$("overlay").hidden) {
     if (e.key === " " || e.key === "Escape") { e.preventDefault(); setPause(false); }
     return;

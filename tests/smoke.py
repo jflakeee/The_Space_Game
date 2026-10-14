@@ -111,6 +111,18 @@ def t_briefing(page):
     page.wait_for_selector("#brGo")
 
 
+def t_replay_deterministic(page):
+    r = page.evaluate("""()=>{const G=window.__game;G.newGame(3);const S=G.S;S.paused=true;
+      const H=()=>{const s=G.S;return [s.tick,Math.round(s.ore*100),s.kills,s.wave,s.buildings.length,s.enemies.length,Math.round(s.enemies.reduce((a,e)=>a+e.x+e.y+e.hp,0)),s.lost].join(',')};
+      const place=t=>{for(let i=0;i<200;i++){const a=Math.random()*6.283,d=40+Math.random()*140,x=900+Math.cos(a)*d,y=600+Math.sin(a)*d;if(G.checkPlace(t,x,y).ok){G.setBuild(t);G.setGhostWorld(x,y);G.tryPlace();G.setBuild(null);return}}};
+      const plan=['laser','solar','laser','arc','repair','decoy'];
+      for(let k=0;k<4000&&!S.over;k++){if(k%300===0&&plan.length)place(plan.shift());if(k===1000)G.doAction({k:'c'});if(k===2000){const l=S.buildings.find(b=>b.type==='laser'&&b.prog>=1);if(l)G.upgrade(l,'lance');}G.simStep();}
+      const h1=H(),rec={v:1,mi:S.mi,m:null,name:S.m.name,seed:S.seed,dIdx:S.dIdx,inst:0,tut0:S.tut0,ticks:S.tick,res:'x',wave:S.wave,t:0,kills:0,a:S.rec.slice()};
+      G.startReplay(replayFromCode(replayCode(rec)));const R=G.S;R.paused=true;while(R.tick<rec.ticks&&!R.over)G.simStep();
+      return [h1,H(),rec.a.length]}""")
+    assert r[0] == r[1] and r[2] > 0, r
+
+
 def t_end_and_menu(page):
     page.evaluate("()=>{const G=window.__game;G.newGame(0);G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
     page.wait_for_selector("#tomenu", timeout=3000)
@@ -121,7 +133,7 @@ def t_end_and_menu(page):
     assert page.is_visible(".ms[data-i='0']")
 
 
-TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_end_and_menu]
+TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_end_and_menu]
 
 
 def main():

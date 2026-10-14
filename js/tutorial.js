@@ -16,9 +16,10 @@ function renderTip() {
   if (!step) { tip.hidden = true; return; }
   tip.innerHTML = `<span>${S.tut + 1}/${TUT.length}</span><div>${step.text}</div><button id="tipSkip">${L("건너뛰기", "Skip")}</button>`;
   tip.style.top = $("hud").offsetHeight + "px"; tip.hidden = false;
-  $("tipSkip").onclick = () => { S.tut = null; renderTip(); };
+  $("tipSkip").onclick = () => { doAction({ k: "tut", v: null }); renderTip(); };
 }
 function tutTick() {
   if (!S || S.tut == null || S.over) return;
-  if (TUT[S.tut].done()) { S.tut++; S.tutT = S.t; if (S.tut >= TUT.length) S.tut = null; else sfx("done"); renderTip(); }
+  if (S.replay) return;
+  if (TUT[S.tut].done()) { const nv = S.tut + 1 >= TUT.length ? null : S.tut + 1; doAction({ k: "tut", v: nv }); S.tutT = S.t; if (nv != null) sfx("done"); renderTip(); }
 }

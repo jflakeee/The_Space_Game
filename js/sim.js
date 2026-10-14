@@ -135,6 +135,11 @@ function drawHazardsOver() {
 
 // ---------- update ----------
 function update(dt) {
+  const o = Math.random; if (S.rng) Math.random = S.rng;
+  try { updateCore(dt); } finally { Math.random = o; }
+  S.tick = (S.tick || 0) + 1;
+}
+function updateCore(dt) {
   S.t += dt; STATS.time += dt;
   if (S.dirty) rebuildGrid();
   const use = a => { if (S.energy >= a) { S.energy -= a; S.usedAcc += a; return true; } S.starved = 1; return false; };

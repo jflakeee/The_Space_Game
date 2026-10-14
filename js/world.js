@@ -59,7 +59,15 @@ function mkB(type, x, y, built) {
   return { id: uid++, type, x, y, r: d.r, maxHp: d.hp, hp: built ? d.hp : d.hp * 0.3, prog: built ? 1 : 0,
     lvl: 1, spent: d.cost, powered: false, cd: 0, ast: null, beam: null, ang: -Math.PI / 2, dead: false };
 }
-function newGame(mi, silent = false) {
+function newGame(mi, silent = false, seed) {
+  // world generation and the whole simulation use a seeded RNG so games can be replayed exactly
+  seed = seed ?? ((Math.random() * 4294967296) >>> 0);
+  const o = Math.random; Math.random = mulberry32(seed);
+  try { newGameInner(mi, silent); } finally { Math.random = o; }
+  S.seed = seed; S.rng = mulberry32(seed ^ 0x5bd1e995); S.tick = 0; S.acc = 0; S.rec = silent ? null : []; S.tut0 = S.tut;
+  document.body.classList.remove("replaying"); $("rpbar").hidden = true; $("rpinfo").hidden = true;
+}
+function newGameInner(mi, silent) {
   const m = mi === -1 ? dailyMission() : mi === -2 ? CUSTOM : MISSIONS[mi];
   S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave, dm: m.diff * DIFFS[diffIdx], dIdx: diffIdx,
     asteroids: m.astList ? seeded(m.seed, () => m.astList.map(([x, y, r]) => makeAst(x, y, r))) : m.seed ? seeded(m.seed, () => genAsteroids(30, m.map)) : genAsteroids(m.ast || 30, m.map || MAPS[(Math.random() * MAPS.length) | 0]),
@@ -134,9 +142,8 @@ function tryPlace() {
   if (!S || !S.build || !ghost || S.over) return false;
   const c = checkPlace(S.build, ghost.x, ghost.y);
   if (!c.ok) { toast(c.reason); sfx("err"); buzz([30, 40, 30]); return false; }
-  S.ore -= DEF[S.build].cost;
-  const nb = mkB(S.build, ghost.x, ghost.y, !!SET.instant); S.buildings.push(nb); sfx(SET.instant ? "done" : "place"); if (SET.instant) burst(nb.x, nb.y, 10, COL.en, 70, 0.4); STATS.built++;
-  S.dirty = true; buzz(15);
+  doAction({ k: "p", t: S.build, x: ghost.x, y: ghost.y });
+  sfx(SET.instant ? "done" : "place"); buzz(15);
   if (touchUI) ghost = null;
   return true;
 }

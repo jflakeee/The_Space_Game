@@ -3,7 +3,7 @@
 // ---------- save / load ----------
 const SAVE_KEY = "orebelt.save";
 function saveGame() {
-  if (!S || S.over || !S.core || S.core.dead) return;
+  if (!S || S.over || S.replay || S.editor || !S.core || S.core.dead) return;
   const data = { v: 3, mi: S.mi, code: S.m.custom || null, bossK: S.bossK || 0, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
     ast: S.asteroids.map(a => [a.x, a.y, a.r, a.r0, a.ore, a.ore0, a.rot, a.pts, a.veins]),
     b: S.buildings.map(b => [b.type, b.x, b.y, b.hp, b.maxHp, b.prog, b.lvl, b.spent, b.cd, b.br || null]),

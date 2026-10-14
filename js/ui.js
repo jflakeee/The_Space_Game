@@ -15,7 +15,7 @@ function buildBar() {
   });
 }
 function setBuild(k) {
-  if (!S || S.over || (k && !S.allow.includes(k))) return;
+  if (!S || S.over || S.replay || (k && !S.allow.includes(k))) return;
   S.build = k; ghost = null; if (k) select(null);
   for (const b of $("bar").children) b.classList.toggle("on", b.dataset.k === k);
   if (k && touchUI && !store.get("orebelt.touchHint")) { store.set("orebelt.touchHint", "1"); toast(L("위치를 탭한 뒤 ✓로 설치하세요. 드래그는 화면 이동입니다.", "Tap a spot, then press ✓ to build. Dragging pans the view."), 5); }
@@ -43,11 +43,7 @@ function upgrade(b, br) {
   if (b.type === "laser" && b.lvl === 1 && !br) { toast(L("정보 패널에서 속사/저격 중 하나를 고르세요", "Choose Rapid or Lance in the info panel")); return; }
   const c = upCost(b, br || b.br);
   if (S.ore < c) { toast(L("광석이 부족합니다", "Not enough ore")); return; }
-  S.ore -= c; b.spent += c; b.lvl++; STATS.upgrades++; if (b.lvl >= 3) ach("maxlv"); const newBr = br && !b.br; if (br) b.br = br;
-  const nh = st(b, "hp"); b.hp += nh - b.maxHp; b.maxHp = nh;
-  if (RELAY[b.type]) S.dirty = true;
-  boom(b.x, b.y, b.r * 2.2, COL.en); sfx("up");
-  if (newBr) select(b); else updateInfo();
+  doAction({ k: "u", i: S.buildings.indexOf(b), br });
 }
 function select(b) {
   if (!S) return;
@@ -64,7 +60,7 @@ function select(b) {
     const btn = document.createElement("button"); btn.id = "iSell";
     btn.onclick = () => {
       if (b.dead) return;
-      b.dead = true; S.ore += refund(b); S.buildings = S.buildings.filter(x => x !== b); S.dirty = true; select(null);
+      doAction({ k: "s", i: S.buildings.indexOf(b) });
     };
     box.appendChild(btn);
   }
@@ -120,9 +116,8 @@ function hudTick(dt) {
   updateInfo();
 }
 $("callBtn").onclick = () => {
-  if (!S || S.over || wavesDone()) return;
-  const bonus = Math.floor(S.waveT * 0.5);
-  S.ore += bonus; spawnWave(); S.waveT = S.m.gap;
+  if (!S || S.over || S.replay || wavesDone()) return;
+  const bonus = doAction({ k: "c" });
   if (bonus > 0) toast(`${L("조기 호출 보너스", "Early call bonus")} +${bonus}`);
 };
 function setSpeed(v) { if (!S) return; if (v === 0 && S.speed) S.lastSpd = S.speed; S.speed = v; updateCtl(); if (v === 0) toast(L("정지: 건설과 업그레이드는 계속 가능", "Stopped: you can still build and upgrade")); }
@@ -145,6 +140,8 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
+    ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
+      <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
     ${SHARED ? (() => { const e = decodeMap(SHARED); return `<div class="shared"><b>${L("공유된 맵", "Shared map")}</b><span>${L("소행성", "Asteroids")} ${e.asts.length} · ${[goalText(e), ...modText(e)].join(" / ")}</span>
       <div class="row"><button id="shPlay">${L("플레이", "Play")}</button><button id="shEdit">${L("편집", "Edit")}</button></div></div>`; })() : ""}
     <p>${L("소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.", "Build a base in the middle of an asteroid belt. Lay a power grid, mine ore, and hold off the pirates.")}</p>
@@ -156,6 +153,7 @@ function showMenu() {
       return (i === 10 ? `<h3 class="span">${L("확장 임무", "Expansion")}</h3>` : i === 20 ? `<h3 class="span">${L("유리 군단", "Glass Legion")}</h3>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
+    <button class="ms" id="rpBtn"><b>${L("리플레이", "Replays")}</b><span>${L("최근 5판 다시 보기와 공유", "Watch and share your last 5 games")}</span></button>
     <button class="ms" id="edBtn"><b>${L("맵 에디터", "Map editor")}</b><span>${L("나만의 맵을 만들고 링크로 공유", "Build your own map and share it as a link")}</span></button>
     <button class="ms" id="achBtn"><b>${L("업적·통계", "Achievements & stats")}</b><span>${ACH_GOT.size} / ${ACH.length}</span></button>
     <button class="ms" id="cxBtn"><b>${L("도감", "Codex")}</b><span>${L("건물과 적 정보, 상대법", "Buildings, enemies and counters")}</span></button>
@@ -178,6 +176,8 @@ function showMenu() {
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
   $("cxBtn").onclick = () => showCodex(showMenu);
   $("edBtn").onclick = () => openEditor();
+  $("rpBtn").onclick = () => showReplays(showMenu);
+  if (SHARED_REPLAY) $("shRp").onclick = () => startReplay(SHARED_REPLAY);
   if (SHARED) { $("shPlay").onclick = () => { CUSTOM = customMission(decodeMap(SHARED), SHARED); newGame(-2); }; $("shEdit").onclick = () => openEditor(SHARED); }
   $("achBtn").onclick = () => showAch(showMenu);
   $("diffBtn").onclick = () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); showMenu(); };
@@ -185,6 +185,7 @@ function showMenu() {
 }
 function endGame(win) {
   if (S.over) return;
+  if (S.replay) { S.over = win ? "win" : "lose"; setTimeout(endReplay, 900); return; }
   S.over = win ? "win" : "lose"; S.build = null; ghost = null; clearSave(); renderTip(); sfx(win ? "win" : "lose");
   const coreF = Math.max(0, S.core.hp / S.core.maxHp);
   let stars = 0;
@@ -192,7 +193,7 @@ function endGame(win) {
   if (win && S.m.goal && S.mi >= 0) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; if (S.dIdx === 0) stars = Math.min(2, stars); saveStars(S.mi, stars); }
   if (S.m.daily) { if (S.wave > dailyBest()) store.set("orebelt.daily", JSON.stringify({ key: todayKey(), best: S.wave })); }
   else if (!S.m.goal && !S.m.custom) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
-  saveStats(); checkAch();
+  saveStats(); checkAch(); const replay = saveReplayFromGame();
   const mm = Math.floor(S.t / 60), ss = String(Math.floor(S.t % 60)).padStart(2, "0");
   const next = S.mi + 1, hasNext = win && MISSIONS[next] && MISSIONS[next].goal;
   setTimeout(() => {
@@ -206,10 +207,11 @@ function endGame(win) {
       <dl class="stats"><dt>${L("시간", "Time")}</dt><dd>${mm}:${ss}</dd><dt>${L("코어 내구도", "Core HP")}</dt><dd>${Math.round(coreF * 100)}%</dd><dt>${L("잃은 건물", "Buildings lost")}</dt><dd>${S.lost}</dd>
       <dt>${L("채굴한 광석", "Ore mined")}</dt><dd>${Math.floor(S.oreMined)}</dd><dt>${L("격파", "Kills")}</dt><dd>${S.kills}</dd><dt>${L("웨이브", "Waves")}</dt><dd>${S.wave}</dd></dl>
       ${hasNext ? `<button class="ms" id="next"><b>${L("다음 임무", "Next mission")}: ${MISSIONS[next].name}</b></button>` : ""}
-      ${S.m.custom ? `<button class="ms" id="toEd"><b>${L("에디터로", "Back to editor")}</b></button>` : ""}<button class="ms" id="again"><b>${L("다시 하기", "Retry")}</b></button><button class="ms" id="tomenu"><b>${L("임무 선택", "Missions")}</b></button></div>`;
+      ${S.m.custom ? `<button class="ms" id="toEd"><b>${L("에디터로", "Back to editor")}</b></button>` : ""}<button class="ms" id="again"><b>${L("다시 하기", "Retry")}</b></button>${replay ? `<button class="ms" id="watch"><b>${L("리플레이 보기", "Watch replay")}</b></button>` : ""}<button class="ms" id="tomenu"><b>${L("임무 선택", "Missions")}</b></button></div>`;
     o.hidden = false; $("info").hidden = true; toastTimer = 0; $("toast").style.opacity = 0;
     if (hasNext) $("next").onclick = () => startMission(next);
     $("again").onclick = () => newGame(S.mi); $("tomenu").onclick = showMenu;
+    if ($("watch")) $("watch").onclick = () => startReplay(replay);
     if ($("toEd")) $("toEd").onclick = () => openEditor(S.m.custom);
   }, 900);
 }
