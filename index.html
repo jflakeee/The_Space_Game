@@ -61,7 +61,7 @@ h1 i{font-style:normal;color:var(--ore)}
 .ms{display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 14px}
 .ms b{display:block;font-size:16px}.ms span{color:var(--dim);font-size:13px}
 .ms em{display:block;font-style:normal;color:var(--ore);font-size:13px;letter-spacing:2px;margin-top:4px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid .ms{margin:0}.ms.wide{grid-column:1/-1}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid .ms{margin:0}.ms.wide{grid-column:1/-1}.grid .span{grid-column:1/-1;margin:12px 0 0}
 .prog{color:var(--dim);font-size:13px;margin:-8px 0 12px;display:flex;align-items:center;gap:6px}
 .prog .lang{font-size:12px;padding:4px 10px}.prog #diffBtn{margin-left:auto}.prog b{color:var(--ore)}
 #tip{position:fixed;left:50%;transform:translateX(-50%);width:min(460px,calc(100vw - 24px));background:var(--panel);border:1px solid var(--en);
@@ -187,7 +187,7 @@ const LINK_CAP = { core: 20, node: 8 }, capOf = b => LINK_CAP[b.type] || 2;
 const refund = b => b.prog < 1 || b.type === "node" ? b.spent : Math.floor(b.spent * 0.5);
 const DIFFS = [0.75, 1, 1.3];
 let diffIdx = 1;
-const ALL = null, NO_SLOW = ["node", "solar", "battery", "miner", "laser", "missile", "decoy", "repair"];
+const ALL = null, NO_LASER = ["node", "solar", "battery", "miner", "missile", "slow", "arc", "decoy", "repair"], NO_SLOW = ["node", "solar", "battery", "miner", "laser", "missile", "decoy", "repair"];
 const MISSIONS = [
   { name: "첫 채굴",      desc: "광석 300 채굴. 기본을 익히세요.",       goal: { ore: 300 },   firstWave: 90, gap: 60, diff: 0.6,  ore: 150, map: "scatter", allow: ["node", "solar", "miner", "laser"] },
   { name: "전력 부족",    desc: "광석 800 채굴. 배터리 해금.",           goal: { ore: 800 },   firstWave: 70, gap: 50, diff: 0.7,  ast: 22, map: "cluster", allow: ["node", "solar", "battery", "miner", "laser"] },
@@ -199,6 +199,16 @@ const MISSIONS = [
   { name: "실드 함대",    desc: "웨이브 12개 생존. 실드함 다수.",        goal: { waves: 12 },  firstWave: 60, gap: 36, diff: 1,    w0: 2, map: "ring", allow: ALL },
   { name: "고립 기지",    desc: "광석 2500 채굴. 적은 자금으로 시작.",   goal: { ore: 2500 },  firstWave: 40, gap: 30, diff: 1.1,  ore: 80, map: "cluster", allow: ALL },
   { name: "최후의 방어선", desc: "웨이브 15개 생존.",                    goal: { waves: 15 },  firstWave: 45, gap: 34, diff: 1.2,  map: "lanes", allow: ALL },
+  { name: "보급선 차단",  desc: "적 120기 격파.",                       goal: { kills: 120 }, firstWave: 40, gap: 30, diff: 1.1,  map: "lanes", allow: ALL },
+  { name: "레이저 금지",  desc: "웨이브 10개 생존. 레이저를 쓸 수 없습니다.", goal: { waves: 10 }, firstWave: 55, gap: 38, diff: 1, map: "scatter", allow: NO_LASER },
+  { name: "어두운 성운",  desc: "광석 2500 채굴. 태양광 효율 -50%.",     goal: { ore: 2500 },  firstWave: 50, gap: 36, diff: 1.1,  map: "ring", mod: { solar: 0.5 }, allow: ALL },
+  { name: "요새 공략",    desc: "6웨이브에 나타나는 요새함 격파.",        goal: { boss: "dread", at: 6, count: 1 }, firstWave: 45, gap: 36, diff: 1, map: "cluster", allow: ALL },
+  { name: "쾌속 해적",    desc: "웨이브 12개 생존. 적 이동 속도 +35%.",  goal: { waves: 12 },  firstWave: 50, gap: 36, diff: 1.1,  map: "cluster", mod: { spd: 1.35 }, allow: ALL },
+  { name: "빈 벨트",      desc: "광석 2000 채굴. 소행성 10개뿐.",         goal: { ore: 2000 },  firstWave: 50, gap: 36, diff: 1.1,  ast: 10, ore: 300, map: "scatter", allow: ALL },
+  { name: "섬멸전",       desc: "적 300기 격파. 웨이브 간격이 짧습니다.", goal: { kills: 300 }, firstWave: 35, gap: 24, diff: 1.15, map: "ring", allow: ALL },
+  { name: "중장갑 함대",  desc: "웨이브 14개 생존. 적 체력 +20%.",       goal: { waves: 14 },  firstWave: 60, gap: 38, diff: 1.1, w0: 1, map: "lanes", mod: { hp: 1.2 }, allow: ALL },
+  { name: "쌍둥이 요새",  desc: "8웨이브에 나타나는 요새함 2척 격파.",    goal: { boss: "dread", at: 8, count: 2 }, firstWave: 45, gap: 34, diff: 1.15, map: "ring", allow: ALL },
+  { name: "벨트의 끝",    desc: "웨이브 20개 생존.",                     goal: { waves: 20 },  firstWave: 45, gap: 32, diff: 1.3,  map: "lanes", allow: ALL },
   { name: "무한 벨트",    desc: "끝없는 웨이브. 얼마나 버틸까요?",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  allow: ALL },
 ];
 const COL = { bg: "#0c1230", ore: "#e8a951", en: "#6fd6ec", grid: "92,143,224", hos: "#ff5a6e", heal: "#7ee0a0", slow: "#b79cff",
@@ -249,6 +259,16 @@ if (LANG === "en") {
     ["Shield Fleet", "Survive 12 waves. Many shield ships."],
     ["Isolated Base", "Mine 2500 ore. Low starting funds."],
     ["Last Line", "Survive 15 waves."],
+    ["Cut the Supply", "Destroy 120 ships."],
+    ["No Lasers", "Survive 10 waves. Lasers are unavailable."],
+    ["Dark Nebula", "Mine 2500 ore. Solar output -50%."],
+    ["Siege Breaker", "Destroy the dreadnought that arrives on wave 6."],
+    ["Fast Raiders", "Survive 12 waves. Enemy speed +35%."],
+    ["Empty Belt", "Mine 2000 ore. Only 10 asteroids."],
+    ["Annihilation", "Destroy 300 ships. Short wave intervals."],
+    ["Armored Armada", "Survive 14 waves. Enemy HP +20%."],
+    ["Twin Fortresses", "Destroy the two dreadnoughts that arrive on wave 8."],
+    ["End of the Belt", "Survive 20 waves."],
     ["Endless Belt", "Endless waves. How long can you last?"],
   ];
   MISSIONS.forEach((m, i) => { [m.name, m.desc] = EN_M[i]; });
@@ -551,7 +571,7 @@ function hurt(e, a) {
   if (e.dead) return;
   e.hp -= e.shielded ? a * 0.5 : a;
   if (e.hp <= 0) {
-    e.dead = true; S.ore += e.bounty; S.kills++; STATS.kills++; if (e.kind === "boss") STATS.boss++; if (e.kind === "dread") STATS.dread++; boom(e.x, e.y, e.r * 2.5, COL.hos);
+    e.dead = true; S.ore += e.bounty; S.kills++; if (S.m.goal && S.m.goal.boss === e.kind) S.bossK = (S.bossK || 0) + 1; STATS.kills++; if (e.kind === "boss") STATS.boss++; if (e.kind === "dread") STATS.dread++; boom(e.x, e.y, e.r * 2.5, COL.hos);
     if (e.kind === "boss" || e.kind === "dread") { shake(e.kind === "dread" ? 14 : 12); sfx("bigboom"); burst(e.x, e.y, e.kind === "dread" ? 90 : 60, COL.ore, 240, 1.3, 3); } else sfx("kill");
     if (e.kind === "splitter") for (let i = 0; i < 3; i++) S.enemies.push(mkE("scout", e.x + rand(-14, 14), e.y + rand(-14, 14), e.hpM));
   }
@@ -592,6 +612,8 @@ function spawnWave() {
   list.forEach((k, i) => { const p = pts[i % groups]; S.enemies.push(mkE(k, p.x + rand(-60, 60), p.y + rand(-60, 60), hpM)); });
   const fresh = [...new Set(list.concat(boss ? [bossKind] : []))].find(k => { try { return !(JSON.parse(store.get("orebelt.seen")) || []).includes(k); } catch { return true; } });
   if (boss) S.enemies.push(mkE(bossKind, pts[0].x, pts[0].y, hpM));
+  const gb = S.m.goal && S.m.goal.boss;
+  if (gb && w === S.m.goal.at) for (let i = 0; i < (S.m.goal.count || 1); i++) { const p = edgePoint(); S.enemies.push(mkE(gb, p.x, p.y, hpM)); }
   sfx("alarm"); buzz(25);
   if (fresh) { seenHint(fresh); return; }
   toast(boss ? (bossKind === "dread" ? L(`웨이브 ${w}: 요새함 출현!`, `Wave ${w}: dreadnought incoming!`) : L(`웨이브 ${w}: 모함 출현!`, `Wave ${w}: mothership incoming!`)) : L(`웨이브 ${w} 접근 중 (${list.length}기)`, `Wave ${w} incoming (${list.length} ships)`), boss ? 3 : 2.2);
@@ -771,6 +793,8 @@ function update(dt) {
   const g = S.m.goal;
   if (g && g.ore && S.oreMined >= g.ore) endGame(true);
   if (g && g.waves && wavesDone() && S.enemies.length === 0) endGame(true);
+  if (g && g.kills && S.kills >= g.kills) endGame(true);
+  if (g && g.boss && (S.bossK || 0) >= (g.count || 1)) endGame(true);
 }
 
 // ---------- draw ----------
@@ -1092,7 +1116,9 @@ function hudTick(dt) {
     : L(`웨이브 <b>${S.wave}</b>, 다음 <b>${Math.ceil(S.waveT)}초</b>`, `Wave <b>${S.wave}</b>, next in <b>${Math.ceil(S.waveT)}s</b>`) + (alive ? L(`, 적 <b>${alive}</b>`, `, enemies <b>${alive}</b>`) : "");
   const g = S.m.goal;
   $("goalV").innerHTML = !g ? `${L("최고 기록", "Best")} <b>${S.m.daily ? dailyBest() : store.get("orebelt.best") || 0}</b>` :
-    g.ore ? `${L("목표", "Goal")} <b>${Math.floor(S.oreMined)}</b> / ${g.ore}` : `${L("목표", "Goal")} <b>${S.wave}</b> / ${g.waves}`;
+    g.ore ? `${L("목표", "Goal")} <b>${Math.floor(S.oreMined)}</b> / ${g.ore}` : g.kills ? `${L("격파", "Kills")} <b>${S.kills}</b> / ${g.kills}`
+    : g.boss ? (S.wave < g.at ? L(`요새함 <b>${g.at}</b>웨이브에 출현`, `Dreadnought on wave <b>${g.at}</b>`) : `${L("요새함 격파", "Dreadnoughts")} <b>${S.bossK || 0}</b> / ${g.count || 1}`)
+    : `${L("목표", "Goal")} <b>${S.wave}</b> / ${g.waves}`;
   $("callBtn").disabled = wavesDone() || !!S.over;
   for (const b of $("bar").children) b.classList.toggle("poor", S.ore < DEF[b.dataset.k].cost);
   updateInfo();
@@ -1128,7 +1154,7 @@ function showMenu() {
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
       if (!m.goal) return `<button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` ${L("최고 웨이브", "Best wave")} ${best}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button>`;
-      return `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
+      return (i === 10 ? `<h3 class="span">${L("확장 임무", "Expansion")}</h3>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
     <button class="ms" id="achBtn"><b>${L("업적·통계", "Achievements & stats")}</b><span>${ACH_GOT.size} / ${ACH.length}</span></button>
@@ -1273,19 +1299,19 @@ addEventListener("keydown", e => {
 const SAVE_KEY = "orebelt.save";
 function saveGame() {
   if (!S || S.over || !S.core || S.core.dead) return;
-  const data = { v: 1, mi: S.mi, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
+  const data = { v: 2, mi: S.mi, bossK: S.bossK || 0, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
     ast: S.asteroids.map(a => [a.x, a.y, a.r, a.r0, a.ore, a.ore0, a.rot, a.pts, a.veins]),
     b: S.buildings.map(b => [b.type, b.x, b.y, b.hp, b.maxHp, b.prog, b.lvl, b.spent, b.cd, b.br || null]),
     e: S.enemies.map(e => [e.kind, e.x, e.y, e.hp, e.maxHp, e.hpM, e.cd, e.side, e.spawnT]),
     cam: [cam.x, cam.y, cam.z] };
   store.set(SAVE_KEY, JSON.stringify(data));
 }
-function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 1 && (MISSIONS[d.mi] || d.mi === -1) ? d : null; } catch { return null; } }
+function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 2 && (MISSIONS[d.mi] || d.mi === -1) ? d : null; } catch { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 function loadGame() {
   const d = readSave(); if (!d) return;
   newGame(d.mi, true);
-  Object.assign(S, { t: d.t, ore: d.ore, energy: d.energy, oreMined: d.oreMined, wave: d.wave, waveT: d.waveT, kills: d.kills });
+  Object.assign(S, { t: d.t, ore: d.ore, energy: d.energy, oreMined: d.oreMined, wave: d.wave, waveT: d.waveT, kills: d.kills, bossK: d.bossK || 0 });
   S.asteroids = d.ast.map(([x, y, r, r0, ore, ore0, rot, pts, veins]) => ({ x, y, r, r0, ore, ore0, rot, pts, veins }));
   S.buildings = d.b.map(([type, x, y, hp, maxHp, prog, lvl, spent, cd, br]) => Object.assign(mkB(type, x, y, prog >= 1), { hp, maxHp, prog, lvl, spent, cd, br: br || null }));
   S.core = S.buildings.find(b => b.type === "core");
@@ -1469,7 +1495,8 @@ const ACH = [
   ["boss", "모함 격추", "Mothership Down", "모함 격파", "Destroy a mothership", () => STATS.boss > 0],
   ["dread", "요새 함락", "Fortress Fallen", "요새함 격파", "Destroy a dreadnought", () => STATS.dread > 0],
   ["camp", "캠페인 완주", "Campaign Clear", "10번 임무 완료", "Complete mission 10", () => (loadProg().stars[9] || 0) > 0],
-  ["stars", "완벽주의자", "Perfectionist", "별 30개 모두 획득", "Earn all 30 stars", () => totalStars() >= 30],
+  ["camp2", "벨트의 끝", "Belt's End", "20번 임무 완료", "Complete mission 20", () => (loadProg().stars[19] || 0) > 0],
+  ["stars", "완벽주의자", "Perfectionist", "별 60개 모두 획득", "Earn all 60 stars", () => totalStars() >= 60],
   ["flawless", "무손실 방어", "Flawless Defense", "건물을 하나도 잃지 않고 웨이브 임무 완료", "Win a wave mission without losing a building", null],
   ["maxlv", "최대 출력", "Full Power", "건물 하나를 Lv 3까지 업그레이드", "Upgrade a building to Lv 3", null],
   ["big", "거대 기지", "Megabase", "한 판에서 건물 40개 동시 운용", "Run 40 buildings at once", () => S && !S.over && S.buildings.length >= 40],
