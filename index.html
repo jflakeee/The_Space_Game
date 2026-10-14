@@ -517,7 +517,7 @@ function tryPlace() {
   const c = checkPlace(S.build, ghost.x, ghost.y);
   if (!c.ok) { toast(c.reason); sfx("err"); return; }
   S.ore -= DEF[S.build].cost;
-  S.buildings.push(mkB(S.build, ghost.x, ghost.y, false)); sfx("place"); STATS.built++;
+  const nb = mkB(S.build, ghost.x, ghost.y, !!SET.instant); S.buildings.push(nb); sfx(SET.instant ? "done" : "place"); if (SET.instant) burst(nb.x, nb.y, 10, COL.en, 70, 0.4); STATS.built++;
   S.dirty = true;
 }
 
@@ -1391,7 +1391,7 @@ function seenHint(kind) {
 // ---------- settings ----------
 const SET = (() => { let v = {}; try { v = JSON.parse(store.get("orebelt.settings")) || {}; } catch {}
   const rm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  return Object.assign({ shake: rm ? 0 : 1, ui: 0, bars: 0 }, v); })();
+  return Object.assign({ shake: rm ? 0 : 1, ui: 0, bars: 0, instant: 0 }, v); })();
 function saveSet() { store.set("orebelt.settings", JSON.stringify(SET)); document.body.classList.toggle("big", !!SET.ui); }
 function showSettings(back) {
   const o = $("overlay");
@@ -1402,10 +1402,11 @@ function showSettings(back) {
     ["shk", L("화면 흔들림", "Screen shake"), () => SET.shake ? L("켬", "On") : L("끔", "Off"), () => { SET.shake ^= 1; saveSet(); }],
     ["ui", L("UI 크기", "UI size"), () => SET.ui ? L("크게", "Large") : L("보통", "Normal"), () => { SET.ui ^= 1; saveSet(); }],
     ["bar", L("체력바", "Health bars"), () => SET.bars ? L("항상 표시", "Always") : L("피해 시", "When damaged"), () => { SET.bars ^= 1; saveSet(); }],
+    ["inst", L("건설 방식", "Construction"), () => SET.instant ? L("즉시 (원작식)", "Instant (classic)") : L("시간 소요", "Timed"), () => { SET.instant ^= 1; saveSet(); }],
   ];
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("설정", "Settings")}</h1>
     ${opts.map(([id, label]) => `<div class="setrow"><span>${label}</span><button id="set_${id}"></button></div>`).join("")}
-    <p class="help">${L("난이도 변경은 다음 판부터 적용됩니다.", "Difficulty changes apply from the next game.")}</p>
+    <p class="help">${L("난이도 변경은 다음 판부터 적용됩니다. 즉시 건설은 원작처럼 건물이 바로 완성되며, 연결된 전력망은 여전히 필요합니다.", "Difficulty changes apply from the next game. Instant construction finishes buildings immediately like the original; they still need a grid link.")}</p>
     <button class="ms" id="setReset"><b>${L("진행 초기화", "Reset progress")}</b><span>${L("별, 기록, 업적, 통계, 저장된 판을 모두 지웁니다", "Clears stars, records, achievements, stats and saved game")}</span></button>
     <button class="ms" id="setBack"><b>${L("돌아가기", "Back")}</b></button></div>`;
   o.hidden = false;

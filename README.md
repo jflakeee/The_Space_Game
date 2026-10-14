@@ -23,6 +23,7 @@ GitHub → Settings → Pages → Source: `main` / `/ (root)`
 업적 16종(누적 채굴·격파, 보스 격파, 무손실 방어, 연쇄 반응, 어려움 클리어 등)과 누적 통계(플레이 수, 승리, 시간, 채굴, 격파, 건설 등). 임무 결과 화면에 새 업적 표시.
 
 ## 편의 기능
+- 건설 방식 설정: 시간 소요(기본) / 즉시(원작식)
 - 설정: 언어, 난이도, 소리, 화면 흔들림(모션 줄이기 환경에선 기본 끔), UI 크기, 체력바 항상 표시, 진행 초기화
 - 키보드 카메라: WASD/방향키 이동, +/- 확대
 - 도감: 건물·적 아이콘, 수치, 상대법 (메뉴/일시정지에서). 새 적이 처음 나오면 특징 안내
@@ -80,3 +81,12 @@ WebAudio로 직접 합성한 효과음과 배경음악(외부 파일 없음). �
 밸런스는 자동 플레이 봇으로 임무별 승률을 측정해 조정했습니다(1–4 쉬움, 5–7 보통, 8–10 어려움).
 
 밸런스 수치는 `index.html` 상단 `DEF`, `EN`, `MISSIONS` 객체에서 조정.
+
+## 테스트
+```bash
+pip install playwright && playwright install chromium
+python tests/smoke.py              # 기능 스모크 테스트 (한국어·영어 각각)
+python tests/balance.py 3          # 봇으로 임무별 승률 측정
+python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/   # 배포본 대상
+```
+`tests/ci-example.yml`을 `.github/workflows/`에 복사하면 push마다 스모크 테스트가 실행됩니다.
