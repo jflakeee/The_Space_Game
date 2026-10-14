@@ -82,6 +82,17 @@ def t_daily_deterministic(page):
     assert a == b
 
 
+def t_editor_share(page):
+    page.click("#edBtn")
+    code = page.evaluate("()=>{ED.asts=ED.asts.slice(0,12);ED.gi=0;edRefresh();return encodeMap(ED)}")
+    page.goto(page.url.split("#")[0] + "#map=" + code)
+    page.reload()
+    page.click("#shPlay")
+    n = page.evaluate("()=>window.__game.S.asteroids.length")
+    assert n == 12, n
+    sim(page, 30)
+
+
 def t_end_and_menu(page):
     page.evaluate("()=>{const G=window.__game;G.newGame(0);G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
     page.wait_for_selector("#tomenu", timeout=3000)
@@ -92,7 +103,7 @@ def t_end_and_menu(page):
     assert page.is_visible(".ms[data-i='0']")
 
 
-TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_end_and_menu]
+TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_end_and_menu]
 
 
 def main():

@@ -91,6 +91,11 @@ button,#bar{touch-action:manipulation}
 #info .x{position:absolute;right:6px;top:4px;min-width:36px;min-height:36px;padding:0;margin:0;width:auto;background:none;border:0;font-size:16px;color:var(--dim)}
 #info{position:fixed}
 @media (max-width:520px){#info{left:8px!important;right:8px!important;width:auto!important;bottom:calc(80px + env(safe-area-inset-bottom,0px))!important}#info .row{display:flex;gap:6px}#info .row button{flex:1}}
+#edbar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:6px;overflow-x:auto;padding:16px 10px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(rgba(14,20,52,0),var(--panel) 35%)}
+#edinfo{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));width:min(560px,calc(100vw - 24px));background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;line-height:1.5}
+#edinfo small{color:var(--dim)}
+.shared{border:1px solid var(--en);border-radius:8px;padding:12px 14px;margin:0 0 14px}.shared b{display:block}.shared span{color:var(--dim);font-size:13px}
+.shared .row{display:flex;gap:8px;margin-top:10px}.shared .row button{flex:1}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
@@ -117,6 +122,8 @@ button,#bar{touch-action:manipulation}
 <div id="info" hidden></div>
 <div id="toast"></div>
 <div id="tip" hidden></div>
+<div id="edinfo" hidden></div>
+<div id="edbar" hidden></div>
 <div id="place" hidden><button id="plOk"></button><button id="plNo" aria-label="cancel">✕</button></div>
 <button id="homeBtn" hidden></button>
 <div id="overlay"></div>
@@ -473,9 +480,9 @@ function mkB(type, x, y, built) {
     lvl: 1, spent: d.cost, powered: false, cd: 0, ast: null, beam: null, ang: -Math.PI / 2, dead: false };
 }
 function newGame(mi, silent = false) {
-  const m = mi === -1 ? dailyMission() : MISSIONS[mi];
+  const m = mi === -1 ? dailyMission() : mi === -2 ? CUSTOM : MISSIONS[mi];
   S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave, dm: m.diff * DIFFS[diffIdx], dIdx: diffIdx,
-    asteroids: m.seed ? seeded(m.seed, () => genAsteroids(30, m.map)) : genAsteroids(m.ast || 30, m.map || MAPS[(Math.random() * MAPS.length) | 0]),
+    asteroids: m.astList ? seeded(m.seed, () => m.astList.map(([x, y, r]) => makeAst(x, y, r))) : m.seed ? seeded(m.seed, () => genAsteroids(30, m.map)) : genAsteroids(m.ast || 30, m.map || MAPS[(Math.random() * MAPS.length) | 0]),
     mod: Object.assign({ spd: 1, mine: 1, solar: 1, hp: 1 }, m.mod), buildings: [], enemies: [], shots: [], fx: [], parts: [], shake: 0, links: [], lost: 0,
     dirty: true, speed: 1, paused: false, over: null, kills: 0, build: null, sel: null,
     gen: 0, usedAcc: 0, rateT: 0, useRate: 0, starved: 0 };
@@ -487,7 +494,7 @@ function newGame(mi, silent = false) {
   S.tut = !silent && mi === 0 ? 0 : null; S.tutT = 0; S.saveT = 0;
   if (!silent) { clearSave(); STATS.games++; }
   buildBar(); updateCtl(); renderTip();
-  if (!silent && mi !== 0) toast(`${m.goal ? mi + 1 + ". " : ""}${m.name}: ${m.desc}`, 5);
+  if (!silent && mi !== 0) toast(`${m.goal && mi >= 0 ? mi + 1 + ". " : ""}${m.name}: ${m.desc}`, 5);
 }
 
 // ---------- grid ----------
@@ -1006,7 +1013,7 @@ function draw() {
 
 // ---------- UI ----------
 let toastTimer = 0;
-function placeToast() { const tip = $("tip"); $("toast").style.top = (($("hud").hidden ? 20 : $("hud").offsetHeight) + (tip.hidden ? 0 : tip.offsetHeight + 8)) + "px"; }
+function placeToast() { const tip = $("tip"), ei = $("edinfo"); $("toast").style.top = (!ei.hidden ? ei.offsetTop + ei.offsetHeight + 8 : ($("hud").hidden ? 20 : $("hud").offsetHeight) + (tip.hidden ? 0 : tip.offsetHeight + 8)) + "px"; }
 function toast(msg, sec = 2.2) { const t = $("toast"); placeToast(); t.textContent = msg; t.style.opacity = 1; toastTimer = sec; }
 function buildBar() {
   const bar = $("bar"); bar.innerHTML = "";
@@ -1100,7 +1107,7 @@ function updateCtl() {
 let hudT = 0;
 function hudTick(dt) {
   if (toastTimer > 0 && (toastTimer -= dt) <= 0) $("toast").style.opacity = 0;
-  if (!S || (hudT += dt) < 0.12) return;
+  if (!S || S.editor || (hudT += dt) < 0.12) return;
   if (!S.over && (S.saveT += hudT) > 10) { S.saveT = 0; saveGame(); saveStats(); }
   if ((S.achT = (S.achT || 0) + hudT) > 1) { S.achT = 0; checkAch(); }
   hudT = 0; tutTick(); if (!$("tip").hidden) $("tip").style.top = $("hud").offsetHeight + "px"; if (toastTimer > 0) placeToast();
@@ -1143,20 +1150,23 @@ const starStr = n => "★".repeat(n) + "☆".repeat(3 - n);
 function showMenu() {
   if (S) S.paused = true;
   toastTimer = 0; $("toast").style.opacity = 0; $("tip").hidden = true;
-  $("hud").hidden = true; $("bar").hidden = true; $("info").hidden = true;
+  $("hud").hidden = true; $("bar").hidden = true; $("info").hidden = true; $("edbar").hidden = true; $("edinfo").hidden = true;
   const p = loadProg(), best = store.get("orebelt.best"), sv = readSave(), dm = dailyMission(), dbest = dailyBest();
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
+    ${SHARED ? (() => { const e = decodeMap(SHARED); return `<div class="shared"><b>${L("공유된 맵", "Shared map")}</b><span>${L("소행성", "Asteroids")} ${e.asts.length} · ${[goalText(e), ...modText(e)].join(" / ")}</span>
+      <div class="row"><button id="shPlay">${L("플레이", "Play")}</button><button id="shEdit">${L("편집", "Edit")}</button></div></div>`; })() : ""}
     <p>${L("소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.", "Build a base in the middle of an asteroid belt. Lay a power grid, mine ore, and hold off the pirates.")}</p>
     <div class="prog">${L("획득한 별", "Stars")} <b>${total}</b> / ${maxStars} <button id="diffBtn" class="lang">${[L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard")][diffIdx]}</button><button id="setBtn" class="lang">${L("설정", "Settings")}</button></div>
-    ${sv ? `<button class="ms resume" id="resume"><b>${L("이어하기", "Continue")}</b><span>${sv.mi >= 0 && MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${sv.mi === -1 ? L("일일 도전", "Daily Challenge") : MISSIONS[sv.mi].name}, ${L("웨이브", "wave")} ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
+    ${sv ? `<button class="ms resume" id="resume"><b>${L("이어하기", "Continue")}</b><span>${sv.mi >= 0 && MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${sv.mi === -1 ? L("일일 도전", "Daily Challenge") : sv.mi === -2 ? L("커스텀 맵", "Custom map") : MISSIONS[sv.mi].name}, ${L("웨이브", "wave")} ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
       if (!m.goal) return `<button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` ${L("최고 웨이브", "Best wave")} ${best}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button>`;
       return (i === 10 ? `<h3 class="span">${L("확장 임무", "Expansion")}</h3>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
+    <button class="ms" id="edBtn"><b>${L("맵 에디터", "Map editor")}</b><span>${L("나만의 맵을 만들고 링크로 공유", "Build your own map and share it as a link")}</span></button>
     <button class="ms" id="achBtn"><b>${L("업적·통계", "Achievements & stats")}</b><span>${ACH_GOT.size} / ${ACH.length}</span></button>
     <button class="ms" id="cxBtn"><b>${L("도감", "Codex")}</b><span>${L("건물과 적 정보, 상대법", "Buildings, enemies and counters")}</span></button>
     <div class="help">${L(`드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
@@ -1177,6 +1187,8 @@ function showMenu() {
   if (sv) $("resume").onclick = loadGame;
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
   $("cxBtn").onclick = () => showCodex(showMenu);
+  $("edBtn").onclick = () => openEditor();
+  if (SHARED) { $("shPlay").onclick = () => { CUSTOM = customMission(decodeMap(SHARED), SHARED); newGame(-2); }; $("shEdit").onclick = () => openEditor(SHARED); }
   $("achBtn").onclick = () => showAch(showMenu);
   $("diffBtn").onclick = () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); showMenu(); };
   $("setBtn").onclick = () => showSettings(showMenu);
@@ -1186,10 +1198,10 @@ function endGame(win) {
   S.over = win ? "win" : "lose"; S.build = null; ghost = null; clearSave(); renderTip(); sfx(win ? "win" : "lose");
   const coreF = Math.max(0, S.core.hp / S.core.maxHp);
   let stars = 0;
-  if (win) { STATS.wins++; if (S.m.goal && S.m.goal.waves && S.lost === 0) ach("flawless"); if (S.mi === 9 && S.dIdx === 2) ach("hard"); }
-  if (win && S.m.goal) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; if (S.dIdx === 0) stars = Math.min(2, stars); saveStars(S.mi, stars); }
+  if (win) { STATS.wins++; if (S.m.goal && S.m.goal.waves && S.lost === 0 && S.mi >= 0) ach("flawless"); if (S.mi === 9 && S.dIdx === 2) ach("hard"); }
+  if (win && S.m.goal && S.mi >= 0) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; if (S.dIdx === 0) stars = Math.min(2, stars); saveStars(S.mi, stars); }
   if (S.m.daily) { if (S.wave > dailyBest()) store.set("orebelt.daily", JSON.stringify({ key: todayKey(), best: S.wave })); }
-  else if (!S.m.goal) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
+  else if (!S.m.goal && !S.m.custom) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
   saveStats(); checkAch();
   const mm = Math.floor(S.t / 60), ss = String(Math.floor(S.t % 60)).padStart(2, "0");
   const next = S.mi + 1, hasNext = win && MISSIONS[next] && MISSIONS[next].goal;
@@ -1199,14 +1211,15 @@ function endGame(win) {
     o.innerHTML = `<div class="card"><h1 style="font-size:36px">${title}</h1>
       ${stars ? `<div class="stars">${starStr(stars)}</div>` : ""}
       ${S.newAch && S.newAch.length ? `<p class="newach">${L("새 업적", "New achievements")}: ${S.newAch.join(", ")}</p>` : ""}
-      <p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}</p>
+      <p>${S.m.goal && S.mi >= 0 ? S.mi + 1 + ". " : ""}${S.m.name}</p>
       <dl class="stats"><dt>${L("시간", "Time")}</dt><dd>${mm}:${ss}</dd><dt>${L("코어 내구도", "Core HP")}</dt><dd>${Math.round(coreF * 100)}%</dd><dt>${L("잃은 건물", "Buildings lost")}</dt><dd>${S.lost}</dd>
       <dt>${L("채굴한 광석", "Ore mined")}</dt><dd>${Math.floor(S.oreMined)}</dd><dt>${L("격파", "Kills")}</dt><dd>${S.kills}</dd><dt>${L("웨이브", "Waves")}</dt><dd>${S.wave}</dd></dl>
       ${hasNext ? `<button class="ms" id="next"><b>${L("다음 임무", "Next mission")}: ${MISSIONS[next].name}</b></button>` : ""}
-      <button class="ms" id="again"><b>${L("다시 하기", "Retry")}</b></button><button class="ms" id="tomenu"><b>${L("임무 선택", "Missions")}</b></button></div>`;
+      ${S.m.custom ? `<button class="ms" id="toEd"><b>${L("에디터로", "Back to editor")}</b></button>` : ""}<button class="ms" id="again"><b>${L("다시 하기", "Retry")}</b></button><button class="ms" id="tomenu"><b>${L("임무 선택", "Missions")}</b></button></div>`;
     o.hidden = false; $("info").hidden = true; toastTimer = 0; $("toast").style.opacity = 0;
     if (hasNext) $("next").onclick = () => newGame(next);
     $("again").onclick = () => newGame(S.mi); $("tomenu").onclick = showMenu;
+    if ($("toEd")) $("toEd").onclick = () => openEditor(S.m.custom);
   }, 900);
 }
 
@@ -1264,7 +1277,8 @@ function endPtr(e) {
   if (e.type === "pointerup") {
     if (gest.mode === "ghost") tryPlace();
     else if (!gest.moved) {
-      if (S && S.build && gest.touch) { setGhost(e.clientX, e.clientY); buzz(8); }
+      if (S && S.editor) edTap(e.clientX, e.clientY);
+      else if (S && S.build && gest.touch) { setGhost(e.clientX, e.clientY); buzz(8); }
       else tap(e.clientX, e.clientY, gest.touch);
     }
   }
@@ -1281,7 +1295,7 @@ cv.addEventListener("wheel", e => {
   cam.x = wx - (e.clientX - cw / 2) / cam.z; cam.y = wy - (e.clientY - ch / 2) / cam.z; clampCam();
 }, { passive: false });
 addEventListener("keydown", e => {
-  if (!S || S.over) return;
+  if (!S || S.over || S.editor) return;
   if (S.paused && $("pResume") && !$("overlay").hidden) {
     if (e.key === " " || e.key === "Escape") { e.preventDefault(); setPause(false); }
     return;
@@ -1299,17 +1313,18 @@ addEventListener("keydown", e => {
 const SAVE_KEY = "orebelt.save";
 function saveGame() {
   if (!S || S.over || !S.core || S.core.dead) return;
-  const data = { v: 2, mi: S.mi, bossK: S.bossK || 0, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
+  const data = { v: 2, mi: S.mi, code: S.m.custom || null, bossK: S.bossK || 0, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
     ast: S.asteroids.map(a => [a.x, a.y, a.r, a.r0, a.ore, a.ore0, a.rot, a.pts, a.veins]),
     b: S.buildings.map(b => [b.type, b.x, b.y, b.hp, b.maxHp, b.prog, b.lvl, b.spent, b.cd, b.br || null]),
     e: S.enemies.map(e => [e.kind, e.x, e.y, e.hp, e.maxHp, e.hpM, e.cd, e.side, e.spawnT]),
     cam: [cam.x, cam.y, cam.z] };
   store.set(SAVE_KEY, JSON.stringify(data));
 }
-function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 2 && (MISSIONS[d.mi] || d.mi === -1) ? d : null; } catch { return null; } }
+function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 2 && (MISSIONS[d.mi] || d.mi === -1 || (d.mi === -2 && d.code && decodeMap(d.code))) ? d : null; } catch { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 function loadGame() {
   const d = readSave(); if (!d) return;
+  if (d.mi === -2) CUSTOM = customMission(decodeMap(d.code), d.code);
   newGame(d.mi, true);
   Object.assign(S, { t: d.t, ore: d.ore, energy: d.energy, oreMined: d.oreMined, wave: d.wave, waveT: d.waveT, kills: d.kills, bossK: d.bossK || 0 });
   S.asteroids = d.ast.map(([x, y, r, r0, ore, ore0, rot, pts, veins]) => ({ x, y, r, r0, ore, ore0, rot, pts, veins }));
@@ -1331,7 +1346,7 @@ function setPause(p) {
   const o = $("overlay");
   if (!p) { o.hidden = true; return; }
   saveGame(); toastTimer = 0; $("toast").style.opacity = 0;
-  o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("일시정지", "Paused")}</h1><p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}, ${L("웨이브", "wave")} ${S.wave}</p>
+  o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("일시정지", "Paused")}</h1><p>${S.m.goal && S.mi >= 0 ? S.mi + 1 + ". " : ""}${S.m.name}, ${L("웨이브", "wave")} ${S.wave}</p>
     <button class="ms" id="pResume"><b>${L("계속", "Resume")}</b></button><button class="ms" id="pRestart"><b>${L("다시 시작", "Restart")}</b></button><button class="ms" id="pCodex"><b>${L("도감", "Codex")}</b></button><button class="ms" id="pSet"><b>${L("설정", "Settings")}</b></button><button class="ms" id="pMenu"><b>${L("임무 선택", "Missions")}</b></button>
     <div class="help">${L("진행 상황은 자동 저장됩니다. 임무 선택 화면에서 이어할 수 있습니다.", "Progress is saved automatically. Continue from the mission screen.")}</div></div>`;
   o.hidden = false;
@@ -1501,7 +1516,7 @@ const ACH = [
   ["maxlv", "최대 출력", "Full Power", "건물 하나를 Lv 3까지 업그레이드", "Upgrade a building to Lv 3", null],
   ["big", "거대 기지", "Megabase", "한 판에서 건물 40개 동시 운용", "Run 40 buildings at once", () => S && !S.over && S.buildings.length >= 40],
   ["chain", "연쇄 반응", "Chain Reaction", "아크 코일 한 번에 5기 타격", "Hit 5 ships with one arc", null],
-  ["endless", "생존 전문가", "Survivor", "무한 벨트 15웨이브 도달", "Reach wave 15 in Endless Belt", () => S && !S.m.goal && !S.m.daily && S.wave >= 15],
+  ["endless", "생존 전문가", "Survivor", "무한 벨트 15웨이브 도달", "Reach wave 15 in Endless Belt", () => S && !S.m.goal && !S.m.daily && !S.m.custom && S.wave >= 15],
   ["daily", "오늘의 도전자", "Daily Contender", "일일 도전 10웨이브 도달", "Reach wave 10 in a Daily Challenge", () => S && S.m.daily && S.wave >= 10],
   ["hard", "강철 의지", "Iron Will", "어려움으로 10번 임무 완료", "Complete mission 10 on Hard", null],
 ];
@@ -1539,6 +1554,106 @@ function placeUI() {
 $("plOk").onclick = () => { tryPlace(); };
 $("plNo").onclick = () => { ghost = null; setBuild(null); };
 $("homeBtn").onclick = () => { if (S) { cam.x = S.core.x; cam.y = S.core.y; } };
+// ---------- custom maps: editor & share links ----------
+const GOALS = [["waves", 5], ["waves", 10], ["waves", 15], ["waves", 20], ["ore", 1000], ["ore", 2000], ["ore", 3000], ["kills", 100], ["kills", 200], ["endless", 0]];
+const ORES = [80, 120, 200, 400], EDIFF = [0.8, 1, 1.2, 1.4], SIZES = [18, 28, 40];
+const EMODS = [["spd", 1.3, "적 속도 +30%", "Enemy speed +30%"], ["hp", 1.25, "적 체력 +25%", "Enemy HP +25%"], ["solar", 0.5, "태양광 -50%", "Solar -50%"], ["mine", 0.7, "채굴 -30%", "Mining -30%"]];
+const mapName = k => ({ scatter: L("산개", "Scatter"), ring: L("고리", "Ring"), cluster: L("군집", "Cluster"), lanes: L("교차", "Lanes") })[k];
+let ED = null, CUSTOM = null, SHARED = null, edTool = "add", edSize = 1, edMap = 0;
+function encodeMap(e) {
+  const b = [1, e.gi, e.oi, e.di, e.mods, e.asts.length];
+  for (const [x, y, r] of e.asts) b.push(Math.round(x / 8), Math.round(y / 8), Math.round(r));
+  return btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeMap(c) {
+  try {
+    const b = [...atob(c.replace(/-/g, "+").replace(/_/g, "/"))].map(ch => ch.charCodeAt(0));
+    if (b[0] !== 1 || b.length !== 6 + b[5] * 3) return null;
+    const asts = [];
+    for (let i = 0; i < b[5]; i++) { const k = 6 + i * 3; asts.push([b[k] * 8, b[k + 1] * 8, clamp(b[k + 2], 12, 50)]); }
+    return { gi: clamp(b[1], 0, GOALS.length - 1), oi: clamp(b[2], 0, 3), di: clamp(b[3], 0, 3), mods: b[4] & 15, asts };
+  } catch { return null; }
+}
+const goalText = e => { const [t, v] = GOALS[e.gi]; return t === "waves" ? L(`웨이브 ${v}개 생존`, `Survive ${v} waves`) : t === "ore" ? L(`광석 ${v} 채굴`, `Mine ${v} ore`) : t === "kills" ? L(`적 ${v}기 격파`, `Destroy ${v} ships`) : L("무한", "Endless"); };
+const modText = e => EMODS.filter((m, i) => e.mods >> i & 1).map(m => L(m[2], m[3]));
+function customMission(e, code) {
+  let seed = 7; for (const ch of code) seed = (seed * 31 + ch.charCodeAt(0)) | 0;
+  const [t, v] = GOALS[e.gi], mod = {};
+  EMODS.forEach(([k, val], i) => { if (e.mods >> i & 1) mod[k] = val; });
+  return { custom: code, seed, name: L("커스텀 맵", "Custom map"), desc: [goalText(e), ...modText(e)].join(" / "),
+    goal: t === "endless" ? null : { [t]: v }, firstWave: 50, gap: 36, diff: EDIFF[e.di], ore: ORES[e.oi], astList: e.asts, mod, allow: ALL };
+}
+function shareURL(code) { return location.href.split("#")[0] + "#map=" + code; }
+async function shareMap(code) {
+  const url = shareURL(code);
+  try { if (navigator.share) { await navigator.share({ title: "Ore Belt", text: L("내가 만든 Ore Belt 맵", "My Ore Belt map"), url }); return; } } catch (err) { if (err && err.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(url); toast(L("공유 링크를 복사했습니다", "Share link copied"), 3); }
+  catch { prompt(L("이 링크를 복사하세요", "Copy this link"), url); }
+}
+function edRefresh(resetCam) {
+  const code = encodeMap(ED); store.set("orebelt.editor", code); CUSTOM = customMission(ED, code);
+  const c0 = { x: cam.x, y: cam.y, z: cam.z };
+  newGame(-2, true); S.editor = true; S.paused = true; rebuildGrid();
+  if (!resetCam) Object.assign(cam, c0);
+  $("hud").hidden = true; $("bar").hidden = true; $("tip").hidden = true; $("edbar").hidden = false; $("edinfo").hidden = false;
+  $("edinfo").innerHTML = `<b>${L("맵 에디터", "Map editor")}</b> · ${L("소행성", "Asteroids")} ${ED.asts.length}/60 · ${CUSTOM.desc}<br><small>${edTool === "add" ? L("빈 곳을 탭하면 소행성 추가", "Tap empty space to add an asteroid") : L("소행성을 탭하면 삭제", "Tap an asteroid to delete it")} · ${L("드래그로 이동", "Drag to pan")}</small>`;
+  renderEdBar();
+}
+function renderEdBar() {
+  const B = [
+    ["add", `${L("추가", "Add")} ${["S", "M", "L"][edSize]}`, () => { if (edTool === "add") edSize = (edSize + 1) % 3; edTool = "add"; edRefresh(); }],
+    ["del", L("삭제", "Delete"), () => { edTool = "del"; edRefresh(); }],
+    ["rnd", `${L("무작위", "Random")}: ${mapName(MAPS[edMap])}`, () => { edMap = (edMap + 1) % MAPS.length; ED.asts = genAsteroids(30, MAPS[edMap]).map(a => [Math.round(a.x / 8) * 8, Math.round(a.y / 8) * 8, Math.round(a.r0)]); edRefresh(); }],
+    ["clr", L("비우기", "Clear"), () => { ED.asts = []; edRefresh(); }],
+    ["set", L("규칙", "Rules"), showEdSettings],
+    ["play", L("테스트", "Play"), () => { $("edbar").hidden = true; $("edinfo").hidden = true; newGame(-2); }],
+    ["share", L("공유", "Share"), () => shareMap(encodeMap(ED))],
+    ["exit", L("나가기", "Exit"), () => { S = null; showMenu(); }],
+  ];
+  const bar = $("edbar"), sl = bar.scrollLeft; bar.innerHTML = "";
+  for (const [id, label, fn] of B) { const b = document.createElement("button"); b.className = "bb" + (id === edTool ? " on" : ""); b.innerHTML = `<span class="n">${label}</span>`; b.onclick = fn; bar.appendChild(b); }
+  bar.scrollLeft = sl;
+}
+function edTap(sx, sy) {
+  const [x, y] = s2w(sx, sy);
+  if (edTool === "del") {
+    const i = ED.asts.findIndex(([ax, ay, r]) => Math.hypot(ax - x, ay - y) <= r + 10 / cam.z);
+    if (i >= 0) { ED.asts.splice(i, 1); edRefresh(); sfx("place"); }
+    return;
+  }
+  const r = SIZES[edSize], qx = Math.round(x / 8) * 8, qy = Math.round(y / 8) * 8;
+  let why = "";
+  if (ED.asts.length >= 60) why = L("소행성은 60개까지입니다", "Up to 60 asteroids");
+  else if (qx < r + 30 || qy < r + 30 || qx > W - r - 30 || qy > H - r - 30) why = L("맵 밖입니다", "Out of bounds");
+  else if (Math.hypot(qx - W / 2, qy - H / 2) < r + 90) why = L("코어에 너무 가깝습니다", "Too close to the core");
+  else if (ED.asts.some(([ax, ay, ar]) => Math.hypot(ax - qx, ay - qy) < ar + r + 6)) why = L("다른 소행성과 겹칩니다", "Overlaps another asteroid");
+  if (why) { toast(why); sfx("err"); return; }
+  ED.asts.push([qx, qy, r]); edRefresh(); sfx("place");
+}
+function openEditor(code) {
+  ED = (code && decodeMap(code)) || decodeMap(store.get("orebelt.editor") || "") || { gi: 1, oi: 1, di: 1, mods: 0, asts: [] };
+  if (!ED.asts.length && !code) ED.asts = genAsteroids(30, "scatter").map(a => [Math.round(a.x / 8) * 8, Math.round(a.y / 8) * 8, Math.round(a.r0)]);
+  edTool = "add"; edRefresh(true);
+}
+function showEdSettings() {
+  const o = $("overlay");
+  const rows = [
+    ["g", L("목표", "Goal"), () => goalText(ED), () => { ED.gi = (ED.gi + 1) % GOALS.length; }],
+    ["o", L("시작 광석", "Starting ore"), () => ORES[ED.oi], () => { ED.oi = (ED.oi + 1) % ORES.length; }],
+    ["d", L("적 강도", "Enemy strength"), () => "×" + EDIFF[ED.di], () => { ED.di = (ED.di + 1) % EDIFF.length; }],
+    ...EMODS.map((m, i) => ["m" + i, L(m[2], m[3]), () => ED.mods >> i & 1 ? L("켬", "On") : L("끔", "Off"), () => { ED.mods ^= 1 << i; }]),
+  ];
+  o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("맵 규칙", "Map rules")}</h1>
+    ${rows.map(([id, label]) => `<div class="setrow"><span>${label}</span><button id="ed_${id}"></button></div>`).join("")}
+    <button class="ms" id="edBack"><b>${L("완료", "Done")}</b></button></div>`;
+  o.hidden = false; $("edbar").hidden = true;
+  const refresh = () => rows.forEach(([id, , val]) => { $("ed_" + id).textContent = val(); });
+  rows.forEach(([id, , , act]) => { $("ed_" + id).onclick = () => { act(); refresh(); }; });
+  refresh();
+  $("edBack").onclick = () => { o.hidden = true; edRefresh(); };
+}
+if (location.hash.startsWith("#map=")) { const c = location.hash.slice(5); if (decodeMap(c)) SHARED = c; }
+
 // ---------- loop ----------
 let last = performance.now();
 function frame(now) {
