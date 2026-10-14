@@ -113,7 +113,7 @@ function hudTick(dt) {
   const g = S.m.goal;
   $("goalV").innerHTML = !g ? `${L("최고 기록", "Best")} <b>${S.m.daily ? dailyBest() : store.get("orebelt.best") || 0}</b>` :
     g.ore ? `${L("목표", "Goal")} <b>${Math.floor(S.oreMined)}</b> / ${g.ore}` : g.kills ? `${L("격파", "Kills")} <b>${S.kills}</b> / ${g.kills}`
-    : g.boss ? (S.wave < g.at ? L(`요새함 <b>${g.at}</b>웨이브에 출현`, `Dreadnought on wave <b>${g.at}</b>`) : `${L("요새함 격파", "Dreadnoughts")} <b>${S.bossK || 0}</b> / ${g.count || 1}`)
+    : g.boss ? (S.wave < g.at ? L(`${EINFO[g.boss].n()} <b>${g.at}</b>웨이브에 출현`, `${EINFO[g.boss].n()} on wave <b>${g.at}</b>`) : `${EINFO[g.boss].n()} ${L("격파", "down")} <b>${S.bossK || 0}</b> / ${g.count || 1}`)
     : `${L("목표", "Goal")} <b>${S.wave}</b> / ${g.waves}`;
   $("callBtn").disabled = wavesDone() || !!S.over;
   for (const b of $("bar").children) b.classList.toggle("poor", S.ore < DEF[b.dataset.k].cost);
@@ -152,7 +152,7 @@ function showMenu() {
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
       if (!m.goal) return `<button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` ${L("최고 웨이브", "Best wave")} ${best}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button>`;
-      return (i === 10 ? `<h3 class="span">${L("확장 임무", "Expansion")}</h3>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
+      return (i === 10 ? `<h3 class="span">${L("확장 임무", "Expansion")}</h3>` : i === 20 ? `<h3 class="span">${L("유리 군단", "Glass Legion")}</h3>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
     <button class="ms" id="edBtn"><b>${L("맵 에디터", "Map editor")}</b><span>${L("나만의 맵을 만들고 링크로 공유", "Build your own map and share it as a link")}</span></button>

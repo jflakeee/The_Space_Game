@@ -2,6 +2,11 @@
 "use strict";
 // ---------- codex ----------
 const EINFO = {
+  drone:  { n: () => L("분광 드론", "Prism Drone"), d: () => L("유리 군단. 약하지만 떼로 몰려옵니다. 아크 코일이 특효입니다.", "Glass Legion. Weak but swarming. Arc coils shred them.") },
+  harvester: { n: () => L("수확선", "Harvester"), d: () => L("유리 군단. 채굴기를 노려 광석을 훔칩니다. 격파하면 훔친 광석을 되찾습니다.", "Glass Legion. Goes for miners and steals ore. Destroy it to recover the loot.") },
+  mender: { n: () => L("수선함", "Mender"), d: () => L("유리 군단. 주변 아군을 계속 치료합니다. 저격 레이저로 먼저 제거하세요.", "Glass Legion. Keeps repairing nearby allies. Snipe it first with Lance lasers.") },
+  phaser: { n: () => L("위상선", "Phaser"), d: () => L("유리 군단. 4초마다 앞으로 순간이동해 방어선을 건너뜁니다. 감속탑으로 깊은 방어를 만드세요.", "Glass Legion. Blinks forward every 4 seconds to skip defenses. Build depth with slow fields.") },
+  queen:  { n: () => L("수확 모체", "Harvest Queen"), d: () => L("유리 군단의 보스. 드론을 계속 낳고, 근처에 건물이 있으면 전력을 빨아들입니다. 배터리를 넉넉히 두세요.", "Glass Legion boss. Spawns drones and drains your power when near buildings. Keep spare batteries.") },
   scout:  { n: () => L("정찰기", "Scout"),   d: () => L("빠르고 약합니다. 수가 많으니 속사 레이저로 정리하세요.", "Fast and fragile, but numerous. Rapid lasers clean them up.") },
   raider: { n: () => L("약탈선", "Raider"),  d: () => L("주력 전투함. 레이저 사거리 근처에서 교전합니다.", "The backbone of a raid. Fights near laser range.") },
   heavy:  { n: () => L("중형선", "Heavy"),   d: () => L("느리지만 단단하고 사거리가 깁니다. 저격 레이저나 미사일로 상대하세요.", "Slow, tough and long-ranged. Counter with Lance lasers or missiles.") },
@@ -14,7 +19,20 @@ const EINFO = {
 };
 function drawEnemyBody(e, t) {
   ctx.fillStyle = COL.hos; ctx.strokeStyle = "#ffc2ca"; ctx.lineWidth = 1.2;
-  if (e.kind === "bomber") {
+  if (EN[e.kind] && EN[e.kind].fac === "glass") { ctx.fillStyle = COL.glass; ctx.strokeStyle = COL.glassEdge; }
+  if (e.kind === "drone") { poly(4, e.r * 1.3, 0); ctx.fill(); ctx.stroke(); }
+  else if (e.kind === "harvester") {
+    ctx.beginPath(); ctx.arc(0, 0, e.r, 0.6, Math.PI * 2 - 0.6); ctx.lineTo(e.r * 0.2, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (e.kind === "mender") {
+    ctx.fillRect(-e.r, -e.r * 0.35, e.r * 2, e.r * 0.7); ctx.fillRect(-e.r * 0.35, -e.r, e.r * 0.7, e.r * 2); ctx.strokeRect(-e.r, -e.r * 0.35, e.r * 2, e.r * 0.7);
+  } else if (e.kind === "phaser") {
+    ctx.beginPath(); ctx.moveTo(e.r * 1.4, 0); ctx.lineTo(-e.r, -e.r); ctx.lineTo(-e.r * 0.3, 0); ctx.lineTo(-e.r, e.r); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha *= 0.35; ctx.translate(-e.r * 1.2, 0); ctx.fill(); ctx.translate(e.r * 1.2, 0); ctx.globalAlpha /= 0.35;
+  } else if (e.kind === "queen") {
+    poly(8, e.r, t * 0.3); ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke();
+    for (let i = 0; i < 4; i++) { const a = i / 4 * 6.283 + t * 0.3; ctx.beginPath(); ctx.moveTo(Math.cos(a) * e.r, Math.sin(a) * e.r); ctx.lineTo(Math.cos(a) * e.r * 1.5, Math.sin(a) * e.r * 1.5); ctx.stroke(); }
+    ctx.fillStyle = "#3a1458"; circle(0, 0, e.r * 0.4); ctx.fill();
+  } else if (e.kind === "bomber") {
     const k = 0.5 + 0.5 * Math.sin(t * 12);
     poly(4, e.r * 1.25, 0); ctx.fill(); ctx.stroke();
     ctx.fillStyle = `rgba(255,220,120,${0.35 + 0.65 * k})`; circle(0, 0, e.r * 0.45); ctx.fill();
@@ -54,9 +72,11 @@ function showCodex(back) {
     return row(bIcon(k), d.name, stat, d.desc); }).join("")
     + row(bIcon("laser", "rapid"), `${DEF.laser.name} (${BR.rapid()})`, "Lv 2+", BRD.rapid())
     + row(bIcon("laser", "lance"), `${DEF.laser.name} (${BR.lance()})`, "Lv 2+", BRD.lance());
-  const eRows = Object.keys(EN).map(k => { const d = EN[k];
+  const eRow = k => { const d = EN[k];
     const stat = [`${L("체력", "HP")} ${d.hp}`, `${L("속도", "Speed")} ${d.spd}`, d.range ? `${L("사거리", "Range")} ${d.range}` : L("근접 자폭", "Melee blast")].join(" · ");
-    return row(eIcon(k), EINFO[k].n(), stat, EINFO[k].d()); }).join("");
+    return row(eIcon(k), EINFO[k].n(), stat, EINFO[k].d()); };
+  const eRows = `<p class="fac">${L("붉은 무리", "Red Swarm")}</p>` + Object.keys(EN).filter(k => !EN[k].fac).map(eRow).join("")
+    + `<p class="fac glass">${L("유리 군단", "Glass Legion")}</p>` + Object.keys(EN).filter(k => EN[k].fac === "glass").map(eRow).join("");
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("도감", "Codex")}</h1>
     <h3>${L("건물", "Buildings")}</h3>${bRows}<h3>${L("적", "Enemies")}</h3>${eRows}
     <h3>${L("환경 위험", "Hazards")}</h3>

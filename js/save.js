@@ -4,14 +4,14 @@
 const SAVE_KEY = "orebelt.save";
 function saveGame() {
   if (!S || S.over || !S.core || S.core.dead) return;
-  const data = { v: 2, mi: S.mi, code: S.m.custom || null, bossK: S.bossK || 0, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
+  const data = { v: 3, mi: S.mi, code: S.m.custom || null, bossK: S.bossK || 0, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
     ast: S.asteroids.map(a => [a.x, a.y, a.r, a.r0, a.ore, a.ore0, a.rot, a.pts, a.veins]),
     b: S.buildings.map(b => [b.type, b.x, b.y, b.hp, b.maxHp, b.prog, b.lvl, b.spent, b.cd, b.br || null]),
     e: S.enemies.map(e => [e.kind, e.x, e.y, e.hp, e.maxHp, e.hpM, e.cd, e.side, e.spawnT]), neb: S.nebulas,
     cam: [cam.x, cam.y, cam.z] };
   store.set(SAVE_KEY, JSON.stringify(data));
 }
-function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 2 && (MISSIONS[d.mi] || d.mi === -1 || (d.mi === -2 && d.code && decodeMap(d.code))) ? d : null; } catch { return null; } }
+function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 3 && (MISSIONS[d.mi] || d.mi === -1 || (d.mi === -2 && d.code && decodeMap(d.code))) ? d : null; } catch { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 function loadGame() {
   const d = readSave(); if (!d) return;

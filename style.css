@@ -1,4 +1,4 @@
-:root{--bg:#0c1230;--panel:rgba(14,20,52,.86);--line:rgba(130,160,230,.28);--text:#d6def0;--dim:#8592b3;
+:root{--glass:#c77dff;--bg:#0c1230;--panel:rgba(14,20,52,.86);--line:rgba(130,160,230,.28);--text:#d6def0;--dim:#8592b3;
   --ore:#e8a951;--en:#6fd6ec;--hos:#ff5a6e;--heal:#7ee0a0}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -83,6 +83,7 @@ button,#bar{touch-action:manipulation}
 .msg{display:flex;gap:12px;align-items:flex-start;margin:0 0 14px}.msg p{margin:2px 0 0!important;color:var(--text)!important;line-height:1.55;font-size:14px}
 .msg b{font-size:13px;color:var(--en)}.msg .av{flex:0 0 36px;height:36px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:600;background:rgba(111,214,236,.15);color:var(--en);border:1px solid var(--en)}
 .msg.ix b{color:var(--hos)}.msg.ix .av{background:rgba(255,90,110,.12);color:var(--hos);border-color:var(--hos)}.msg.ix p{font-style:italic}
+.fac{margin:14px 0 2px!important;font-size:13px;color:var(--hos)!important;font-weight:600}.fac.glass{color:var(--glass)!important}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}

@@ -18,8 +18,9 @@ function hurt(e, a) {
   if (e.dead) return;
   e.hp -= e.shielded ? a * 0.5 : a;
   if (e.hp <= 0) {
-    e.dead = true; S.ore += e.bounty; S.kills++; if (S.m.goal && S.m.goal.boss === e.kind) S.bossK = (S.bossK || 0) + 1; STATS.kills++; if (e.kind === "boss") STATS.boss++; if (e.kind === "dread") STATS.dread++; boom(e.x, e.y, e.r * 2.5, COL.hos);
-    if (e.kind === "boss" || e.kind === "dread") { shake(e.kind === "dread" ? 14 : 12); sfx("bigboom"); burst(e.x, e.y, e.kind === "dread" ? 90 : 60, COL.ore, 240, 1.3, 3); } else sfx("kill");
+    e.dead = true; S.ore += e.bounty + (e.loot || 0); S.kills++; if (e.kind === "queen") STATS.queen = (STATS.queen || 0) + 1; if (e.loot > 1) toast(L(`훔친 광석 ${Math.floor(e.loot)} 회수`, `Recovered ${Math.floor(e.loot)} stolen ore`)); if (S.m.goal && S.m.goal.boss === e.kind) S.bossK = (S.bossK || 0) + 1; STATS.kills++; if (e.kind === "boss") STATS.boss++; if (e.kind === "dread") STATS.dread++; boom(e.x, e.y, e.r * 2.5, COL.hos);
+    if (EN[e.kind].fac === "glass") burst(e.x, e.y, 8, COL.glass, 120, 0.5, 2);
+    if (e.kind === "boss" || e.kind === "dread" || e.kind === "queen") { shake(e.kind === "dread" ? 14 : 12); sfx("bigboom"); burst(e.x, e.y, e.kind === "dread" ? 90 : 60, COL.ore, 240, 1.3, 3); } else sfx("kill");
     if (e.kind === "splitter") for (let i = 0; i < 3; i++) S.enemies.push(mkE("scout", e.x + rand(-14, 14), e.y + rand(-14, 14), e.hpM));
   }
 }
@@ -47,14 +48,21 @@ function mkE(k, x, y, hpM) {
 }
 function spawnWave() {
   S.wave++;
-  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.08 * (w - 1)) * S.dm * S.mod.hp, list = [];
-  const add = (k, n) => { for (let i = 0; i < n; i++) list.push(k); };
-  add("scout", 2 + Math.floor(c * 0.8)); add("raider", Math.floor(c * 0.5)); add("heavy", Math.max(0, Math.floor((c - 2) / 3)));
-  if (c >= 4) add("bomber", Math.floor((c - 1) / 3));
-  if (c >= 5) add("shield", Math.floor((c - 2) / 3));
-  if (c >= 3) add("splitter", Math.floor((c - 1) / 4));
-  if (c >= 6) add("sniper", Math.floor((c - 3) / 3));
-  const boss = w % 5 === 0, bossKind = w % 10 === 0 ? "dread" : "boss";
+  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.08 * (w - 1)) * S.dm * S.mod.hp;
+  const fac = S.m.mixFrom && w >= S.m.mixFrom ? "mixed" : S.m.faction || "red";
+  const red = [], glass = [], put = (arr, k, n) => { for (let i = 0; i < n; i++) arr.push(k); };
+  put(red, "scout", 2 + Math.floor(c * 0.8)); put(red, "raider", Math.floor(c * 0.5)); put(red, "heavy", Math.max(0, Math.floor((c - 2) / 3)));
+  if (c >= 4) put(red, "bomber", Math.floor((c - 1) / 3));
+  if (c >= 5) put(red, "shield", Math.floor((c - 2) / 3));
+  if (c >= 3) put(red, "splitter", Math.floor((c - 1) / 4));
+  if (c >= 6) put(red, "sniper", Math.floor((c - 3) / 3));
+  put(glass, "drone", 4 + Math.floor(c * 1.2));
+  if (c >= 2) put(glass, "harvester", Math.floor(c * 0.4));
+  if (c >= 3) put(glass, "mender", Math.floor((c - 1) / 3));
+  if (c >= 4) put(glass, "phaser", Math.floor((c - 2) / 2));
+  const thin = a => a.filter((_, i) => i % 5 !== 4 && i % 5 !== 2);
+  const list = fac === "glass" ? glass : fac === "mixed" ? thin(red).concat(thin(glass)) : red;
+  const boss = w % 5 === 0, bossKind = fac === "glass" ? "queen" : w % 10 === 0 ? "dread" : fac === "mixed" ? "queen" : "boss";
   const groups = c >= 6 ? 2 : 1, pts = Array.from({ length: groups }, edgePoint);
   list.forEach((k, i) => { const p = pts[i % groups]; S.enemies.push(mkE(k, p.x + rand(-60, 60), p.y + rand(-60, 60), hpM)); });
   const fresh = [...new Set(list.concat(boss ? [bossKind] : []))].find(k => { try { return !(JSON.parse(store.get("orebelt.seen")) || []).includes(k); } catch { return true; } });
@@ -63,7 +71,7 @@ function spawnWave() {
   if (gb && w === S.m.goal.at) for (let i = 0; i < (S.m.goal.count || 1); i++) { const p = edgePoint(); S.enemies.push(mkE(gb, p.x, p.y, hpM)); }
   sfx("alarm"); buzz(25);
   if (fresh) { seenHint(fresh); return; }
-  toast(boss ? (bossKind === "dread" ? L(`웨이브 ${w}: 요새함 출현!`, `Wave ${w}: dreadnought incoming!`) : L(`웨이브 ${w}: 모함 출현!`, `Wave ${w}: mothership incoming!`)) : L(`웨이브 ${w} 접근 중 (${list.length}기)`, `Wave ${w} incoming (${list.length} ships)`), boss ? 3 : 2.2);
+  toast(boss ? L(`웨이브 ${w}: ${EINFO[bossKind].n()} 출현!`, `Wave ${w}: ${EINFO[bossKind].n()} incoming!`) : L(`웨이브 ${w} 접근 중 (${list.length}기)`, `Wave ${w} incoming (${list.length} ships)`), boss ? 3 : 2.2);
 }
 function wavesDone() { return S.m.goal && S.m.goal.waves && S.wave >= S.m.goal.waves; }
 
@@ -223,7 +231,11 @@ function update(dt) {
   for (const e of S.enemies) {
     if (e.dead) continue;
     const d = EN[e.kind];
-    if (!e.tgt || e.tgt.dead || (e.rt -= dt) <= 0) { e.tgt = nearestBuilding(e); e.rt = 1.5; }
+    if (!e.tgt || e.tgt.dead || (e.rt -= dt) <= 0) {
+      e.rt = 1.5; e.tgt = null;
+      if (e.kind === "harvester") { let bd = 1e9; for (const b of S.buildings) if (!b.dead && b.type === "miner") { const q = dist(b, e); if (q < bd) { bd = q; e.tgt = b; } } }
+      if (!e.tgt) e.tgt = nearestBuilding(e);
+    }
     if (!e.tgt) continue;
     const dx = e.tgt.x - e.x, dy = e.tgt.y - e.y, dd = Math.hypot(dx, dy) || 1;
     e.ang = Math.atan2(dy, dx);
@@ -244,6 +256,19 @@ function update(dt) {
         if (near.length) sfx("launch");
       }
       if (e.hp < e.maxHp * 0.5 && (e.spawnT -= dt) <= 0) { e.spawnT = 10; for (let i = 0; i < 2; i++) S.enemies.push(mkE("bomber", e.x + rand(-40, 40), e.y + rand(-40, 40), e.hpM)); }
+    }
+    e.drain = false;
+    if (e.kind === "harvester" && e.tgt.type === "miner" && dd <= d.range + e.tgt.r + 4) {
+      const take = Math.min(S.ore, 4 * dt); S.ore -= take; e.loot = (e.loot || 0) + take; e.drain = true;
+    }
+    if (e.kind === "mender") for (const o of S.enemies) if (!o.dead && o !== e && o.hp < o.maxHp && Math.hypot(o.x - e.x, o.y - e.y) <= 100) { o.hp = Math.min(o.maxHp, o.hp + 10 * e.hpM * dt); e.heal = o; }
+    if (e.kind === "phaser" && (e.blinkT = (e.blinkT ?? 3) - dt) <= 0 && dd > d.range) {
+      e.blinkT = 4; const j = Math.min(110, dd - d.range * 0.8);
+      burst(e.x, e.y, 6, COL.glass, 60, 0.4, 2); e.x += dx / dd * j; e.y += dy / dd * j; burst(e.x, e.y, 6, COL.glass, 60, 0.4, 2);
+    }
+    if (e.kind === "queen") {
+      if ((e.spawnT -= dt) <= 0) { e.spawnT = 6; for (let i = 0; i < 4; i++) S.enemies.push(mkE("drone", e.x + rand(-40, 40), e.y + rand(-40, 40), e.hpM)); }
+      if (S.buildings.some(b => !b.dead && dist(b, e) < 300)) { S.energy = Math.max(0, S.energy - 4 * dt); e.drain = true; }
     }
     if (e.kind === "boss" && (e.spawnT -= dt) <= 0) {
       e.spawnT = 8;

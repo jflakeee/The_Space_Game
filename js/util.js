@@ -55,7 +55,12 @@ if (LANG === "en") {
     ["Armored Armada", "Survive 14 waves. Enemy HP +20%."],
     ["Twin Fortresses", "Destroy the two dreadnoughts that arrive on wave 8."],
     ["End of the Belt", "Survive 20 waves. Meteor showers and ion nebulas."],
-    ["Endless Belt", "Endless waves. Meteor showers from wave 8."],
+    ["Strange Signal", "Mine 1500 ore. A new foe: the Glass Legion."],
+    ["Ore Thieves", "Mine 2500 ore. Harvesters steal ore from your miners."],
+    ["Phase Disruption", "Survive 12 waves. Phasers teleport forward."],
+    ["Two Foes", "Survive 14 waves. Both pirate bands attack together."],
+    ["Harvest Queen", "Destroy the Harvest Queen arriving on wave 8. It drains nearby power."],
+    ["Endless Belt", "Endless waves. Meteor showers from wave 8, both bands from wave 10."],
   ];
   MISSIONS.forEach((m, i) => { [m.name, m.desc] = EN_M[i]; });
 }

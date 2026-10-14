@@ -179,6 +179,10 @@ function draw() {
     else { circle(s.x, s.y, s.big ? 3.5 : 2); ctx.fillStyle = s.big ? COL.hos : "#ffb0bb"; ctx.fill(); }
   }
 
+  for (const e of S.enemies) {
+    if (e.drain && e.tgt) { ctx.strokeStyle = COL.glass; ctx.globalAlpha = 0.4 + Math.random() * 0.4; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.kind === "queen" ? S.core.x : e.tgt.x, e.kind === "queen" ? S.core.y : e.tgt.y); ctx.stroke(); ctx.globalAlpha = 1; }
+    if (e.kind === "mender" && e.heal && !e.heal.dead) { ctx.strokeStyle = "rgba(199,125,255,.5)"; ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.heal.x, e.heal.y); ctx.stroke(); ctx.setLineDash([]); e.heal = null; }
+  }
   drawHazardsOver();
   // fx
   for (const f of S.fx) {

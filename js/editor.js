@@ -8,27 +8,29 @@ const EMODS = [["spd", 1.3, "적 속도 +30%", "Enemy speed +30%"], ["hp", 1.25,
 const mapName = k => ({ scatter: L("산개", "Scatter"), ring: L("고리", "Ring"), cluster: L("군집", "Cluster"), lanes: L("교차", "Lanes") })[k];
 let ED = null, CUSTOM = null, SHARED = null, edTool = "add", edSize = 1, edMap = 0;
 function encodeMap(e) {
-  const b = [1, e.gi, e.oi, e.di, e.mods, e.asts.length];
+  const b = [2, e.gi, e.oi, e.di, e.mods, e.fac || 0, e.asts.length];
   for (const [x, y, r] of e.asts) b.push(Math.round(x / 8), Math.round(y / 8), Math.round(r));
   return btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 function decodeMap(c) {
   try {
     const b = [...atob(c.replace(/-/g, "+").replace(/_/g, "/"))].map(ch => ch.charCodeAt(0));
-    if (b[0] !== 1 || b.length !== 6 + b[5] * 3) return null;
+    const v = b[0], h = v === 2 ? 7 : 6, n = b[h - 1];
+    if ((v !== 1 && v !== 2) || b.length !== h + n * 3) return null;
     const asts = [];
-    for (let i = 0; i < b[5]; i++) { const k = 6 + i * 3; asts.push([b[k] * 8, b[k + 1] * 8, clamp(b[k + 2], 12, 50)]); }
-    return { gi: clamp(b[1], 0, GOALS.length - 1), oi: clamp(b[2], 0, 3), di: clamp(b[3], 0, 3), mods: b[4] & 127, asts };
+    for (let i = 0; i < n; i++) { const k = h + i * 3; asts.push([b[k] * 8, b[k + 1] * 8, clamp(b[k + 2], 12, 50)]); }
+    return { gi: clamp(b[1], 0, GOALS.length - 1), oi: clamp(b[2], 0, 3), di: clamp(b[3], 0, 3), mods: b[4] & 127, fac: v === 2 ? clamp(b[5], 0, 2) : 0, asts };
   } catch { return null; }
 }
 const goalText = e => { const [t, v] = GOALS[e.gi]; return t === "waves" ? L(`웨이브 ${v}개 생존`, `Survive ${v} waves`) : t === "ore" ? L(`광석 ${v} 채굴`, `Mine ${v} ore`) : t === "kills" ? L(`적 ${v}기 격파`, `Destroy ${v} ships`) : L("무한", "Endless"); };
+const facText = e => [L("붉은 무리", "Red Swarm"), L("유리 군단", "Glass Legion"), L("두 해적단", "Both bands")][e.fac || 0];
 const modText = e => EMODS.filter((m, i) => e.mods >> i & 1).map(m => L(m[2], m[3]));
 function customMission(e, code) {
   let seed = 7; for (const ch of code) seed = (seed * 31 + ch.charCodeAt(0)) | 0;
   const [t, v] = GOALS[e.gi], mod = {};
   const haz = {}; EMODS.forEach(([k, val], i) => { if (e.mods >> i & 1) { if (k.startsWith("haz:")) haz[k.slice(4)] = val; else mod[k] = val; } });
-  return { custom: code, seed, name: L("커스텀 맵", "Custom map"), desc: [goalText(e), ...modText(e)].join(" / "),
-    goal: t === "endless" ? null : { [t]: v }, firstWave: 50, gap: 36, diff: EDIFF[e.di], ore: ORES[e.oi], astList: e.asts, mod, haz, allow: ALL };
+  return { custom: code, seed, name: L("커스텀 맵", "Custom map"), desc: [goalText(e), facText(e), ...modText(e)].join(" / "),
+    faction: ["red", "glass", "mixed"][e.fac || 0], goal: t === "endless" ? null : { [t]: v }, firstWave: 50, gap: 36, diff: EDIFF[e.di], ore: ORES[e.oi], astList: e.asts, mod, haz, allow: ALL };
 }
 function shareURL(code) { return location.href.split("#")[0] + "#map=" + code; }
 async function shareMap(code) {
@@ -87,6 +89,7 @@ function showEdSettings() {
   const rows = [
     ["g", L("목표", "Goal"), () => goalText(ED), () => { ED.gi = (ED.gi + 1) % GOALS.length; }],
     ["o", L("시작 광석", "Starting ore"), () => ORES[ED.oi], () => { ED.oi = (ED.oi + 1) % ORES.length; }],
+    ["f", L("적 진영", "Enemy faction"), () => facText(ED), () => { ED.fac = ((ED.fac || 0) + 1) % 3; }],
     ["d", L("적 강도", "Enemy strength"), () => "×" + EDIFF[ED.di], () => { ED.di = (ED.di + 1) % EDIFF.length; }],
     ...EMODS.map((m, i) => ["m" + i, L(m[2], m[3]), () => ED.mods >> i & 1 ? L("켬", "On") : L("끔", "Off"), () => { ED.mods ^= 1 << i; }]),
   ];

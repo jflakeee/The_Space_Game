@@ -18,8 +18,9 @@ function dailyMission(key = todayKey()) {
   let seed = 7; for (const ch of key) seed = (seed * 31 + ch.charCodeAt(0)) | 0;
   const r = mulberry32(seed), map = MAPS[(r() * MAPS.length) | 0];
   const i1 = (r() * MODS.length) | 0; let i2 = (r() * (MODS.length - 1)) | 0; if (i2 >= i1) i2++;
+  const fr = r(), faction = fr < 0.3 ? "glass" : fr < 0.45 ? "mixed" : "red";
   const mods = [MODS[i1], MODS[i2]], prod = k => mods.reduce((a, m) => a * (m[k] || 1), 1);
-  return { daily: key, seed, name: `${L("일일 도전", "Daily Challenge")} ${key}`, desc: mods.map(m => L(m.ko, m.en)).join(" / "),
+  return { daily: key, seed, name: `${L("일일 도전", "Daily Challenge")} ${key}`, desc: [faction === "glass" ? L("유리 군단", "Glass Legion") : faction === "mixed" ? L("두 해적단", "Both bands") : L("붉은 무리", "Red Swarm"), ...mods.map(m => L(m.ko, m.en))].join(" / "), faction,
     goal: null, firstWave: 45, gap: Math.round(34 * prod("gap")), diff: 1.1, map, ore: (mods.find(m => m.ore) || {}).ore,
     mod: { spd: prod("spd"), mine: prod("mine"), solar: prod("solar"), hp: prod("hp") }, haz: Object.fromEntries(mods.filter(m => m.haz).map(m => m.haz)), allow: ALL };
 }
