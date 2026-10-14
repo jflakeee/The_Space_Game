@@ -136,10 +136,14 @@ function showMenu() {
   if (S) S.paused = true;
   toastTimer = 0; $("toast").style.opacity = 0; $("tip").hidden = true;
   $("hud").hidden = true; $("bar").hidden = true; $("info").hidden = true; $("edbar").hidden = true; $("edinfo").hidden = true;
+  const seenVer = store.get("orebelt.ver"), showNews = !!seenVer && seenVer !== APP_VERSION || (!seenVer && !!store.get("orebelt.progress"));
+  if (!showNews) store.set("orebelt.ver", APP_VERSION);
   const p = loadProg(), best = store.get("orebelt.best"), sv = readSave(), dm = dailyMission(), dbest = dailyBest();
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("유리 군단과 임무 21–25, 리플레이 저장·공유, 색각 보정·고대비 모드가 추가되었습니다.", "Glass Legion with missions 21–25, replay saving and sharing, and colour-blind / high-contrast modes.")}</span>
+      <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
     ${SHARED ? (() => { const e = decodeMap(SHARED); return `<div class="shared"><b>${L("공유된 맵", "Shared map")}</b><span>${L("소행성", "Asteroids")} ${e.asts.length} · ${[goalText(e), ...modText(e)].join(" / ")}</span>
@@ -169,13 +173,15 @@ function showMenu() {
     Tap a building to upgrade it (up to Lv 3) or sell it.<br>
     Stars depend on buildings lost (3 or fewer ★3, 10 or fewer ★2; Easy caps at ★2). Unfinished buildings and relays sell for a full refund.<br>
     Lasers branch into Rapid or Lance at Lv 2. Relays hold 8 links, the core 20.<br>
-    Keys: numbers build, U upgrade (R/L laser branch), Space stop (you can still build), Esc cancel/menu, WASD/arrows pan, +/- zoom.`)}</div></div>`;
+    Keys: numbers build, U upgrade (R/L laser branch), Space stop (you can still build), Esc cancel/menu, WASD/arrows pan, +/- zoom.`)}</div>
+    <p class="ver">Ore Belt v${APP_VERSION} · <a href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a> · <a href="${REPO_URL}" target="_blank" rel="noopener">GitHub</a></p></div>`;
   o.hidden = false;
   o.querySelectorAll(".grid .ms[data-i]").forEach(b => b.onclick = () => startMission(+b.dataset.i));
   if (sv) $("resume").onclick = loadGame;
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
   $("cxBtn").onclick = () => showCodex(showMenu);
   $("edBtn").onclick = () => openEditor();
+  if (showNews) $("newsOk").onclick = () => { store.set("orebelt.ver", APP_VERSION); showMenu(); };
   $("rpBtn").onclick = () => showReplays(showMenu);
   if (SHARED_REPLAY) $("shRp").onclick = () => startReplay(SHARED_REPLAY);
   if (SHARED) { $("shPlay").onclick = () => { CUSTOM = customMission(decodeMap(SHARED), SHARED); newGame(-2); }; $("shEdit").onclick = () => openEditor(SHARED); }

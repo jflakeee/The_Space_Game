@@ -1,20 +1,22 @@
 # Ore Belt
 
+**v1.0.0** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+
 소행성 채굴 + 타워 디펜스 웹게임. 플래시 게임 The Space Game의 규칙에서 영감을 받은 클린룸 구현으로,
 원작의 코드, 그래픽, 사운드는 사용하지 않았습니다.
 
-플레이: https://jflakeee.github.io/The_Space_Game/
+- 임무 25개(캠페인·확장·유리 군단 편) + 무한 모드 + 일일 도전
+- 건물 10종, 적 2개 진영 16종(보스 3종), 환경 위험 3종
+- 맵 에디터·리플레이 링크 공유, 업적·통계, 도감, 스토리
+- 한국어/English, PWA(설치·오프라인), 모바일 터치, 접근성 옵션
+- 빌드 도구·외부 의존성 없음
 
 ## 배포
-```bash
-git clone https://github.com/jflakeee/The_Space_Game.git
-cp index.html .nojekyll README.md The_Space_Game/
-cd The_Space_Game && git add . && git commit -m "Ore Belt" && git push
-```
-GitHub → Settings → Pages → Source: `main` / `/ (root)`
+저장소 전체를 GitHub Pages로 배포합니다(Settings → Pages → Source: `main` / `/ (root)`). 빌드 단계는 없습니다.
+로컬: `python -m http.server` 후 http://localhost:8000
 
 ## 캠페인
-확장 임무 11–20: 격파 목표(보급선 차단, 섬멸전), 보스 격파 목표(요새 공략, 쌍둥이 요새), 제약·변형 규칙(레이저 금지, 태양광 -50%, 적 속도 +35%, 적 체력 +20%, 소행성 10개), 최종 20웨이브(벨트의 끝). 10번 임무를 완료하면 순서대로 열립니다.
+확장 임무 11–20: 격파 목표(보급선 차단, 섬멸전), 보스 격파 목표(요새 공략, 쌍둥이 요새), 제약·변형 규칙(레이저 금지, 이온 성운, 적 속도 +35%, 적 체력 +20%, 소행성 10개), 최종 20웨이브(벨트의 끝). 10번 임무를 완료하면 순서대로 열립니다.
 맵 4종: 산개(scatter), 고리(ring, 기지를 둘러싼 소행성대), 군집(cluster, 먼 광맥 덩어리), 교차(lanes, X자 소행성 띠가 전력망을 가름). 무한 모드는 무작위.
 임무 25개 + 무한 모드. 임무를 깨면 다음 임무가 열리고, 무한 모드는 5번 임무 완료 후 열립니다.
 별점은 잃은 건물 수 기준(3개 이하 ★3, 10개 이하 ★2). 진행 상황은 브라우저에 저장됩니다.
@@ -117,3 +119,8 @@ python tests/balance.py 3          # 봇으로 임무별 승률 측정
 python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/   # 배포본 대상
 ```
 `tests/ci-example.yml`을 `.github/workflows/`에 복사하면 push마다 스모크 테스트가 실행됩니다.
+
+## 릴리스 절차
+1. `js/config.js`의 `APP_VERSION`과 `sw.js`의 `CACHE`를 같은 버전으로 올립니다(스모크 테스트가 일치 여부를 검사합니다).
+2. `js/ui.js`의 "새 소식" 문구와 `CHANGELOG.md`를 갱신합니다.
+3. `python tests/smoke.py` 통과 확인 후 push, `vX.Y.Z` 태그와 GitHub 릴리스를 만듭니다.

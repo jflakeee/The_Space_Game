@@ -136,12 +136,27 @@ def t_end_and_menu(page):
 TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_end_and_menu]
 
 
+def check_version_sync():
+    cfg = (ROOT / "js" / "config.js").read_text(encoding="utf-8")
+    sw = (ROOT / "sw.js").read_text(encoding="utf-8")
+    import re
+    v = re.search(r'APP_VERSION = "([^"]+)"', cfg).group(1)
+    assert f'"orebelt-{v}"' in sw, f"sw.js CACHE must be orebelt-{v}"
+    assert f"## [{v}]" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), f"CHANGELOG.md has no entry for {v}"
+    print(f"PASS version sync v{v}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default=(ROOT / "index.html").as_uri())
     ap.add_argument("--lang", default="ko-KR")
     args = ap.parse_args()
     failed = 0
+    try:
+        check_version_sync()
+    except AssertionError as e:
+        failed += 1
+        print(f"FAIL version sync: {e}")
     with sync_playwright() as p:
         browser = p.chromium.launch()
         for lang in [args.lang, "en-US"]:

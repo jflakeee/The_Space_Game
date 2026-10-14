@@ -89,6 +89,9 @@ body.hc button{border-width:2px}
 body.replaying #hud .ctl{display:none}
 .rp{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
 .rp b{display:block}.rp small{color:var(--dim);font-size:12px}.rp .row{display:flex;gap:6px}.rp>div:first-child{flex:1;min-width:0}.rp .row button{padding:6px 10px;white-space:nowrap}
+.ver{font-size:12px!important;color:var(--dim)!important;margin:18px 0 0!important}.ver a,.btnlink{color:var(--en)}
+.btnlink{flex:1;display:grid;place-items:center;border:1px solid var(--line);border-radius:6px;text-decoration:none;font-size:14px}
+.shared.news{border-color:var(--ore)}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}

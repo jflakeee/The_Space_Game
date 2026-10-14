@@ -54,7 +54,7 @@ function simStep() {
 function loadReplays() { try { return JSON.parse(store.get(REPLAY_KEY)) || []; } catch { return []; } }
 function saveReplayFromGame() {
   if (!S || !S.rec || S.replay) return null;
-  const rec = { v: REPLAY_V, date: Date.now(), mi: S.mi, m: S.mi < 0 ? S.m : null, name: S.m.name, seed: S.seed, dIdx: S.dIdx, inst: SET.instant ? 1 : 0,
+  const rec = { v: REPLAY_V, ver: APP_VERSION, date: Date.now(), mi: S.mi, m: S.mi < 0 ? S.m : null, name: S.m.name, seed: S.seed, dIdx: S.dIdx, inst: SET.instant ? 1 : 0,
     tut0: S.tut0, ticks: S.tick, res: S.over, wave: S.wave, t: Math.round(S.t), kills: S.kills, a: S.rec };
   const list = loadReplays(); list.unshift(rec);
   while (list.length) { try { store.set(REPLAY_KEY, JSON.stringify(list.slice(0, 5))); break; } catch { list.pop(); } }
@@ -86,6 +86,7 @@ function startReplay(rec) {
   if (!REPLAY_BACKUP) REPLAY_BACKUP = { stats: JSON.stringify(STATS), inst: SET.instant, diff: diffIdx };
   SET.instant = rec.inst; diffIdx = rec.dIdx;
   if (rec.mi < 0) CUSTOM = rec.m;
+  if (rec.ver && rec.ver !== APP_VERSION) toast(L(`v${rec.ver}에서 기록된 리플레이라 결과가 어긋날 수 있습니다`, `Recorded on v${rec.ver}; playback may differ`), 4);
   if (rec.mi >= 0 && !MISSIONS[rec.mi]) { toast(L("이 버전에 없는 임무입니다", "Mission not found in this version")); return; }
   newGame(rec.mi < 0 ? -2 : rec.mi, true, rec.seed);
   diffIdx = REPLAY_BACKUP.diff;
@@ -133,7 +134,7 @@ function showReplays(back) {
   const fmt = r => { const d = new Date(r.date); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("리플레이", "Replays")}</h1>
     <p class="help">${L("최근 5판이 자동 저장됩니다. 같은 버전의 게임에서만 정확히 재생됩니다.", "Your last 5 games are saved automatically. Replays are exact only on the same game version.")}</p>
-    ${list.length ? list.map((r, i) => `<div class="rp"><div><b>${r.name}</b><small>${r.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${r.wave} · ${Math.floor(r.t / 60)}:${String(r.t % 60).padStart(2, "0")} · ${fmt(r)}</small></div>
+    ${list.length ? list.map((r, i) => `<div class="rp"><div><b>${r.name}</b><small>${r.ver && r.ver !== APP_VERSION ? `v${r.ver} · ` : ""}${r.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${r.wave} · ${Math.floor(r.t / 60)}:${String(r.t % 60).padStart(2, "0")} · ${fmt(r)}</small></div>
       <div class="row"><button data-w="${i}">${L("보기", "Watch")}</button><button data-s="${i}">${L("공유", "Share")}</button><button data-d="${i}" aria-label="delete">✕</button></div></div>`).join("")
       : `<p>${L("아직 리플레이가 없습니다. 한 판을 끝내면 자동으로 저장됩니다.", "No replays yet. Finish a game and it is saved automatically.")}</p>`}
     <button class="ms" id="rpBack"><b>${L("돌아가기", "Back")}</b></button></div>`;
