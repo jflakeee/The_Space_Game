@@ -80,6 +80,10 @@ h1 i{font-style:normal;color:var(--ore)}
 .setrow button{min-width:120px}
 body.big #hud{font-size:15px}body.big .res b{font-size:21px}body.big #hud button{padding:8px 12px;font-size:14px}
 body.big .bb{min-width:92px;padding:9px 12px;font-size:16px}body.big #info{width:250px;font-size:15px}body.big #tip{font-size:15px}
+.ach{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line);opacity:.5}.ach.got{opacity:1}
+.ach i{font-style:normal;font-size:22px;color:var(--ore);width:24px;text-align:center}.ach b{display:block;font-size:15px}.ach small{color:var(--dim);font-size:12px}
+.newach{color:var(--ore)!important}
+.cnt{font-size:16px;color:var(--dim);font-weight:400}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
@@ -451,7 +455,7 @@ function newGame(mi, silent = false) {
   ghost = null;
   $("overlay").hidden = true; $("hud").hidden = false; $("bar").hidden = false; $("info").hidden = true;
   S.tut = !silent && mi === 0 ? 0 : null; S.tutT = 0; S.saveT = 0;
-  if (!silent) clearSave();
+  if (!silent) { clearSave(); STATS.games++; }
   buildBar(); updateCtl(); renderTip();
   if (!silent && mi !== 0) toast(`${m.goal ? mi + 1 + ". " : ""}${m.name}: ${m.desc}`, 5);
 }
@@ -513,7 +517,7 @@ function tryPlace() {
   const c = checkPlace(S.build, ghost.x, ghost.y);
   if (!c.ok) { toast(c.reason); sfx("err"); return; }
   S.ore -= DEF[S.build].cost;
-  S.buildings.push(mkB(S.build, ghost.x, ghost.y, false)); sfx("place");
+  S.buildings.push(mkB(S.build, ghost.x, ghost.y, false)); sfx("place"); STATS.built++;
   S.dirty = true;
 }
 
@@ -535,7 +539,7 @@ function hurt(e, a) {
   if (e.dead) return;
   e.hp -= e.shielded ? a * 0.5 : a;
   if (e.hp <= 0) {
-    e.dead = true; S.ore += e.bounty; S.kills++; boom(e.x, e.y, e.r * 2.5, COL.hos);
+    e.dead = true; S.ore += e.bounty; S.kills++; STATS.kills++; if (e.kind === "boss") STATS.boss++; if (e.kind === "dread") STATS.dread++; boom(e.x, e.y, e.r * 2.5, COL.hos);
     if (e.kind === "boss" || e.kind === "dread") { shake(e.kind === "dread" ? 14 : 12); sfx("bigboom"); burst(e.x, e.y, e.kind === "dread" ? 90 : 60, COL.ore, 240, 1.3, 3); } else sfx("kill");
     if (e.kind === "splitter") for (let i = 0; i < 3; i++) S.enemies.push(mkE("scout", e.x + rand(-14, 14), e.y + rand(-14, 14), e.hpM));
   }
@@ -544,7 +548,7 @@ function damageB(b, a) {
   if (b.dead) return;
   b.hp -= a; b.flash = 0.12; sfx("hit");
   if (b.hp <= 0) {
-    b.dead = true; S.dirty = true; boom(b.x, b.y, b.r * 3, COL.ore); shake(b === S.core ? 14 : 5); sfx("boom"); if (b !== S.core) S.lost++;
+    b.dead = true; S.dirty = true; boom(b.x, b.y, b.r * 3, COL.ore); shake(b === S.core ? 14 : 5); sfx("boom"); if (b !== S.core) { S.lost++; STATS.lost++; }
     if (S.sel === b) select(null);
     if (b === S.core) endGame(false);
   }
@@ -584,7 +588,7 @@ function wavesDone() { return S.m.goal && S.m.goal.waves && S.wave >= S.m.goal.w
 
 // ---------- update ----------
 function update(dt) {
-  S.t += dt;
+  S.t += dt; STATS.time += dt;
   if (S.dirty) rebuildGrid();
   const use = a => { if (S.energy >= a) { S.energy -= a; S.usedAcc += a; return true; } S.starved = 1; return false; };
 
@@ -615,7 +619,7 @@ function update(dt) {
         b.ang = Math.atan2(b.ast.y - b.y, b.ast.x - b.x);
         if (use(st(b, "use") * dt)) {
           const m = Math.min(b.ast.ore, st(b, "rate") * S.mod.mine * dt);
-          b.ast.ore -= m; S.ore += m; S.oreMined += m; b.beam = b.ast;
+          b.ast.ore -= m; S.ore += m; S.oreMined += m; STATS.ore += m; b.beam = b.ast;
           if (Math.random() < dt * 5) { const g = b.ang + Math.PI; burst(b.ast.x + Math.cos(g) * b.ast.r * 0.7, b.ast.y + Math.sin(g) * b.ast.r * 0.7, 2, COL.ore, 50, 0.4, 1.5); }
           b.ast.r = b.ast.r0 * (0.45 + 0.55 * b.ast.ore / b.ast.ore0);
           if (b.ast.ore <= 0) depleted(b.ast);
@@ -633,7 +637,7 @@ function update(dt) {
           if (!nx) break;
           dmg *= 0.85; hurt(nx, dmg); hit.push(nx); pts.push([nx.x, nx.y]); cur = nx;
         }
-        b.arcs = pts; b.arcT = 0.16; sfx("zap");
+        b.arcs = pts; b.arcT = 0.16; if (hit.length >= 5) ach("chain"); sfx("zap");
       }
       if (b.arcT > 0) b.arcT -= dt;
     } else if (b.type === "laser" && b.br === "lance") {
@@ -1006,7 +1010,7 @@ function upgrade(b, br) {
   if (b.type === "laser" && b.lvl === 1 && !br) { toast(L("정보 패널에서 속사/저격 중 하나를 고르세요", "Choose Rapid or Lance in the info panel")); return; }
   const c = upCost(b, br || b.br);
   if (S.ore < c) { toast(L("광석이 부족합니다", "Not enough ore")); return; }
-  S.ore -= c; b.spent += c; b.lvl++; const newBr = br && !b.br; if (br) b.br = br;
+  S.ore -= c; b.spent += c; b.lvl++; STATS.upgrades++; if (b.lvl >= 3) ach("maxlv"); const newBr = br && !b.br; if (br) b.br = br;
   const nh = st(b, "hp"); b.hp += nh - b.maxHp; b.maxHp = nh;
   if (RELAY[b.type]) S.dirty = true;
   boom(b.x, b.y, b.r * 2.2, COL.en); sfx("up");
@@ -1057,7 +1061,8 @@ let hudT = 0;
 function hudTick(dt) {
   if (toastTimer > 0 && (toastTimer -= dt) <= 0) $("toast").style.opacity = 0;
   if (!S || (hudT += dt) < 0.12) return;
-  if (!S.over && (S.saveT += hudT) > 10) { S.saveT = 0; saveGame(); }
+  if (!S.over && (S.saveT += hudT) > 10) { S.saveT = 0; saveGame(); saveStats(); }
+  if ((S.achT = (S.achT || 0) + hudT) > 1) { S.achT = 0; checkAch(); }
   hudT = 0; tutTick(); if (!$("tip").hidden) $("tip").style.top = $("hud").offsetHeight + "px"; if (toastTimer > 0) placeToast();
   $("oreV").textContent = Math.floor(S.ore);
   $("enV").textContent = Math.floor(S.energy);
@@ -1110,6 +1115,7 @@ function showMenu() {
       return `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
+    <button class="ms" id="achBtn"><b>${L("업적·통계", "Achievements & stats")}</b><span>${ACH_GOT.size} / ${ACH.length}</span></button>
     <button class="ms" id="cxBtn"><b>${L("도감", "Codex")}</b><span>${L("건물과 적 정보, 상대법", "Buildings, enemies and counters")}</span></button>
     <div class="help">${L(`드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
     건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 손가락을 끌어 위치를 정하고 떼면 건설.<br>
@@ -1129,6 +1135,7 @@ function showMenu() {
   if (sv) $("resume").onclick = loadGame;
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
   $("cxBtn").onclick = () => showCodex(showMenu);
+  $("achBtn").onclick = () => showAch(showMenu);
   $("diffBtn").onclick = () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); showMenu(); };
   $("setBtn").onclick = () => showSettings(showMenu);
 }
@@ -1137,9 +1144,11 @@ function endGame(win) {
   S.over = win ? "win" : "lose"; S.build = null; ghost = null; clearSave(); renderTip(); sfx(win ? "win" : "lose");
   const coreF = Math.max(0, S.core.hp / S.core.maxHp);
   let stars = 0;
+  if (win) { STATS.wins++; if (S.m.goal && S.m.goal.waves && S.lost === 0) ach("flawless"); if (S.mi === 9 && S.dIdx === 2) ach("hard"); }
   if (win && S.m.goal) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; if (S.dIdx === 0) stars = Math.min(2, stars); saveStars(S.mi, stars); }
   if (S.m.daily) { if (S.wave > dailyBest()) store.set("orebelt.daily", JSON.stringify({ key: todayKey(), best: S.wave })); }
   else if (!S.m.goal) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
+  saveStats(); checkAch();
   const mm = Math.floor(S.t / 60), ss = String(Math.floor(S.t % 60)).padStart(2, "0");
   const next = S.mi + 1, hasNext = win && MISSIONS[next] && MISSIONS[next].goal;
   setTimeout(() => {
@@ -1147,6 +1156,7 @@ function endGame(win) {
     const title = win ? L("임무 완료", "Mission complete") : (S.m.goal ? L("코어가 파괴되었습니다", "Core destroyed") : L(`웨이브 ${S.wave}까지 버텼습니다`, `Survived to wave ${S.wave}`));
     o.innerHTML = `<div class="card"><h1 style="font-size:36px">${title}</h1>
       ${stars ? `<div class="stars">${starStr(stars)}</div>` : ""}
+      ${S.newAch && S.newAch.length ? `<p class="newach">${L("새 업적", "New achievements")}: ${S.newAch.join(", ")}</p>` : ""}
       <p>${S.m.goal ? S.mi + 1 + ". " : ""}${S.m.name}</p>
       <dl class="stats"><dt>${L("시간", "Time")}</dt><dd>${mm}:${ss}</dd><dt>${L("코어 내구도", "Core HP")}</dt><dd>${Math.round(coreF * 100)}%</dd><dt>${L("잃은 건물", "Buildings lost")}</dt><dd>${S.lost}</dd>
       <dt>${L("채굴한 광석", "Ore mined")}</dt><dd>${Math.floor(S.oreMined)}</dd><dt>${L("격파", "Kills")}</dt><dd>${S.kills}</dd><dt>${L("웨이브", "Waves")}</dt><dd>${S.wave}</dd></dl>
@@ -1263,7 +1273,7 @@ function loadGame() {
   [cam.x, cam.y, cam.z] = d.cam;
   toast(`${L("이어하기", "Continue")}: ${S.m.name}`);
 }
-addEventListener("pagehide", saveGame);
+addEventListener("pagehide", () => { saveGame(); saveStats(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && S && !S.over) { saveGame(); if (!S.paused && $("overlay").hidden) setPause(true); } });
 
 // ---------- pause ----------
@@ -1396,7 +1406,7 @@ function showSettings(back) {
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("설정", "Settings")}</h1>
     ${opts.map(([id, label]) => `<div class="setrow"><span>${label}</span><button id="set_${id}"></button></div>`).join("")}
     <p class="help">${L("난이도 변경은 다음 판부터 적용됩니다.", "Difficulty changes apply from the next game.")}</p>
-    <button class="ms" id="setReset"><b>${L("진행 초기화", "Reset progress")}</b><span>${L("별, 기록, 저장된 판을 모두 지웁니다", "Clears stars, records and saved game")}</span></button>
+    <button class="ms" id="setReset"><b>${L("진행 초기화", "Reset progress")}</b><span>${L("별, 기록, 업적, 통계, 저장된 판을 모두 지웁니다", "Clears stars, records, achievements, stats and saved game")}</span></button>
     <button class="ms" id="setBack"><b>${L("돌아가기", "Back")}</b></button></div>`;
   o.hidden = false;
   const refresh = () => opts.forEach(([id, , val]) => { $("set_" + id).textContent = val(); });
@@ -1404,8 +1414,8 @@ function showSettings(back) {
   refresh();
   $("setReset").onclick = () => {
     if (!confirm(L("정말 모든 진행을 지울까요?", "Really erase all progress?"))) return;
-    for (const k of ["orebelt.progress", "orebelt.best", "orebelt.daily", "orebelt.seen", SAVE_KEY]) try { localStorage.removeItem(k); } catch {}
-    toast(L("진행을 초기화했습니다", "Progress reset"));
+    for (const k of ["orebelt.progress", "orebelt.best", "orebelt.daily", "orebelt.seen", "orebelt.ach", "orebelt.stats", SAVE_KEY]) try { localStorage.removeItem(k); } catch {}
+    S = null; location.reload();
   };
   $("setBack").onclick = back;
 }
@@ -1419,6 +1429,51 @@ function keyPan(dt) {
   const h = (keys.has("d") || keys.has("arrowright")) - (keys.has("a") || keys.has("arrowleft"));
   const v = (keys.has("s") || keys.has("arrowdown")) - (keys.has("w") || keys.has("arrowup"));
   cam.x += h * 600 * dt / cam.z; cam.y += v * 600 * dt / cam.z; clampCam();
+}
+
+// ---------- achievements & stats ----------
+const STATS = (() => { let v = {}; try { v = JSON.parse(store.get("orebelt.stats")) || {}; } catch {}
+  return Object.assign({ games: 0, wins: 0, ore: 0, kills: 0, built: 0, upgrades: 0, lost: 0, time: 0, boss: 0, dread: 0 }, v); })();
+const saveStats = () => store.set("orebelt.stats", JSON.stringify(STATS));
+const ACH_GOT = new Set((() => { try { return JSON.parse(store.get("orebelt.ach")) || []; } catch { return []; } })());
+const totalStars = () => loadProg().stars.reduce((a, b) => a + (b || 0), 0);
+const ACH = [
+  ["first", "첫 걸음", "First Steps", "1번 임무 완료", "Complete mission 1", () => (loadProg().stars[0] || 0) > 0],
+  ["ore1", "광부", "Miner", "누적 광석 5,000 채굴", "Mine 5,000 ore in total", () => STATS.ore >= 5000],
+  ["ore2", "광산왕", "Ore Baron", "누적 광석 50,000 채굴", "Mine 50,000 ore in total", () => STATS.ore >= 50000],
+  ["kill1", "사냥꾼", "Hunter", "누적 500기 격파", "Destroy 500 ships in total", () => STATS.kills >= 500],
+  ["kill2", "함대 학살자", "Fleet Breaker", "누적 5,000기 격파", "Destroy 5,000 ships in total", () => STATS.kills >= 5000],
+  ["boss", "모함 격추", "Mothership Down", "모함 격파", "Destroy a mothership", () => STATS.boss > 0],
+  ["dread", "요새 함락", "Fortress Fallen", "요새함 격파", "Destroy a dreadnought", () => STATS.dread > 0],
+  ["camp", "캠페인 완주", "Campaign Clear", "10번 임무 완료", "Complete mission 10", () => (loadProg().stars[9] || 0) > 0],
+  ["stars", "완벽주의자", "Perfectionist", "별 30개 모두 획득", "Earn all 30 stars", () => totalStars() >= 30],
+  ["flawless", "무손실 방어", "Flawless Defense", "건물을 하나도 잃지 않고 웨이브 임무 완료", "Win a wave mission without losing a building", null],
+  ["maxlv", "최대 출력", "Full Power", "건물 하나를 Lv 3까지 업그레이드", "Upgrade a building to Lv 3", null],
+  ["big", "거대 기지", "Megabase", "한 판에서 건물 40개 동시 운용", "Run 40 buildings at once", () => S && !S.over && S.buildings.length >= 40],
+  ["chain", "연쇄 반응", "Chain Reaction", "아크 코일 한 번에 5기 타격", "Hit 5 ships with one arc", null],
+  ["endless", "생존 전문가", "Survivor", "무한 벨트 15웨이브 도달", "Reach wave 15 in Endless Belt", () => S && !S.m.goal && !S.m.daily && S.wave >= 15],
+  ["daily", "오늘의 도전자", "Daily Contender", "일일 도전 10웨이브 도달", "Reach wave 10 in a Daily Challenge", () => S && S.m.daily && S.wave >= 10],
+  ["hard", "강철 의지", "Iron Will", "어려움으로 10번 임무 완료", "Complete mission 10 on Hard", null],
+];
+function ach(id) {
+  if (ACH_GOT.has(id)) return;
+  const a = ACH.find(x => x[0] === id); if (!a) return;
+  ACH_GOT.add(id); store.set("orebelt.ach", JSON.stringify([...ACH_GOT]));
+  if (S) (S.newAch = S.newAch || []).push(L(a[1], a[2]));
+  toast(`${L("업적 달성", "Achievement")}: ${L(a[1], a[2])}`, 4); sfx("up");
+}
+function checkAch() { for (const a of ACH) if (a[5] && !ACH_GOT.has(a[0]) && a[5]()) ach(a[0]); }
+function showAch(back) {
+  const o = $("overlay"), fmtT = t => `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}`;
+  const n = v => Math.floor(v).toLocaleString(LANG === "en" ? "en-US" : "ko-KR");
+  const st = [[L("플레이", "Games"), n(STATS.games)], [L("승리", "Wins"), n(STATS.wins)], [L("플레이 시간", "Play time"), fmtT(STATS.time)], [L("채굴한 광석", "Ore mined"), n(STATS.ore)],
+    [L("격파", "Kills"), n(STATS.kills)], [L("보스 격파", "Bosses"), n(STATS.boss + STATS.dread)], [L("건설", "Built"), n(STATS.built)], [L("업그레이드", "Upgrades"), n(STATS.upgrades)], [L("잃은 건물", "Buildings lost"), n(STATS.lost)]];
+  o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("업적", "Achievements")} <small class="cnt">${ACH_GOT.size} / ${ACH.length}</small></h1>
+    ${ACH.map(a => { const got = ACH_GOT.has(a[0]); return `<div class="ach ${got ? "got" : ""}"><i>${got ? "★" : "☆"}</i><div><b>${L(a[1], a[2])}</b><small>${L(a[3], a[4])}</small></div></div>`; }).join("")}
+    <h3>${L("통계", "Stats")}</h3><dl class="stats">${st.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
+    <button class="ms" id="achBack"><b>${L("돌아가기", "Back")}</b></button></div>`;
+  o.hidden = false; o.scrollTop = 0;
+  $("achBack").onclick = back;
 }
 
 // ---------- loop ----------
