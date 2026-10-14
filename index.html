@@ -84,6 +84,13 @@ body.big .bb{min-width:92px;padding:9px 12px;font-size:16px}body.big #info{width
 .ach i{font-style:normal;font-size:22px;color:var(--ore);width:24px;text-align:center}.ach b{display:block;font-size:15px}.ach small{color:var(--dim);font-size:12px}
 .newach{color:var(--ore)!important}
 .cnt{font-size:16px;color:var(--dim);font-weight:400}
+#place{position:fixed;left:0;top:0;display:flex;gap:6px;transform:translate(-50%,0)}
+#place button{min-width:44px;min-height:40px;font-size:14px;white-space:nowrap}#plOk{border-color:var(--heal);background:rgba(40,110,80,.85)}#plOk:disabled{border-color:var(--line);background:rgba(40,52,110,.75)}
+#homeBtn{position:fixed;right:10px;bottom:calc(84px + env(safe-area-inset-bottom,0px));font-size:12px;padding:8px 10px}
+button,#bar{touch-action:manipulation}
+#info .x{position:absolute;right:6px;top:4px;min-width:36px;min-height:36px;padding:0;margin:0;width:auto;background:none;border:0;font-size:16px;color:var(--dim)}
+#info{position:fixed}
+@media (max-width:520px){#info{left:8px!important;right:8px!important;width:auto!important;bottom:calc(80px + env(safe-area-inset-bottom,0px))!important}#info .row{display:flex;gap:6px}#info .row button{flex:1}}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}
@@ -110,6 +117,8 @@ body.big .bb{min-width:92px;padding:9px 12px;font-size:16px}body.big #info{width
 <div id="info" hidden></div>
 <div id="toast"></div>
 <div id="tip" hidden></div>
+<div id="place" hidden><button id="plOk"></button><button id="plNo" aria-label="cancel">✕</button></div>
+<button id="homeBtn" hidden></button>
 <div id="overlay"></div>
 
 <script>
@@ -246,6 +255,7 @@ if (LANG === "en") {
 }
 function applyStaticText() {
   document.documentElement.lang = LANG;
+  $("homeBtn").textContent = L("기지로", "To base");
   $("oreBox").querySelector("small").textContent = L("광석", "ore");
   $("callBtn").textContent = L("웨이브 호출", "Call wave");
   $("callBtn").title = L("다음 웨이브를 바로 부르고 남은 시간만큼 광석 보너스", "Call the next wave now for an ore bonus");
@@ -513,12 +523,14 @@ function checkPlace(type, x, y) {
   res.ok = true; return res;
 }
 function tryPlace() {
-  if (!S || !S.build || !ghost || S.over) return;
+  if (!S || !S.build || !ghost || S.over) return false;
   const c = checkPlace(S.build, ghost.x, ghost.y);
-  if (!c.ok) { toast(c.reason); sfx("err"); return; }
+  if (!c.ok) { toast(c.reason); sfx("err"); buzz([30, 40, 30]); return false; }
   S.ore -= DEF[S.build].cost;
   const nb = mkB(S.build, ghost.x, ghost.y, !!SET.instant); S.buildings.push(nb); sfx(SET.instant ? "done" : "place"); if (SET.instant) burst(nb.x, nb.y, 10, COL.en, 70, 0.4); STATS.built++;
-  S.dirty = true;
+  S.dirty = true; buzz(15);
+  if (touchUI) ghost = null;
+  return true;
 }
 
 // ---------- combat helpers ----------
@@ -580,7 +592,7 @@ function spawnWave() {
   list.forEach((k, i) => { const p = pts[i % groups]; S.enemies.push(mkE(k, p.x + rand(-60, 60), p.y + rand(-60, 60), hpM)); });
   const fresh = [...new Set(list.concat(boss ? [bossKind] : []))].find(k => { try { return !(JSON.parse(store.get("orebelt.seen")) || []).includes(k); } catch { return true; } });
   if (boss) S.enemies.push(mkE(bossKind, pts[0].x, pts[0].y, hpM));
-  sfx("alarm");
+  sfx("alarm"); buzz(25);
   if (fresh) { seenHint(fresh); return; }
   toast(boss ? (bossKind === "dread" ? L(`웨이브 ${w}: 요새함 출현!`, `Wave ${w}: dreadnought incoming!`) : L(`웨이브 ${w}: 모함 출현!`, `Wave ${w}: mothership incoming!`)) : L(`웨이브 ${w} 접근 중 (${list.length}기)`, `Wave ${w} incoming (${list.length} ships)`), boss ? 3 : 2.2);
 }
@@ -986,7 +998,8 @@ function setBuild(k) {
   if (!S || S.over || (k && !S.allow.includes(k))) return;
   S.build = k; ghost = null; if (k) select(null);
   for (const b of $("bar").children) b.classList.toggle("on", b.dataset.k === k);
-  if (k) toast(`${DEF[k].name}: ${DEF[k].desc}`, 3);
+  if (k && touchUI && !store.get("orebelt.touchHint")) { store.set("orebelt.touchHint", "1"); toast(L("위치를 탭한 뒤 ✓로 설치하세요. 드래그는 화면 이동입니다.", "Tap a spot, then press ✓ to build. Dragging pans the view."), 5); }
+  else if (k) toast(`${DEF[k].name}: ${DEF[k].desc}`, 3);
 }
 function statLine(b) {
   const f = (k, n = 1) => st(b, k).toFixed(n);
@@ -1022,7 +1035,7 @@ function select(b) {
   const box = $("info");
   if (!b) { box.hidden = true; return; }
   const d = DEF[b.type];
-  box.innerHTML = `<div class="t">${d.name}${b.br ? ` (${BR[b.br]()})` : ""} <span id="iL"></span></div><div id="iS"></div><div id="iH"></div><div id="iX"></div><div class="d">${b.br ? BRD[b.br]() : d.desc}</div>`;
+  box.innerHTML = `<button class="x" id="iClose" aria-label="close">✕</button><div class="t">${d.name}${b.br ? ` (${BR[b.br]()})` : ""} <span id="iL"></span></div><div id="iS"></div><div id="iH"></div><div id="iX"></div><div class="d">${b.br ? BRD[b.br]() : d.desc}</div>`;
   if (b.type === "laser" && b.lvl === 1) {
     box.insertAdjacentHTML("beforeend", `<div class="d" id="iBr">${L("속사: 짧은 사거리, 높은 연속 피해. 저격: 긴 사거리, 체력 높은 적에게 강한 단발.", "Rapid: short range, high sustained damage. Lance: long range, heavy single shots at the toughest target.")}</div>`);
     for (const br of ["rapid", "lance"]) { const x = document.createElement("button"); x.id = "iU_" + br; x.onclick = () => upgrade(S.sel, br); box.appendChild(x); }
@@ -1035,6 +1048,9 @@ function select(b) {
     };
     box.appendChild(btn);
   }
+  const row = document.createElement("div"); row.className = "row";
+  for (const x of [...box.querySelectorAll(":scope > button:not(.x)")]) row.appendChild(x);
+  box.appendChild(row); $("iClose").onclick = () => select(null);
   box.hidden = false; updateInfo();
 }
 function updateInfo() {
@@ -1118,13 +1134,13 @@ function showMenu() {
     <button class="ms" id="achBtn"><b>${L("업적·통계", "Achievements & stats")}</b><span>${ACH_GOT.size} / ${ACH.length}</span></button>
     <button class="ms" id="cxBtn"><b>${L("도감", "Codex")}</b><span>${L("건물과 적 정보, 상대법", "Buildings, enemies and counters")}</span></button>
     <div class="help">${L(`드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
-    건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 손가락을 끌어 위치를 정하고 떼면 건설.<br>
+    건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 위치를 탭한 뒤 ✓ 버튼으로 설치하고, 드래그는 화면 이동.<br>
     건물은 중계기나 코어의 연결선이 닿아야 작동합니다. 소행성은 연결선을 가립니다.<br>
     건물을 누르면 업그레이드(최대 Lv 3)와 판매를 할 수 있습니다.<br>
     별점은 잃은 건물 수로 정해집니다(3개 이하 ★3, 10개 이하 ★2, 쉬움은 최대 ★2). 짓는 중인 건물과 중계기는 판매 시 전액 환불.<br>
     레이저는 Lv 2에서 속사/저격으로 갈라집니다. 중계기는 8개, 코어는 20개까지 연결됩니다.<br>
     단축키: 숫자 건설, U 업그레이드(R/L 레이저 분기), Space 정지(정지 중에도 건설 가능), Esc 취소/메뉴, WASD·방향키 이동, +/- 확대.`, `Drag to pan; scroll wheel or pinch to zoom.<br>
-    Pick a building, then tap the map to build. On touch, drag to position and release to build.<br>
+    Pick a building, then click the map to build. On touch, tap a spot and press ✓; dragging pans the view.<br>
     Buildings only work when linked to a relay or the core. Asteroids block links.<br>
     Tap a building to upgrade it (up to Lv 3) or sell it.<br>
     Stars depend on buildings lost (3 or fewer ★3, 10 or fewer ★2; Easy caps at ★2). Unfinished buildings and relays sell for a full refund.<br>
@@ -1170,32 +1186,35 @@ function endGame(win) {
 
 // ---------- input ----------
 const ptrs = new Map();
-let gest = null;
-function setGhost(sx, sy, touch) { const [x, y] = s2w(sx, sy - (touch ? 56 : 0)); ghost = { x, y }; }
-function tap(sx, sy) {
+let gest = null, touchUI = false;
+addEventListener("pointerdown", e => { touchUI = e.pointerType !== "mouse"; }, true);
+function buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch {} }
+function setGhost(sx, sy) { const [x, y] = s2w(sx, sy); ghost = { x, y }; }
+function tap(sx, sy, touch) {
   if (!S || S.over) return;
   const [x, y] = s2w(sx, sy);
-  let hit = null;
-  for (const b of S.buildings) if (Math.hypot(b.x - x, b.y - y) <= b.r + 10 / cam.z) hit = b;
+  let hit = null, bd = 1e9;
+  for (const b of S.buildings) { const d = Math.hypot(b.x - x, b.y - y); if (d <= b.r + (touch ? 24 : 10) / cam.z && d < bd) { bd = d; hit = b; } }
   select(hit);
 }
 cv.addEventListener("pointerdown", e => {
   cv.setPointerCapture(e.pointerId);
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  touchUI = e.pointerType !== "mouse";
   if (ptrs.size === 2) {
     const [a, b] = [...ptrs.values()];
     gest = { mode: "pinch", d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: cam.z, m0: s2w((a.x + b.x) / 2, (a.y + b.y) / 2) };
-    if (e.pointerType !== "mouse") ghost = null;
     return;
   }
   if (ptrs.size > 2) return;
   const panBtn = e.button === 1 || e.button === 2;
-  const mode = S && S.build && !panBtn ? "ghost" : "pan";
-  gest = { mode, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, touch: e.pointerType !== "mouse" };
-  if (mode === "ghost") setGhost(e.clientX, e.clientY, gest.touch);
+  // mouse: click places directly; touch: drag pans, tap sets the ghost, the check button confirms
+  const mode = S && S.build && !panBtn && !touchUI ? "ghost" : "pan";
+  gest = { mode, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, touch: touchUI };
+  if (mode === "ghost") setGhost(e.clientX, e.clientY);
 });
 cv.addEventListener("pointermove", e => {
-  if (!ptrs.has(e.pointerId)) { if (e.pointerType === "mouse" && S && S.build) setGhost(e.clientX, e.clientY, false); return; }
+  if (!ptrs.has(e.pointerId)) { if (e.pointerType === "mouse" && S && S.build) { touchUI = false; setGhost(e.clientX, e.clientY); } return; }
   const p = ptrs.get(e.pointerId); p.x = e.clientX; p.y = e.clientY;
   if (!gest) return;
   if (gest.mode === "pinch") {
@@ -1206,9 +1225,9 @@ cv.addEventListener("pointermove", e => {
     cam.y = gest.m0[1] - ((a.y + b.y) / 2 - ch / 2) / cam.z;
     clampCam(); return;
   }
-  if (Math.hypot(e.clientX - gest.sx, e.clientY - gest.sy) > 6) gest.moved = true;
-  if (gest.mode === "pan") { cam.x -= (e.clientX - gest.lx) / cam.z; cam.y -= (e.clientY - gest.ly) / cam.z; clampCam(); }
-  else setGhost(e.clientX, e.clientY, gest.touch);
+  if (Math.hypot(e.clientX - gest.sx, e.clientY - gest.sy) > (gest.touch ? 10 : 6)) gest.moved = true;
+  if (gest.mode === "pan") { if (gest.moved) { cam.x -= (e.clientX - gest.lx) / cam.z; cam.y -= (e.clientY - gest.ly) / cam.z; clampCam(); } }
+  else setGhost(e.clientX, e.clientY);
   gest.lx = e.clientX; gest.ly = e.clientY;
 });
 function endPtr(e) {
@@ -1217,8 +1236,11 @@ function endPtr(e) {
   if (!gest) return;
   if (gest.mode === "pinch") { if (ptrs.size === 0) gest = null; return; }
   if (e.type === "pointerup") {
-    if (gest.mode === "ghost") { tryPlace(); if (gest.touch) ghost = null; }
-    else if (!gest.moved) tap(e.clientX, e.clientY);
+    if (gest.mode === "ghost") tryPlace();
+    else if (!gest.moved) {
+      if (S && S.build && gest.touch) { setGhost(e.clientX, e.clientY); buzz(8); }
+      else tap(e.clientX, e.clientY, gest.touch);
+    }
   }
   gest = null;
 }
@@ -1477,6 +1499,19 @@ function showAch(back) {
   $("achBack").onclick = back;
 }
 
+function placeUI() {
+  const pl = $("place"), show = S && !S.over && S.build && ghost && touchUI && $("overlay").hidden;
+  pl.hidden = !show;
+  if (show) {
+    const sx = (ghost.x - cam.x) * cam.z + cw / 2, sy = (ghost.y - cam.y) * cam.z + ch / 2, c = checkPlace(S.build, ghost.x, ghost.y);
+    pl.style.left = clamp(sx, 60, cw - 60) + "px"; pl.style.top = clamp(sy + 48, 60, ch - 140) + "px";
+    $("plOk").disabled = !c.ok; $("plOk").textContent = `✓ ${DEF[S.build].name} ${DEF[S.build].cost}`;
+  }
+  $("homeBtn").hidden = !S || !!S.over || !$("overlay").hidden || !$("info").hidden || !!S.build;
+}
+$("plOk").onclick = () => { tryPlace(); };
+$("plNo").onclick = () => { ghost = null; setBuild(null); };
+$("homeBtn").onclick = () => { if (S) { cam.x = S.core.x; cam.y = S.core.y; } };
 // ---------- loop ----------
 let last = performance.now();
 function frame(now) {
@@ -1485,7 +1520,7 @@ function frame(now) {
   else if (S && S.over) stepFx(dt);
   keyPan(dt);
   if (S && S.shake > 0) S.shake = Math.max(0, S.shake - dt * 30);
-  draw(); hudTick(dt); musicTick();
+  draw(); hudTick(dt); musicTick(); placeUI();
   requestAnimationFrame(frame);
 }
 applyStaticText(); saveSet();
