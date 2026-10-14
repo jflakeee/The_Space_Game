@@ -100,6 +100,17 @@ def t_hazards(page):
     assert r[:3] == [True, True, True], r
 
 
+def t_briefing(page):
+    page.click(".ms[data-i='0']")
+    page.wait_for_selector("#brGo")
+    page.click("#brGo")
+    assert page.evaluate("()=>window.__game.S.mi") == 0
+    page.evaluate("()=>{const G=window.__game;G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
+    page.wait_for_selector("#next", timeout=3000)
+    page.click("#next")
+    page.wait_for_selector("#brGo")
+
+
 def t_end_and_menu(page):
     page.evaluate("()=>{const G=window.__game;G.newGame(0);G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
     page.wait_for_selector("#tomenu", timeout=3000)
@@ -110,7 +121,7 @@ def t_end_and_menu(page):
     assert page.is_visible(".ms[data-i='0']")
 
 
-TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_end_and_menu]
+TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_end_and_menu]
 
 
 def main():
