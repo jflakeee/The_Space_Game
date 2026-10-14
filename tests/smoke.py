@@ -163,6 +163,10 @@ def check_version_sync():
     v = re.search(r'APP_VERSION = "([^"]+)"', cfg).group(1)
     assert f'"orebelt-{v}"' in sw, f"sw.js CACHE must be orebelt-{v}"
     assert f"## [{v}]" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), f"CHANGELOG.md has no entry for {v}"
+    log = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    for ref in re.findall(r"^\[(\d+\.\d+\.\d+)\]: https", log, flags=re.M):
+        assert f"## [{ref}]" in log, f"CHANGELOG.md link [{ref}] has no matching heading"
+    assert not re.search(r"^ - \d{4}-", log, flags=re.M), "CHANGELOG.md has a heading without a version"
     print(f"PASS version sync v{v}")
 
 
