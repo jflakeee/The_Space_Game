@@ -1,6 +1,6 @@
 // Ore Belt · config.js: 건물·적·임무 정의(DEF, EN, MISSIONS)와 레벨별 수치 계산(st)
 "use strict";
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.1.0";
 const REPO_URL = "https://github.com/jflakeee/The_Space_Game";
 // ---------- config ----------
 const W = 1800, H = 1200, ZMIN = 0.3, ZMAX = 2.5;
@@ -25,15 +25,15 @@ const EN = {
   heavy:  { hp: 420, spd: 28, r: 15, range: 140, dmg: 30, rof: 2.0, bounty: 20 },
   bomber: { hp: 60,  spd: 85, r: 8,  range: 0,   dmg: 45, rof: 0,   bounty: 6, blast: 45 },
   shield: { hp: 160, spd: 40, r: 12, range: 100, dmg: 8,  rof: 1.2, bounty: 12, aura: 95 },
-  sniper: { hp: 70,  spd: 35, r: 9,  range: 250, dmg: 30, rof: 3.0, bounty: 10, bspd: 650 },
+  sniper: { hp: 70,  spd: 35, r: 9,  range: 220, dmg: 30, rof: 3.0, bounty: 10, bspd: 650 },
   splitter: { hp: 150, spd: 40, r: 12, range: 100, dmg: 10, rof: 1.2, bounty: 6 },
   dread:  { hp: 3800, spd: 14, r: 36, range: 220, dmg: 18, rof: 2.6, bounty: 300 },
-  drone:  { hp: 25,  spd: 95, r: 5,  range: 60,  dmg: 4,  rof: 0.6, bounty: 2, fac: "glass" },
+  drone:  { hp: 25,  spd: 95, r: 5,  range: 60,  dmg: 3,  rof: 0.8, bounty: 2, fac: "glass" },
   harvester: { hp: 130, spd: 50, r: 10, range: 40, dmg: 3, rof: 1.0, bounty: 8, fac: "glass" },
   mender: { hp: 140, spd: 38, r: 11, range: 140, dmg: 4, rof: 1.5, bounty: 12, fac: "glass" },
   phaser: { hp: 90,  spd: 45, r: 9,  range: 90,  dmg: 14, rof: 1.3, bounty: 10, fac: "glass" },
   queen:  { hp: 2600, spd: 16, r: 32, range: 200, dmg: 16, rof: 1.6, bounty: 220, fac: "glass" },
-  boss:   { hp: 1400, spd: 18, r: 30, range: 170, dmg: 25, rof: 0.7, bounty: 150 },
+  boss:   { hp: 1200, spd: 18, r: 30, range: 170, dmg: 25, rof: 0.7, bounty: 150 },
 };
 const MAXLV = 3;
 function st(b, k) {
@@ -94,10 +94,10 @@ const MISSIONS = [
   { name: "쌍둥이 요새",  desc: "8웨이브에 나타나는 요새함 2척 격파.",    goal: { boss: "dread", at: 8, count: 2 }, firstWave: 45, gap: 34, diff: 1.15, map: "ring", allow: ALL },
   { name: "벨트의 끝",    desc: "웨이브 20개 생존. 유성우와 이온 성운.",                     goal: { waves: 20 },  firstWave: 45, gap: 32, diff: 1.3,  map: "lanes", haz: { meteor: true, nebula: 3 }, allow: ALL },
   { name: "낯선 신호",    desc: "광석 1500 채굴. 새로운 적, 유리 군단.",    goal: { ore: 1500 },  firstWave: 55, gap: 40, diff: 0.9,  map: "scatter", faction: "glass", allow: ALL },
-  { name: "광석 도둑",    desc: "광석 2500 채굴. 수확선이 채굴기의 광석을 훔칩니다.", goal: { ore: 2500 }, firstWave: 50, gap: 36, diff: 1, map: "cluster", faction: "glass", w0: 2, allow: ALL },
-  { name: "위상 교란",    desc: "웨이브 12개 생존. 순간이동하는 위상선.",   goal: { waves: 12 },  firstWave: 50, gap: 36, diff: 1.05, map: "ring", faction: "glass", w0: 2, allow: ALL },
+  { name: "광석 도둑",    desc: "광석 2500 채굴. 수확선이 채굴기의 광석을 훔칩니다.", goal: { ore: 2500 }, firstWave: 55, gap: 38, diff: 1, map: "cluster", faction: "glass", w0: 1, allow: ALL },
+  { name: "위상 교란",    desc: "웨이브 12개 생존. 순간이동하는 위상선.",   goal: { waves: 12 },  firstWave: 55, gap: 38, diff: 1.05, map: "ring", faction: "glass", w0: 1, allow: ALL },
   { name: "두 개의 적",   desc: "웨이브 14개 생존. 두 해적단이 함께 옵니다.", goal: { waves: 14 }, firstWave: 50, gap: 36, diff: 1.1, map: "lanes", faction: "mixed", allow: ALL },
-  { name: "수확 모체",    desc: "8웨이브에 나타나는 수확 모체 격파. 근처 전력을 빨아들입니다.", goal: { boss: "queen", at: 8, count: 1 }, firstWave: 45, gap: 34, diff: 1.15, map: "cluster", faction: "glass", allow: ALL },
+  { name: "수확 모체",    desc: "8웨이브에 나타나는 수확 모체 격파. 근처 전력을 빨아들입니다.", goal: { boss: "queen", at: 8, count: 1 }, firstWave: 55, gap: 36, diff: 1.15, map: "cluster", faction: "glass", allow: ALL },
   { name: "무한 벨트",    desc: "끝없는 웨이브. 8웨이브부터 유성우, 10웨이브부터 두 해적단.",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  haz: { meteor: true, from: 8 }, mixFrom: 10, allow: ALL },
 ];
 const COL = { glass: "#c77dff", glassEdge: "#f0dcff", bg: "#0c1230", ore: "#e8a951", en: "#6fd6ec", grid: "92,143,224", hos: "#ff5a6e", heal: "#7ee0a0", slow: "#b79cff",

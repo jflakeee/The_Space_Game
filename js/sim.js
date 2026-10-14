@@ -48,15 +48,15 @@ function mkE(k, x, y, hpM) {
 }
 function spawnWave() {
   S.wave++;
-  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.08 * (w - 1)) * S.dm * S.mod.hp;
+  const w = S.wave, c = w + (S.m.w0 || 0), hpM = (1 + 0.07 * (w - 1)) * S.dm * S.mod.hp;
   const fac = S.m.mixFrom && w >= S.m.mixFrom ? "mixed" : S.m.faction || "red";
   const red = [], glass = [], put = (arr, k, n) => { for (let i = 0; i < n; i++) arr.push(k); };
   put(red, "scout", 2 + Math.floor(c * 0.8)); put(red, "raider", Math.floor(c * 0.5)); put(red, "heavy", Math.max(0, Math.floor((c - 2) / 3)));
   if (c >= 4) put(red, "bomber", Math.floor((c - 1) / 3));
   if (c >= 5) put(red, "shield", Math.floor((c - 2) / 3));
   if (c >= 3) put(red, "splitter", Math.floor((c - 1) / 4));
-  if (c >= 6) put(red, "sniper", Math.floor((c - 3) / 3));
-  put(glass, "drone", 4 + Math.floor(c * 1.2));
+  if (c >= 6) put(red, "sniper", Math.floor((c - 4) / 4));
+  put(glass, "drone", 3 + c);
   if (c >= 2) put(glass, "harvester", Math.floor(c * 0.4));
   if (c >= 3) put(glass, "mender", Math.floor((c - 1) / 3));
   if (c >= 4) put(glass, "phaser", Math.floor((c - 2) / 2));
