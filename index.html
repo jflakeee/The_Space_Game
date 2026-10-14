@@ -208,15 +208,15 @@ const MISSIONS = [
   { name: "최후의 방어선", desc: "웨이브 15개 생존.",                    goal: { waves: 15 },  firstWave: 45, gap: 34, diff: 1.2,  map: "lanes", allow: ALL },
   { name: "보급선 차단",  desc: "적 120기 격파.",                       goal: { kills: 120 }, firstWave: 40, gap: 30, diff: 1.1,  map: "lanes", allow: ALL },
   { name: "레이저 금지",  desc: "웨이브 10개 생존. 레이저를 쓸 수 없습니다.", goal: { waves: 10 }, firstWave: 55, gap: 38, diff: 1, map: "scatter", allow: NO_LASER },
-  { name: "어두운 성운",  desc: "광석 2500 채굴. 태양광 효율 -50%.",     goal: { ore: 2500 },  firstWave: 50, gap: 36, diff: 1.1,  map: "ring", mod: { solar: 0.5 }, allow: ALL },
+  { name: "어두운 성운",  desc: "광석 2500 채굴. 이온 성운이 태양광을 가리고 적을 늦춥니다.",     goal: { ore: 2500 },  firstWave: 50, gap: 36, diff: 1.1,  map: "ring", haz: { nebula: 4 }, allow: ALL },
   { name: "요새 공략",    desc: "6웨이브에 나타나는 요새함 격파.",        goal: { boss: "dread", at: 6, count: 1 }, firstWave: 45, gap: 36, diff: 1, map: "cluster", allow: ALL },
-  { name: "쾌속 해적",    desc: "웨이브 12개 생존. 적 이동 속도 +35%.",  goal: { waves: 12 },  firstWave: 50, gap: 36, diff: 1.1,  map: "cluster", mod: { spd: 1.35 }, allow: ALL },
-  { name: "빈 벨트",      desc: "광석 2000 채굴. 소행성 10개뿐.",         goal: { ore: 2000 },  firstWave: 50, gap: 36, diff: 1.1,  ast: 10, ore: 300, map: "scatter", allow: ALL },
+  { name: "쾌속 해적",    desc: "웨이브 12개 생존. 적 이동 +35%, 태양 플레어.",  goal: { waves: 12 },  firstWave: 50, gap: 36, diff: 1.1,  map: "cluster", mod: { spd: 1.35 }, haz: { flare: true }, allow: ALL },
+  { name: "빈 벨트",      desc: "광석 2000 채굴. 소행성 10개뿐, 유성우.",         goal: { ore: 2000 },  firstWave: 50, gap: 36, diff: 1.1,  ast: 10, ore: 300, map: "scatter", haz: { meteor: true }, allow: ALL },
   { name: "섬멸전",       desc: "적 300기 격파. 웨이브 간격이 짧습니다.", goal: { kills: 300 }, firstWave: 35, gap: 24, diff: 1.15, map: "ring", allow: ALL },
   { name: "중장갑 함대",  desc: "웨이브 14개 생존. 적 체력 +20%.",       goal: { waves: 14 },  firstWave: 60, gap: 38, diff: 1.1, w0: 1, map: "lanes", mod: { hp: 1.2 }, allow: ALL },
   { name: "쌍둥이 요새",  desc: "8웨이브에 나타나는 요새함 2척 격파.",    goal: { boss: "dread", at: 8, count: 2 }, firstWave: 45, gap: 34, diff: 1.15, map: "ring", allow: ALL },
-  { name: "벨트의 끝",    desc: "웨이브 20개 생존.",                     goal: { waves: 20 },  firstWave: 45, gap: 32, diff: 1.3,  map: "lanes", allow: ALL },
-  { name: "무한 벨트",    desc: "끝없는 웨이브. 얼마나 버틸까요?",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  allow: ALL },
+  { name: "벨트의 끝",    desc: "웨이브 20개 생존. 유성우와 이온 성운.",                     goal: { waves: 20 },  firstWave: 45, gap: 32, diff: 1.3,  map: "lanes", haz: { meteor: true, nebula: 3 }, allow: ALL },
+  { name: "무한 벨트",    desc: "끝없는 웨이브. 8웨이브부터 유성우.",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  haz: { meteor: true, from: 8 }, allow: ALL },
 ];
 const COL = { bg: "#0c1230", ore: "#e8a951", en: "#6fd6ec", grid: "92,143,224", hos: "#ff5a6e", heal: "#7ee0a0", slow: "#b79cff",
   struct: "#cfd8ec", fill: "#1b2450", rock: "#37364f", rockEdge: "#57557a" };
@@ -268,15 +268,15 @@ if (LANG === "en") {
     ["Last Line", "Survive 15 waves."],
     ["Cut the Supply", "Destroy 120 ships."],
     ["No Lasers", "Survive 10 waves. Lasers are unavailable."],
-    ["Dark Nebula", "Mine 2500 ore. Solar output -50%."],
+    ["Dark Nebula", "Mine 2500 ore. Ion nebulas dim solar panels and slow enemies."],
     ["Siege Breaker", "Destroy the dreadnought that arrives on wave 6."],
-    ["Fast Raiders", "Survive 12 waves. Enemy speed +35%."],
-    ["Empty Belt", "Mine 2000 ore. Only 10 asteroids."],
+    ["Fast Raiders", "Survive 12 waves. Enemy speed +35%, solar flares."],
+    ["Empty Belt", "Mine 2000 ore. Only 10 asteroids, meteor showers."],
     ["Annihilation", "Destroy 300 ships. Short wave intervals."],
     ["Armored Armada", "Survive 14 waves. Enemy HP +20%."],
     ["Twin Fortresses", "Destroy the two dreadnoughts that arrive on wave 8."],
-    ["End of the Belt", "Survive 20 waves."],
-    ["Endless Belt", "Endless waves. How long can you last?"],
+    ["End of the Belt", "Survive 20 waves. Meteor showers and ion nebulas."],
+    ["Endless Belt", "Endless waves. Meteor showers from wave 8."],
   ];
   MISSIONS.forEach((m, i) => { [m.name, m.desc] = EN_M[i]; });
 }
@@ -372,6 +372,9 @@ const MODS = [
   { ko: "중장갑: 적 체력 +25%", en: "Heavy armor: enemy HP +25%", hp: 1.25 },
   { ko: "넉넉한 자금: 시작 광석 400", en: "Rich start: 400 starting ore", ore: 400 },
   { ko: "강행군: 웨이브 간격 -25%", en: "Rush: wave interval -25%", gap: 0.75 },
+  { ko: "유성우", en: "Meteor showers", haz: ["meteor", true] },
+  { ko: "이온 성운", en: "Ion nebulas", haz: ["nebula", 3] },
+  { ko: "태양 플레어", en: "Solar flares", haz: ["flare", true] },
 ];
 function todayKey() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 function dailyMission(key = todayKey()) {
@@ -381,7 +384,7 @@ function dailyMission(key = todayKey()) {
   const mods = [MODS[i1], MODS[i2]], prod = k => mods.reduce((a, m) => a * (m[k] || 1), 1);
   return { daily: key, seed, name: `${L("일일 도전", "Daily Challenge")} ${key}`, desc: mods.map(m => L(m.ko, m.en)).join(" / "),
     goal: null, firstWave: 45, gap: Math.round(34 * prod("gap")), diff: 1.1, map, ore: (mods.find(m => m.ore) || {}).ore,
-    mod: { spd: prod("spd"), mine: prod("mine"), solar: prod("solar"), hp: prod("hp") }, allow: ALL };
+    mod: { spd: prod("spd"), mine: prod("mine"), solar: prod("solar"), hp: prod("hp") }, haz: Object.fromEntries(mods.filter(m => m.haz).map(m => m.haz)), allow: ALL };
 }
 function dailyBest() { try { const d = JSON.parse(store.get("orebelt.daily")); return d && d.key === todayKey() ? d.best : 0; } catch { return 0; } }
 function seeded(seed, fn) { const orig = Math.random; Math.random = mulberry32(seed); try { return fn(); } finally { Math.random = orig; } }
@@ -483,7 +486,8 @@ function newGame(mi, silent = false) {
   const m = mi === -1 ? dailyMission() : mi === -2 ? CUSTOM : MISSIONS[mi];
   S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave, dm: m.diff * DIFFS[diffIdx], dIdx: diffIdx,
     asteroids: m.astList ? seeded(m.seed, () => m.astList.map(([x, y, r]) => makeAst(x, y, r))) : m.seed ? seeded(m.seed, () => genAsteroids(30, m.map)) : genAsteroids(m.ast || 30, m.map || MAPS[(Math.random() * MAPS.length) | 0]),
-    mod: Object.assign({ spd: 1, mine: 1, solar: 1, hp: 1 }, m.mod), buildings: [], enemies: [], shots: [], fx: [], parts: [], shake: 0, links: [], lost: 0,
+    mod: Object.assign({ spd: 1, mine: 1, solar: 1, hp: 1 }, m.mod), haz: Object.assign({}, m.haz), meteors: [], metT: 40, flare: 0, flareT: 50,
+    nebulas: m.haz && m.haz.nebula ? (m.seed ? seeded(m.seed + 1, () => genNebulas(m.haz.nebula)) : genNebulas(m.haz.nebula)) : [], buildings: [], enemies: [], shots: [], fx: [], parts: [], shake: 0, links: [], lost: 0,
     dirty: true, speed: 1, paused: false, over: null, kills: 0, build: null, sel: null,
     gen: 0, usedAcc: 0, rateT: 0, useRate: 0, starved: 0 };
   S.core = mkB("core", W / 2, H / 2, true);
@@ -627,6 +631,64 @@ function spawnWave() {
 }
 function wavesDone() { return S.m.goal && S.m.goal.waves && S.wave >= S.m.goal.waves; }
 
+// ---------- environmental hazards ----------
+function genNebulas(n) {
+  const out = [];
+  for (let k = 0; out.length < n && k < 400; k++) {
+    const x = rand(150, W - 150), y = rand(150, H - 150), r = rand(140, 220);
+    if (Math.hypot(x - W / 2, y - H / 2) < r + 110) continue;
+    if (out.some(o => Math.hypot(o.x - x, o.y - y) < o.r + r * 0.6)) continue;
+    out.push({ x, y, r, ph: rand(0, 6.28) });
+  }
+  return out;
+}
+const inNeb = p => S.nebulas.some(n => Math.hypot(n.x - p.x, n.y - p.y) < n.r);
+function hazTick(dt) {
+  const H_ = S.haz;
+  if (H_.meteor && S.wave >= (H_.from || 0)) {
+    if ((S.metT -= dt) <= 0) {
+      S.metT = rand(22, 34);
+      const n = 3 + Math.min(5, S.wave >> 2);
+      for (let i = 0; i < n; i++) {
+        const b = S.buildings[(Math.random() * S.buildings.length) | 0] || S.core;
+        S.meteors.push({ x: clamp(b.x + rand(-170, 170), 20, W - 20), y: clamp(b.y + rand(-170, 170), 20, H - 20), t: 2.6 + rand(0, 1.4), r: 38 });
+      }
+      toast(L("유성우 경보! 붉은 표시 지점에 충돌합니다", "Meteor shower! Impacts at the red markers"), 3); sfx("alarm");
+    }
+    for (const m of S.meteors) {
+      if ((m.t -= dt) > 0 || m.done) continue;
+      m.done = true; boom(m.x, m.y, m.r * 1.3, COL.ore); shake(5); sfx("boom");
+      for (const b of S.buildings) if (!b.dead && Math.hypot(b.x - m.x, b.y - m.y) <= m.r + b.r) damageB(b, 70);
+      for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - m.x, e.y - m.y) <= m.r + e.r) hurt(e, 70);
+    }
+    S.meteors = S.meteors.filter(m => !m.done);
+  }
+  if (H_.flare) {
+    if (S.flare > 0) S.flare -= dt;
+    else if ((S.flareT -= dt) <= 0) { S.flareT = rand(45, 60); S.flare = 12; toast(L("태양 플레어: 12초간 태양광 2배, 적 속도 +20%", "Solar flare: 12s of double solar, enemies +20% speed"), 3); sfx("alarm"); }
+  }
+}
+function drawHazardsUnder() {
+  for (const n of S.nebulas) {
+    const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+    const a = 0.22 + 0.04 * Math.sin(S.t * 0.5 + n.ph);
+    g.addColorStop(0, `rgba(150,110,255,${a})`); g.addColorStop(0.7, `rgba(120,90,230,${a * 0.6})`); g.addColorStop(1, "rgba(110,80,220,0)");
+    ctx.fillStyle = g; circle(n.x, n.y, n.r); ctx.fill();
+  }
+}
+function drawHazardsOver() {
+  for (const m of S.meteors) {
+    const k = 0.5 + 0.5 * Math.sin(S.t * 10);
+    ctx.strokeStyle = `rgba(255,90,110,${0.4 + 0.5 * k})`; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+    circle(m.x, m.y, m.r); ctx.stroke(); ctx.setLineDash([]);
+    if (m.t < 0.7) {
+      const f = m.t / 0.7, hx = m.x + 260 * f, hy = m.y - 420 * f;
+      ctx.strokeStyle = "rgba(255,200,130,.9)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 40, hy - 64); ctx.stroke();
+      circle(hx, hy, 7); ctx.fillStyle = "#ffd9a0"; ctx.fill();
+    }
+  }
+}
+
 // ---------- update ----------
 function update(dt) {
   S.t += dt; STATS.time += dt;
@@ -644,7 +706,7 @@ function update(dt) {
       if (b.prog >= 1) { burst(b.x, b.y, 12, COL.en, 70, 0.5); sfx("done"); if (RELAY[b.type]) S.dirty = true; }
       continue;
     }
-    if (b.type === "solar") { const g = st(b, "gen") * S.mod.solar; S.energy += g * dt; gen += g; }
+    if (b.type === "solar") { const g = st(b, "gen") * S.mod.solar * (S.flare > 0 ? 2 : 1) * (S.nebulas.length && inNeb(b) ? 0.4 : 1); S.energy += g * dt; gen += g; }
     else if (b.type === "battery") cap += st(b, "cap");
   }
   S.gen = gen; S.eCap = cap;
@@ -729,7 +791,7 @@ function update(dt) {
     if (!e.tgt) continue;
     const dx = e.tgt.x - e.x, dy = e.tgt.y - e.y, dd = Math.hypot(dx, dy) || 1;
     e.ang = Math.atan2(dy, dx);
-    const sp = d.spd * (e.slowF || 1) * S.mod.spd;
+    const sp = d.spd * (e.slowF || 1) * S.mod.spd * (S.flare > 0 ? 1.2 : 1) * (S.nebulas.length && inNeb(e) ? 0.7 : 1);
     if (e.kind === "bomber") {
       e.x += dx / dd * sp * dt; e.y += dy / dd * sp * dt;
       if (dd <= e.r + e.tgt.r + 2) {
@@ -794,6 +856,7 @@ function update(dt) {
   if (S.asteroids.some(a => a.dead)) S.asteroids = S.asteroids.filter(a => !a.dead);
   if (S.over) return;
 
+  hazTick(dt);
   // waves
   if (!wavesDone() && !(S.tut != null && S.tut < 4)) { S.waveT -= dt; if (S.waveT <= 0) { spawnWave(); S.waveT = S.m.gap; } }
 
@@ -894,6 +957,7 @@ function draw() {
     for (const b of S.buildings) if (RELAY[b.type] && b.powered) { const f = (S.deg?.get(b) || 0) >= capOf(b); ctx.strokeStyle = f ? "rgba(255,90,110,.35)" : `rgba(${COL.grid},.2)`; ctx.fillStyle = f ? "rgba(255,90,110,.04)" : `rgba(${COL.grid},.06)`; circle(b.x, b.y, st(b, "link")); ctx.fill(); ctx.stroke(); }
   }
 
+  drawHazardsUnder();
   // asteroids
   for (const a of S.asteroids) {
     ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.rot);
@@ -982,6 +1046,7 @@ function draw() {
     else { circle(s.x, s.y, s.big ? 3.5 : 2); ctx.fillStyle = s.big ? COL.hos : "#ffb0bb"; ctx.fill(); }
   }
 
+  drawHazardsOver();
   // fx
   for (const f of S.fx) {
     const k = f.t / f.max;
@@ -991,6 +1056,7 @@ function draw() {
   for (const p of S.parts) { ctx.globalAlpha = 1 - p.t / p.max; ctx.fillStyle = p.col; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
   ctx.globalAlpha = 1;
 
+  if (S.flare > 0) { ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = `rgba(255,170,60,${0.06 + 0.03 * Math.sin(S.t * 3)})`; ctx.fillRect(0, 0, cw, ch); ctx.restore(); }
   // ghost
   let reason = "";
   if (S.build && ghost) {
@@ -1316,7 +1382,7 @@ function saveGame() {
   const data = { v: 2, mi: S.mi, code: S.m.custom || null, bossK: S.bossK || 0, t: S.t, ore: S.ore, energy: S.energy, oreMined: S.oreMined, wave: S.wave, waveT: S.waveT, kills: S.kills,
     ast: S.asteroids.map(a => [a.x, a.y, a.r, a.r0, a.ore, a.ore0, a.rot, a.pts, a.veins]),
     b: S.buildings.map(b => [b.type, b.x, b.y, b.hp, b.maxHp, b.prog, b.lvl, b.spent, b.cd, b.br || null]),
-    e: S.enemies.map(e => [e.kind, e.x, e.y, e.hp, e.maxHp, e.hpM, e.cd, e.side, e.spawnT]),
+    e: S.enemies.map(e => [e.kind, e.x, e.y, e.hp, e.maxHp, e.hpM, e.cd, e.side, e.spawnT]), neb: S.nebulas,
     cam: [cam.x, cam.y, cam.z] };
   store.set(SAVE_KEY, JSON.stringify(data));
 }
@@ -1331,6 +1397,7 @@ function loadGame() {
   S.buildings = d.b.map(([type, x, y, hp, maxHp, prog, lvl, spent, cd, br]) => Object.assign(mkB(type, x, y, prog >= 1), { hp, maxHp, prog, lvl, spent, cd, br: br || null }));
   S.core = S.buildings.find(b => b.type === "core");
   if (!S.core) { clearSave(); newGame(d.mi); return; }
+  if (d.neb) S.nebulas = d.neb;
   S.enemies = d.e.map(([k, x, y, hp, maxHp, hpM, cd, side, spawnT]) => Object.assign(mkE(k, x, y, hpM), { hp, maxHp, cd, side, spawnT }));
   S.dirty = true;
   [cam.x, cam.y, cam.z] = d.cam;
@@ -1439,6 +1506,10 @@ function showCodex(back) {
     return row(eIcon(k), EINFO[k].n(), stat, EINFO[k].d()); }).join("");
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("도감", "Codex")}</h1>
     <h3>${L("건물", "Buildings")}</h3>${bRows}<h3>${L("적", "Enemies")}</h3>${eRows}
+    <h3>${L("환경 위험", "Hazards")}</h3>
+    ${row(iconURL(() => { ctx.strokeStyle = COL.hos; ctx.setLineDash([5, 4]); ctx.lineWidth = 2; circle(0, 0, 20); ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = "#ffc882"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(4, -6); ctx.lineTo(18, -26); ctx.stroke(); circle(4, -6, 5); ctx.fillStyle = "#ffd9a0"; ctx.fill(); }), L("유성우", "Meteor shower"), L("피해 70 · 반경 38", "70 damage · radius 38"), L("붉은 점선 원이 표시되고 약 3초 뒤 충돌합니다. 건물과 적 모두 피해를 입습니다. 수리소와 여유 광석으로 대비하세요.", "Red dashed circles mark impacts about 3 seconds ahead. Hits buildings and enemies alike. Keep repair bays and spare ore."))}
+    ${row(iconURL(() => { const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 26); g.addColorStop(0, "rgba(150,110,255,.8)"); g.addColorStop(1, "rgba(110,80,220,0)"); ctx.fillStyle = g; circle(0, 0, 26); ctx.fill(); }), L("이온 성운", "Ion nebula"), L("태양광 ×0.4 · 적 속도 ×0.7", "Solar ×0.4 · enemy speed ×0.7"), L("성운 안의 태양광은 효율이 크게 떨어지지만, 성운을 지나는 적도 느려집니다. 성운 가장자리에 포탑을 두면 유리합니다.", "Solar panels inside barely work, but enemies crossing it slow down. Turrets at the edge benefit."))}
+    ${row(iconURL(() => { ctx.fillStyle = "#ffb347"; circle(0, 0, 11); ctx.fill(); ctx.strokeStyle = "#ffb347"; ctx.lineWidth = 2.5; for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 15, Math.sin(a) * 15); ctx.lineTo(Math.cos(a) * 22, Math.sin(a) * 22); ctx.stroke(); } }), L("태양 플레어", "Solar flare"), L("12초 · 태양광 ×2 · 적 속도 ×1.2", "12s · solar ×2 · enemy speed ×1.2"), L("화면이 주황빛으로 물드는 동안 에너지가 넘칩니다. 배터리를 채우고 에너지 소모가 큰 무기를 마음껏 쓰세요.", "While the screen glows orange, energy overflows. Fill batteries and fire energy-hungry weapons freely."))}
     <p class="help">${L("적 체력은 웨이브와 난이도에 따라 늘어납니다.", "Enemy HP scales with wave and difficulty.")}</p>
     <button class="ms" id="cxBack"><b>${L("돌아가기", "Back")}</b></button></div>`;
   o.hidden = false; o.scrollTop = 0;
@@ -1557,7 +1628,8 @@ $("homeBtn").onclick = () => { if (S) { cam.x = S.core.x; cam.y = S.core.y; } };
 // ---------- custom maps: editor & share links ----------
 const GOALS = [["waves", 5], ["waves", 10], ["waves", 15], ["waves", 20], ["ore", 1000], ["ore", 2000], ["ore", 3000], ["kills", 100], ["kills", 200], ["endless", 0]];
 const ORES = [80, 120, 200, 400], EDIFF = [0.8, 1, 1.2, 1.4], SIZES = [18, 28, 40];
-const EMODS = [["spd", 1.3, "적 속도 +30%", "Enemy speed +30%"], ["hp", 1.25, "적 체력 +25%", "Enemy HP +25%"], ["solar", 0.5, "태양광 -50%", "Solar -50%"], ["mine", 0.7, "채굴 -30%", "Mining -30%"]];
+const EMODS = [["spd", 1.3, "적 속도 +30%", "Enemy speed +30%"], ["hp", 1.25, "적 체력 +25%", "Enemy HP +25%"], ["solar", 0.5, "태양광 -50%", "Solar -50%"], ["mine", 0.7, "채굴 -30%", "Mining -30%"],
+  ["haz:meteor", true, "유성우", "Meteor showers"], ["haz:nebula", 3, "이온 성운", "Ion nebulas"], ["haz:flare", true, "태양 플레어", "Solar flares"]];
 const mapName = k => ({ scatter: L("산개", "Scatter"), ring: L("고리", "Ring"), cluster: L("군집", "Cluster"), lanes: L("교차", "Lanes") })[k];
 let ED = null, CUSTOM = null, SHARED = null, edTool = "add", edSize = 1, edMap = 0;
 function encodeMap(e) {
@@ -1571,7 +1643,7 @@ function decodeMap(c) {
     if (b[0] !== 1 || b.length !== 6 + b[5] * 3) return null;
     const asts = [];
     for (let i = 0; i < b[5]; i++) { const k = 6 + i * 3; asts.push([b[k] * 8, b[k + 1] * 8, clamp(b[k + 2], 12, 50)]); }
-    return { gi: clamp(b[1], 0, GOALS.length - 1), oi: clamp(b[2], 0, 3), di: clamp(b[3], 0, 3), mods: b[4] & 15, asts };
+    return { gi: clamp(b[1], 0, GOALS.length - 1), oi: clamp(b[2], 0, 3), di: clamp(b[3], 0, 3), mods: b[4] & 127, asts };
   } catch { return null; }
 }
 const goalText = e => { const [t, v] = GOALS[e.gi]; return t === "waves" ? L(`웨이브 ${v}개 생존`, `Survive ${v} waves`) : t === "ore" ? L(`광석 ${v} 채굴`, `Mine ${v} ore`) : t === "kills" ? L(`적 ${v}기 격파`, `Destroy ${v} ships`) : L("무한", "Endless"); };
@@ -1579,9 +1651,9 @@ const modText = e => EMODS.filter((m, i) => e.mods >> i & 1).map(m => L(m[2], m[
 function customMission(e, code) {
   let seed = 7; for (const ch of code) seed = (seed * 31 + ch.charCodeAt(0)) | 0;
   const [t, v] = GOALS[e.gi], mod = {};
-  EMODS.forEach(([k, val], i) => { if (e.mods >> i & 1) mod[k] = val; });
+  const haz = {}; EMODS.forEach(([k, val], i) => { if (e.mods >> i & 1) { if (k.startsWith("haz:")) haz[k.slice(4)] = val; else mod[k] = val; } });
   return { custom: code, seed, name: L("커스텀 맵", "Custom map"), desc: [goalText(e), ...modText(e)].join(" / "),
-    goal: t === "endless" ? null : { [t]: v }, firstWave: 50, gap: 36, diff: EDIFF[e.di], ore: ORES[e.oi], astList: e.asts, mod, allow: ALL };
+    goal: t === "endless" ? null : { [t]: v }, firstWave: 50, gap: 36, diff: EDIFF[e.di], ore: ORES[e.oi], astList: e.asts, mod, haz, allow: ALL };
 }
 function shareURL(code) { return location.href.split("#")[0] + "#map=" + code; }
 async function shareMap(code) {
