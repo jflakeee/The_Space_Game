@@ -59,7 +59,7 @@ function drawB(b, ghostMode, ok) {
       ctx.fillStyle = COL.heal; ctx.fillRect(-2, -7, 4, 14); ctx.fillRect(-7, -2, 14, 4); break;
   }
   ctx.restore();
-  if (!ghostMode && b.flash > 0) { ctx.globalAlpha = b.flash / 0.12 * 0.6; circle(b.x, b.y, d.r + 2); ctx.fillStyle = "#fff"; ctx.fill(); ctx.globalAlpha = 1; }
+  if (!ghostMode && b.flash > 0 && SET.flash) { ctx.globalAlpha = b.flash / 0.12 * 0.6; circle(b.x, b.y, d.r + 2); ctx.fillStyle = "#fff"; ctx.fill(); ctx.globalAlpha = 1; }
   if (ghostMode) return;
   for (let i = 1; i < (b.lvl || 1); i++) { circle(b.x - d.r + (i - 1) * 6, b.y - d.r - 5, 2); ctx.fillStyle = COL.ore; ctx.fill(); }
   if (b.prog < 1) {
@@ -117,7 +117,7 @@ function draw() {
     const t = b.beam;
     if (b.type === "miner") {
       const g = Math.atan2(t.y - b.y, t.x - b.x), ex = t.x - Math.cos(g) * t.r * 0.7, ey = t.y - Math.sin(g) * t.r * 0.7;
-      ctx.strokeStyle = COL.ore; ctx.globalAlpha = 0.4 + Math.random() * 0.5; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = COL.ore; ctx.globalAlpha = SET.flash ? 0.4 + Math.random() * 0.5 : 0.7; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(ex, ey); ctx.stroke(); ctx.globalAlpha = 1;
     } else if (b.type === "laser") {
       ctx.strokeStyle = "#e9fbff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(t.x, t.y); ctx.stroke();
@@ -143,7 +143,7 @@ function draw() {
     ctx.stroke(); ctx.strokeStyle = "#7fd0ff"; ctx.lineWidth = 6; ctx.globalAlpha *= 0.3; ctx.stroke(); ctx.globalAlpha = 1;
   }
   for (const b of S.buildings) if (b.shotT > 0) {
-    ctx.globalAlpha = b.shotT / 0.18; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    ctx.globalAlpha = b.shotT / 0.18 * (SET.flash ? 1 : 0.45); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.sx, b.sy); ctx.stroke();
     ctx.strokeStyle = COL.en; ctx.lineWidth = 10; ctx.globalAlpha *= 0.35; ctx.stroke(); ctx.globalAlpha = 1;
   }
 
@@ -193,7 +193,7 @@ function draw() {
   for (const p of S.parts) { ctx.globalAlpha = 1 - p.t / p.max; ctx.fillStyle = p.col; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
   ctx.globalAlpha = 1;
 
-  if (S.flare > 0) { ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = `rgba(255,170,60,${0.06 + 0.03 * Math.sin(S.t * 3)})`; ctx.fillRect(0, 0, cw, ch); ctx.restore(); }
+  if (S.flare > 0) { ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = `rgba(255,170,60,${SET.flash ? 0.06 + 0.03 * Math.sin(S.t * 3) : 0.05})`; ctx.fillRect(0, 0, cw, ch); ctx.restore(); }
   // ghost
   let reason = "";
   if (S.build && ghost) {

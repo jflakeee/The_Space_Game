@@ -18,7 +18,7 @@ const EINFO = {
   boss:   { n: () => L("모함", "Mothership"), d: () => L("5웨이브마다 등장(10의 배수 제외). 체력이 매우 높고 정찰기를 계속 내보냅니다. 저격 레이저가 효과적입니다.", "Every 5th wave (except 10s). Huge HP, keeps launching scouts. Lance lasers excel.") },
 };
 function drawEnemyBody(e, t) {
-  ctx.fillStyle = COL.hos; ctx.strokeStyle = "#ffc2ca"; ctx.lineWidth = 1.2;
+  ctx.fillStyle = COL.hos; ctx.strokeStyle = COL.hosEdge; ctx.lineWidth = 1.2;
   if (EN[e.kind] && EN[e.kind].fac === "glass") { ctx.fillStyle = COL.glass; ctx.strokeStyle = COL.glassEdge; }
   if (e.kind === "drone") { poly(4, e.r * 1.3, 0); ctx.fill(); ctx.stroke(); }
   else if (e.kind === "harvester") {

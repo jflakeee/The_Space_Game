@@ -126,7 +126,8 @@ $("callBtn").onclick = () => {
   if (bonus > 0) toast(`${L("조기 호출 보너스", "Early call bonus")} +${bonus}`);
 };
 function setSpeed(v) { if (!S) return; if (v === 0 && S.speed) S.lastSpd = S.speed; S.speed = v; updateCtl(); if (v === 0) toast(L("정지: 건설과 업그레이드는 계속 가능", "Stopped: you can still build and upgrade")); }
-$("spdBtn").onclick = () => setSpeed(S.speed === 1 ? 2 : S.speed === 2 ? 3 : S.speed === 3 ? 0 : 1);
+const SPEEDS = [1, 2, 3, 0.5, 0];
+$("spdBtn").onclick = () => setSpeed(SPEEDS[(SPEEDS.indexOf(S.speed) + 1) % SPEEDS.length]);
 $("muteBtn").onclick = () => { auInit(); setSound((soundMode + 1) % 3); };
 setSound(soundMode);
 $("pauseBtn").onclick = () => setPause(true);

@@ -99,4 +99,10 @@ const MISSIONS = [
   { name: "무한 벨트",    desc: "끝없는 웨이브. 8웨이브부터 유성우, 10웨이브부터 두 해적단.",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  haz: { meteor: true, from: 8 }, mixFrom: 10, allow: ALL },
 ];
 const COL = { glass: "#c77dff", glassEdge: "#f0dcff", bg: "#0c1230", ore: "#e8a951", en: "#6fd6ec", grid: "92,143,224", hos: "#ff5a6e", heal: "#7ee0a0", slow: "#b79cff",
-  struct: "#cfd8ec", fill: "#1b2450", rock: "#37364f", rockEdge: "#57557a" };
+  struct: "#cfd8ec", fill: "#1b2450", rock: "#37364f", rockEdge: "#57557a", hosEdge: "#ffc2ca" };
+// colour modes: deutan = red-green safe (Okabe-Ito based), contrast = high contrast
+const PALETTES = {
+  normal: { ...COL },
+  deutan: { ...COL, hos: "#ff5fd2", hosEdge: "#ffd0f3", ore: "#f0e442", heal: "#ffffff", en: "#56b4e9", glass: "#a9a1ff", glassEdge: "#e4e0ff", slow: "#9fd8ff" },
+  contrast: { ...COL, bg: "#000000", fill: "#101010", struct: "#ffffff", rock: "#3d3d3d", rockEdge: "#9a9a9a", grid: "140,190,255", hos: "#ff3040", hosEdge: "#ffffff", ore: "#ffcc00", en: "#00e5ff", heal: "#00ff88", glass: "#e070ff", glassEdge: "#ffffff" },
+};
