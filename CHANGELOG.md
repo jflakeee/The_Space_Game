@@ -3,7 +3,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
-## [1.1.0] - 2026-10-14
+## [1.1.1] - 2026-10-14
+### 변경
+- 터치 설치: 미리보기(점선 원)를 끌어서 위치를 미세 조정할 수 있습니다. 미리보기 밖을 끌면 기존처럼 화면 이동
+- 건설 미리보기에 움직이는 점선 원(끌기 손잡이) 표시, 안내 문구 갱신
+
+ - 2026-10-14
 ### 변경 (밸런스)
 - 저격선 사거리 250 → 220(저격 레이저 Lv 2·미사일로 맞대응 가능), 등장 수 감소
 - 모함 체력 1400 → 1200, 웨이브당 적 체력 증가율 8% → 7%
@@ -78,5 +83,6 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.1.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.1.1
 [1.1.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.1.0
 [1.0.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.0.0

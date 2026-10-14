@@ -202,6 +202,7 @@ function draw() {
     for (const b of c.links) { ctx.strokeStyle = c.ok ? "rgba(126,224,160,.7)" : "rgba(255,90,110,.6)"; ctx.beginPath(); ctx.moveTo(ghost.x, ghost.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
     if (r) { ctx.strokeStyle = c.ok ? "rgba(220,230,255,.4)" : "rgba(255,90,110,.4)"; ctx.setLineDash([6 * px, 6 * px]); circle(ghost.x, ghost.y, r); ctx.stroke(); ctx.setLineDash([]); }
     drawB({ type: S.build, x: ghost.x, y: ghost.y, r: DEF[S.build].r, ang: -Math.PI / 2, prog: 1 }, true, c.ok);
+    if (touchUI) { ctx.strokeStyle = c.ok ? "rgba(126,224,160,.8)" : "rgba(255,90,110,.7)"; ctx.lineWidth = 2 * px; ctx.setLineDash([4 * px, 4 * px]); ctx.lineDashOffset = -S.t * 12 * px; circle(ghost.x, ghost.y, DEF[S.build].r + 14); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0; }
     if (!c.ok) reason = c.reason;
   }
   if (reason) {

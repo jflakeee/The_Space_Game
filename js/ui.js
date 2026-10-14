@@ -18,7 +18,7 @@ function setBuild(k) {
   if (!S || S.over || S.replay || (k && !S.allow.includes(k))) return;
   S.build = k; ghost = null; if (k) select(null);
   for (const b of $("bar").children) b.classList.toggle("on", b.dataset.k === k);
-  if (k && touchUI && !store.get("orebelt.touchHint")) { store.set("orebelt.touchHint", "1"); toast(L("위치를 탭한 뒤 ✓로 설치하세요. 드래그는 화면 이동입니다.", "Tap a spot, then press ✓ to build. Dragging pans the view."), 5); }
+  if (k && touchUI && !store.get("orebelt.touchHint")) { store.set("orebelt.touchHint", "1"); toast(L("위치를 탭하고, 점선 원을 끌어 위치를 조정한 뒤 ✓로 설치하세요. 다른 곳을 끌면 화면 이동입니다.", "Tap a spot, drag the dashed ring to fine-tune, then press ✓. Dragging elsewhere pans the view."), 6); }
   else if (k) toast(`${DEF[k].name}: ${DEF[k].desc}`, 3);
 }
 function statLine(b) {
@@ -142,7 +142,7 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("중반 난이도를 완화했습니다: 저격선 사거리 축소, 모함 체력 감소, 유리 군단 초반 드론 약화. 이전 버전 리플레이는 결과가 다를 수 있습니다.", "Mid-game difficulty eased: shorter sniper range, weaker mothership, softer early Glass Legion drones. Replays from earlier versions may differ.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("터치로 설치할 때 미리보기(점선 원)를 끌어서 위치를 조정할 수 있습니다. 중반 난이도도 완화되었습니다.", "On touch, drag the preview (dashed ring) to fine-tune placement. Mid-game difficulty has also been eased.")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
@@ -162,13 +162,13 @@ function showMenu() {
     <button class="ms" id="achBtn"><b>${L("업적·통계", "Achievements & stats")}</b><span>${ACH_GOT.size} / ${ACH.length}</span></button>
     <button class="ms" id="cxBtn"><b>${L("도감", "Codex")}</b><span>${L("건물과 적 정보, 상대법", "Buildings, enemies and counters")}</span></button>
     <div class="help">${L(`드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
-    건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 위치를 탭한 뒤 ✓ 버튼으로 설치하고, 드래그는 화면 이동.<br>
+    건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 위치를 탭하고 점선 원을 끌어 조정한 뒤 ✓로 설치, 다른 곳을 끌면 화면 이동.<br>
     건물은 중계기나 코어의 연결선이 닿아야 작동합니다. 소행성은 연결선을 가립니다.<br>
     건물을 누르면 업그레이드(최대 Lv 3)와 판매를 할 수 있습니다.<br>
     별점은 잃은 건물 수로 정해집니다(3개 이하 ★3, 10개 이하 ★2, 쉬움은 최대 ★2). 짓는 중인 건물과 중계기는 판매 시 전액 환불.<br>
     레이저는 Lv 2에서 속사/저격으로 갈라집니다. 중계기는 8개, 코어는 20개까지 연결됩니다.<br>
     단축키: 숫자 건설, U 업그레이드(R/L 레이저 분기), Space 정지(정지 중에도 건설 가능), Esc 취소/메뉴, WASD·방향키 이동, +/- 확대.`, `Drag to pan; scroll wheel or pinch to zoom.<br>
-    Pick a building, then click the map to build. On touch, tap a spot and press ✓; dragging pans the view.<br>
+    Pick a building, then click the map to build. On touch, tap a spot, drag the dashed ring to adjust, then press ✓; dragging elsewhere pans.<br>
     Buildings only work when linked to a relay or the core. Asteroids block links.<br>
     Tap a building to upgrade it (up to Lv 3) or sell it.<br>
     Stars depend on buildings lost (3 or fewer ★3, 10 or fewer ★2; Easy caps at ★2). Unfinished buildings and relays sell for a full refund.<br>

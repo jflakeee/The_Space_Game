@@ -1,6 +1,6 @@
 # Ore Belt
 
-**v1.1.0** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+**v1.1.1** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
 
 소행성 채굴 + 타워 디펜스 웹게임. 플래시 게임 The Space Game의 규칙에서 영감을 받은 클린룸 구현으로,
 원작의 코드, 그래픽, 사운드는 사용하지 않았습니다.
@@ -56,7 +56,7 @@
 
 ## 편의 기능
 - 접근성: 색상 모드(기본 / 적록 색각 보정 / 고대비), 섬광 효과 줄이기(동작 줄이기 환경에선 기본), 0.5× 속도, 알림의 스크린리더 낭독(aria-live)
-- 모바일 조작: 건설 모드에서도 한 손가락 드래그로 화면 이동, 위치를 탭하면 미리보기와 ✓/✕ 버튼, 넓어진 건물 터치 판정, 하단 시트형 정보 패널(닫기 버튼), "기지로" 버튼, 진동 피드백(지원 기기)
+- 모바일 조작: 건설 모드에서도 한 손가락 드래그로 화면 이동, 위치를 탭하면 미리보기와 ✓/✕ 버튼, 미리보기를 끌어 위치 조정, 넓어진 건물 터치 판정, 하단 시트형 정보 패널(닫기 버튼), "기지로" 버튼, 진동 피드백(지원 기기)
 - 건설 방식 설정: 시간 소요(기본) / 즉시(원작식)
 - 설정: 언어, 난이도, 소리, 화면 흔들림(모션 줄이기 환경에선 기본 끔), UI 크기, 체력바 항상 표시, 진행 초기화
 - 키보드 카메라: WASD/방향키 이동, +/- 확대

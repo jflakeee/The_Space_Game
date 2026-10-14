@@ -123,6 +123,21 @@ def t_replay_deterministic(page):
     assert r[0] == r[1] and r[2] > 0, r
 
 
+def t_touch_drag_preview(page):
+    r = page.evaluate("""()=>{const G=window.__game;G.newGame(3);const S=G.S;S.paused=true;S.tut=null;G.update(0.01);G.setBuild('laser');
+      const c=document.getElementById('c'),ev=(t,x,y)=>c.dispatchEvent(new PointerEvent(t,{pointerId:7,pointerType:'touch',clientX:x,clientY:y,bubbles:true}));
+      const w=innerWidth/2,h=innerHeight/2;
+      ev('pointerdown',w+60,h);ev('pointerup',w+60,h);const g0={...G.S===S&&window.__ghost?window.__ghost:{}};
+      const p0=JSON.stringify(__ghostPos());
+      ev('pointerdown',w+60,h);for(let i=1;i<=6;i++)ev('pointermove',w+60+i*8,h+i*5);ev('pointerup',w+108,h+30);
+      const p1=__ghostPos();
+      const cam0=__camPos();ev('pointerdown',w-120,h-150);for(let i=1;i<=6;i++)ev('pointermove',w-120+i*10,h-150);ev('pointerup',w-60,h-150);
+      return [JSON.parse(p0),p1,cam0,__camPos()]}""")
+    (g0, g1, c0, c1) = r
+    assert abs((g1[0] - g0[0]) * 1) > 10 and abs(g1[1] - g0[1]) > 5, r
+    assert c0 != c1, r
+
+
 def t_end_and_menu(page):
     page.evaluate("()=>{const G=window.__game;G.newGame(0);G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
     page.wait_for_selector("#tomenu", timeout=3000)
@@ -133,7 +148,7 @@ def t_end_and_menu(page):
     assert page.is_visible(".ms[data-i='0']")
 
 
-TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_end_and_menu]
+TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_end_and_menu]
 
 
 def check_version_sync():

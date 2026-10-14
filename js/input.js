@@ -14,7 +14,7 @@ function tap(sx, sy, touch) {
   select(hit);
 }
 cv.addEventListener("pointerdown", e => {
-  cv.setPointerCapture(e.pointerId);
+  try { cv.setPointerCapture(e.pointerId); } catch {}
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   touchUI = e.pointerType !== "mouse";
   if (ptrs.size === 2) {
@@ -24,9 +24,14 @@ cv.addEventListener("pointerdown", e => {
   }
   if (ptrs.size > 2) return;
   const panBtn = e.button === 1 || e.button === 2;
-  // mouse: click places directly; touch: drag pans, tap sets the ghost, the check button confirms
-  const mode = S && S.build && !panBtn && !touchUI ? "ghost" : "pan";
-  gest = { mode, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, touch: touchUI };
+  // mouse: click places directly.
+  // touch: tap sets the preview, dragging the preview moves it, dragging elsewhere pans, the check button confirms
+  let mode = S && S.build && !panBtn && !touchUI ? "ghost" : "pan", off = null;
+  if (S && S.build && touchUI && ghost) {
+    const gx = (ghost.x - cam.x) * cam.z + cw / 2, gy = (ghost.y - cam.y) * cam.z + ch / 2;
+    if (Math.hypot(e.clientX - gx, e.clientY - gy) <= Math.max(44, (DEF[S.build].r + 18) * cam.z)) { mode = "gdrag"; off = [gx - e.clientX, gy - e.clientY]; }
+  }
+  gest = { mode, off, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, touch: touchUI };
   if (mode === "ghost") setGhost(e.clientX, e.clientY);
 });
 cv.addEventListener("pointermove", e => {
@@ -43,6 +48,7 @@ cv.addEventListener("pointermove", e => {
   }
   if (Math.hypot(e.clientX - gest.sx, e.clientY - gest.sy) > (gest.touch ? 10 : 6)) gest.moved = true;
   if (gest.mode === "pan") { if (gest.moved) { cam.x -= (e.clientX - gest.lx) / cam.z; cam.y -= (e.clientY - gest.ly) / cam.z; clampCam(); } }
+  else if (gest.mode === "gdrag") setGhost(e.clientX + gest.off[0], e.clientY + gest.off[1]);
   else setGhost(e.clientX, e.clientY);
   gest.lx = e.clientX; gest.ly = e.clientY;
 });
@@ -53,6 +59,7 @@ function endPtr(e) {
   if (gest.mode === "pinch") { if (ptrs.size === 0) gest = null; return; }
   if (e.type === "pointerup") {
     if (gest.mode === "ghost") tryPlace();
+    else if (gest.mode === "gdrag") { if (gest.moved) buzz(8); }
     else if (!gest.moved) {
       if (S && S.editor) edTap(e.clientX, e.clientY);
       else if (S && S.build && gest.touch) { setGhost(e.clientX, e.clientY); buzz(8); }
