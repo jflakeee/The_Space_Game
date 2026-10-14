@@ -1,6 +1,6 @@
 # Ore Belt
 
-**v1.1.1** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+**v1.2.0** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
 
 소행성 채굴 + 타워 디펜스 웹게임. 플래시 게임 The Space Game의 규칙에서 영감을 받은 클린룸 구현으로,
 원작의 코드, 그래픽, 사운드는 사용하지 않았습니다.
@@ -66,7 +66,7 @@
 - 1번 임무 단계별 튜토리얼 (튜토리얼 중에는 첫 웨이브 대기)
 
 ## 연출
-WebAudio로 직접 합성한 효과음과 배경음악(외부 파일 없음). 배경음은 적이 많을수록 밝아지고 아르페지오가 더해짐. HUD 소리 버튼: 전체 → 음악 끔 → 전체 끔, 폭발 파편, 미사일 연기, 채굴 불꽃, 피격 섬광, 화면 흔들림.
+WebAudio로 직접 합성한 효과음과 배경음악(외부 파일 없음). 배경음악은 화면 확대에 반응하는 3단 편곡입니다: 축소 시 저음, 기본 시점은 저음+중음, 확대 시 멜로디까지 전체 합주. 세 성부는 같은 곡을 함께 연주하고 음량만 바뀝니다. HUD 소리 버튼: 전체 → 음악 끔 → 전체 끔, 폭발 파편, 미사일 연기, 채굴 불꽃, 피격 섬광, 화면 흔들림.
 
 ## 일일 도전
 날짜로 고정된 시드의 맵(4종 중 하나) + 변형 규칙 2개(적 속도, 채굴량, 태양광, 적 체력, 시작 자금, 웨이브 간격). 같은 날엔 모두 같은 맵이며, 오늘의 최고 웨이브가 기록됩니다. 무한 모드와 함께 5번 임무 완료 후 열립니다.

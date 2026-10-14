@@ -71,36 +71,73 @@ function stepFx(dt) {
   S.parts = S.parts.filter(p => p.t < p.max);
 }
 
-// ---------- music (procedural ambient) ----------
-const MUS = { nodes: null, step: 0, next: 0 };
-const CHORDS = [[220, 261.6, 329.6], [174.6, 220, 261.6], [196, 246.9, 293.7], [164.8, 207.7, 246.9]];
+// ---------- music: layered orchestral score that follows the camera zoom ----------
+// One 8-bar piece in A minor (Am F C G | Am F G E), 84 BPM. Three layers always play in sync;
+// only their volumes change with zoom so they always sound like one song:
+//   zoomed out  -> low  (cello/bass + low pad)
+//   default     -> low + mid (strings pad + harp arpeggio)
+//   zoomed in   -> low + mid + high (flute melody + glockenspiel)
+const MUS = { bus: null, filt: null, layer: null, step: 0, next: 0 };
+const BPM = 84, SIXTEENTH = 60 / BPM / 4;
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+const SONG = [ // [bass root, mid chord voicing, melody [step, midi, len16ths]...]
+  [45, [57, 60, 64], [[0, 76, 4], [4, 74, 2], [6, 72, 2], [8, 71, 4], [12, 72, 4]]],
+  [41, [53, 57, 60], [[0, 69, 8], [8, 72, 4], [12, 77, 4]]],
+  [48, [55, 60, 64], [[0, 76, 4], [4, 79, 4], [8, 76, 4], [12, 74, 4]]],
+  [43, [55, 59, 62], [[0, 74, 8], [8, 71, 4], [12, 67, 4]]],
+  [45, [57, 60, 64], [[0, 72, 4], [4, 76, 4], [8, 81, 8]]],
+  [41, [53, 57, 60], [[0, 81, 4], [4, 79, 2], [6, 77, 2], [8, 76, 8]]],
+  [43, [55, 59, 62], [[0, 74, 4], [4, 71, 4], [8, 74, 4], [12, 79, 4]]],
+  [40, [56, 59, 64], [[0, 76, 8], [8, 71, 4], [12, 68, 4]]],
+];
 let soundMode = +(store.get("orebelt.sound") ?? (store.get("orebelt.mute") === "1" ? 2 : 0));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function zoomRel() { const base = clamp(Math.min(cw / 560, ch / 640), 0.5, 1.4); return cam.z / base; }
+function musicLayers() { const r = zoomRel(); return { low: 1, mid: smooth(0.65, 0.85, r), high: smooth(1.15, 1.35, r) }; }
+function voice(dest, { type = "sine", f, t, dur, vol, a = 0.02, rel = 0.25, det = [0], vib = 0, cut = 0 }) {
+  const c = AU.ctx, e = c.createGain(); let out = e;
+  if (cut) { const fl = c.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = cut; e.connect(fl); out = fl; }
+  out.connect(dest);
+  e.gain.setValueAtTime(0.0001, t); e.gain.linearRampToValueAtTime(vol, t + a);
+  e.gain.setValueAtTime(vol, t + Math.max(a, dur - rel)); e.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
+  for (const d of det) {
+    const o = c.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = d;
+    if (vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 5.2; lg.gain.value = f * vib; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + dur + rel + 0.05); }
+    o.connect(e); o.start(t); o.stop(t + dur + rel + 0.05);
+  }
+}
+function scheduleStep(step, t) {
+  const bar = Math.floor(step / 16) % SONG.length, s = step % 16, [root, chord, mel] = SONG[bar], L = MUS.layer;
+  // LOW: cello/bass line + sustained low pad
+  if (s === 0) voice(L.low, { type: "sawtooth", f: mtof(root), t, dur: SIXTEENTH * 7, vol: 0.11, a: 0.04, rel: 0.2, cut: 420 });
+  if (s === 8) voice(L.low, { type: "sawtooth", f: mtof(root + 7), t, dur: SIXTEENTH * 3.5, vol: 0.09, a: 0.03, rel: 0.15, cut: 420 });
+  if (s === 12) voice(L.low, { type: "sawtooth", f: mtof(root + 12), t, dur: SIXTEENTH * 3.5, vol: 0.08, a: 0.03, rel: 0.15, cut: 480 });
+  if (s === 0) for (const m of [root + 12, root + 19]) voice(L.low, { type: "triangle", f: mtof(m), t, dur: SIXTEENTH * 16, vol: 0.035, a: 0.6, rel: 0.6 });
+  // MID: string pad (chord) + harp arpeggio in eighths
+  if (s === 0) for (const m of chord) voice(L.mid, { type: "sawtooth", f: mtof(m), t, dur: SIXTEENTH * 16, vol: 0.022, a: 0.5, rel: 0.6, det: [-6, 6], cut: 1400 });
+  if (s % 2 === 0) { const order = [0, 1, 2, 1, 0, 1, 2, 1], m = chord[order[s / 2]] + (s >= 8 ? 12 : 0); voice(L.mid, { type: "triangle", f: mtof(m), t, dur: SIXTEENTH * 1.6, vol: 0.05, a: 0.005, rel: 0.35 }); }
+  // HIGH: flute melody with vibrato + glockenspiel accent on beat 1 and 3
+  for (const [st, m, len] of mel) if (st === s) voice(L.high, { type: "triangle", f: mtof(m), t, dur: SIXTEENTH * len * 0.92, vol: 0.06, a: 0.04, rel: 0.18, vib: 0.006 });
+  if (s === 0 || s === 8) voice(L.high, { type: "sine", f: mtof(chord[s === 0 ? 2 : 0] + 24), t, dur: 0.05, vol: 0.035, a: 0.003, rel: 0.6 });
+}
 function musicTick() {
   if (!AU.ctx || AU.ctx.state !== "running") return;
-  const c = AU.ctx;
-  if (!MUS.nodes) {
-    const g = c.createGain(), f = c.createBiquadFilter();
-    g.gain.value = 0; f.type = "lowpass"; f.frequency.value = 600; f.Q.value = 0.7;
-    f.connect(g).connect(AU.master); MUS.nodes = { g, f };
+  const c = AU.ctx, now = c.currentTime;
+  if (!MUS.bus) {
+    MUS.bus = c.createGain(); MUS.bus.gain.value = 0;
+    MUS.filt = c.createBiquadFilter(); MUS.filt.type = "lowpass"; MUS.filt.frequency.value = 6000;
+    MUS.filt.connect(MUS.bus).connect(AU.master);
+    MUS.layer = {};
+    for (const k of ["low", "mid", "high"]) { const g = c.createGain(); g.gain.value = 0; g.connect(MUS.filt); MUS.layer[k] = g; }
   }
-  const { g, f } = MUS.nodes, playing = S && !S.paused && !S.over;
-  const target = soundMode !== 0 ? 0 : playing ? 0.22 : 0.1;
-  g.gain.setTargetAtTime(target, c.currentTime, 0.8);
+  const playing = S && !S.paused && !S.over && !S.editor;
+  const target = soundMode !== 0 ? 0 : playing ? 0.32 : 0.16;
+  MUS.bus.gain.setTargetAtTime(target, now, 0.6);
+  const lv = musicLayers();
+  for (const k in lv) MUS.layer[k].gain.setTargetAtTime(lv[k], now, 0.35);
   const inten = playing ? Math.min(1, S.enemies.length / 15) : 0;
-  f.frequency.setTargetAtTime(500 + 1800 * inten, c.currentTime, 1.5);
-  if (target === 0 || c.currentTime + 0.15 < MUS.next) return;
-  const t = Math.max(c.currentTime + 0.05, MUS.next), bar = 4, ch = CHORDS[MUS.step % 4];
-  for (const fr of ch) for (const det of [-5, 5]) {
-    const o = c.createOscillator(), e = c.createGain();
-    o.type = "sawtooth"; o.frequency.value = fr / 2; o.detune.value = det;
-    e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(0.045, t + 1.2); e.gain.linearRampToValueAtTime(0, t + bar + 0.6);
-    o.connect(e).connect(f); o.start(t); o.stop(t + bar + 0.7);
-  }
-  if (inten > 0.1) for (let i = 0; i < 8; i++) {
-    const fr = ch[i % 3] * (i % 2 ? 2 : 1), o = c.createOscillator(), e = c.createGain(), tt = t + i * bar / 8;
-    o.type = "triangle"; o.frequency.value = fr;
-    e.gain.setValueAtTime(0.0001, tt); e.gain.exponentialRampToValueAtTime(0.01 + 0.04 * inten, tt + 0.02); e.gain.exponentialRampToValueAtTime(0.0001, tt + 0.4);
-    o.connect(e).connect(f); o.start(tt); o.stop(tt + 0.45);
-  }
-  MUS.step++; MUS.next = t + bar;
+  MUS.filt.frequency.setTargetAtTime(3000 + 5000 * inten, now, 1.2);
+  if (target === 0) { MUS.next = 0; return; }
+  if (MUS.next < now) MUS.next = now + 0.05;
+  while (MUS.next < now + 0.35) { scheduleStep(MUS.step, MUS.next); MUS.step++; MUS.next += SIXTEENTH; }
 }

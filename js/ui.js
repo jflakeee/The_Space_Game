@@ -142,7 +142,7 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("터치로 설치할 때 미리보기(점선 원)를 끌어서 위치를 조정할 수 있습니다. 중반 난이도도 완화되었습니다.", "On touch, drag the preview (dashed ring) to fine-tune placement. Mid-game difficulty has also been eased.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("배경음악이 화면 확대에 반응합니다. 멀리 보면 저음만, 기본 시점은 저음과 중음, 확대하면 멜로디까지 오케스트라처럼 연주됩니다.", "Music now follows the zoom: bass when zoomed out, bass and strings by default, the full orchestra with melody when zoomed in.")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
