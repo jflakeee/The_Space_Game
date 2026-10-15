@@ -1,0 +1,33 @@
+# Deploys the site to GitHub Pages on every push to main and stamps build.json with the build time and commit.
+name: pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble site and stamp build info
+        run: |
+          mkdir -p _site
+          rsync -a --exclude .git --exclude .github --exclude tests --exclude _site ./ _site/
+          printf '{"time":"%s","sha":"%s","run":%s}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${GITHUB_SHA::7}" "$GITHUB_RUN_NUMBER" > _site/build.json
+          cat _site/build.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
