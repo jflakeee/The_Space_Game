@@ -1,6 +1,6 @@
 # Ore Belt
 
-**v1.2.0** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+**v1.2.1** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
 
 소행성 채굴 + 타워 디펜스 웹게임. 플래시 게임 The Space Game의 규칙에서 영감을 받은 클린룸 구현으로,
 원작의 코드, 그래픽, 사운드는 사용하지 않았습니다.
@@ -12,7 +12,7 @@
 - 빌드 도구·외부 의존성 없음
 
 ## 배포
-저장소 전체를 GitHub Pages로 배포합니다(Settings → Pages → Source: `main` / `/ (root)`). 빌드 단계는 없습니다.
+`main`에 push하면 `.github/workflows/pages.yml`이 사이트를 GitHub Pages로 배포하고, 빌드 시각과 커밋을 담은 `build.json`을 함께 생성합니다(메뉴 하단에 표시). 번들링 같은 빌드 단계는 없습니다.
 로컬: `python -m http.server` 후 http://localhost:8000
 
 ## 캠페인

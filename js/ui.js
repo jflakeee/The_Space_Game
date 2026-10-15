@@ -132,6 +132,26 @@ function saveStars(i, n) { const p = loadProg(); p.stars[i] = Math.max(p.stars[i
 const ENDLESS_UNLOCK = 4;
 function unlocked(i, p) { return i === 0 || (MISSIONS[i].goal ? (p.stars[i - 1] || 0) > 0 : (p.stars[ENDLESS_UNLOCK] || 0) > 0); }
 const starStr = n => "★".repeat(n) + "☆".repeat(3 - n);
+// ---- build info (build.json is written by the Pages deploy workflow) ----
+let BUILD = null;
+function relTime(ms) {
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 1) return L("방금", "just now");
+  if (m < 60) return L(`${m}분 전`, `${m} min ago`);
+  const h = Math.round(m / 60); if (h < 24) return L(`${h}시간 전`, `${h} h ago`);
+  const d = Math.round(h / 24); return L(`${d}일 전`, `${d} d ago`);
+}
+function buildText() {
+  if (!BUILD || !BUILD.time) return "";
+  const t = new Date(BUILD.time); if (isNaN(t)) return "";
+  const p = n => String(n).padStart(2, "0");
+  const abs = `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}`;
+  return ` · ${L("빌드", "Build")} <time datetime="${BUILD.time}" title="${abs}">${abs} (${relTime(t.getTime())})</time>${BUILD.sha ? ` · <a href="${REPO_URL}/commit/${BUILD.sha}" target="_blank" rel="noopener">${BUILD.sha}</a>` : ""}`;
+}
+async function loadBuildInfo() {
+  try { const r = await fetch("build.json", { cache: "no-store" }); if (r.ok) BUILD = await r.json(); } catch {}
+  const el = $("buildInfo"); if (el) el.innerHTML = buildText();
+}
 function showMenu() {
   if (S) S.paused = true;
   toastTimer = 0; $("toast").style.opacity = 0; $("tip").hidden = true;
@@ -142,7 +162,7 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("배경음악이 화면 확대에 반응합니다. 멀리 보면 저음만, 기본 시점은 저음과 중음, 확대하면 멜로디까지 오케스트라처럼 연주됩니다.", "Music now follows the zoom: bass when zoomed out, bass and strings by default, the full orchestra with melody when zoomed in.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("메뉴 하단에 최근 빌드 시간과 커밋이 표시됩니다. 배경음악은 화면 확대에 반응합니다(축소: 저음, 기본: 저음+중음, 확대: 전체 합주).", "The menu footer now shows the latest build time and commit. Music follows the zoom (out: bass, default: bass + strings, in: full orchestra).")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
@@ -174,7 +194,7 @@ function showMenu() {
     Stars depend on buildings lost (3 or fewer ★3, 10 or fewer ★2; Easy caps at ★2). Unfinished buildings and relays sell for a full refund.<br>
     Lasers branch into Rapid or Lance at Lv 2. Relays hold 8 links, the core 20.<br>
     Keys: numbers build, U upgrade (R/L laser branch), Space stop (you can still build), Esc cancel/menu, WASD/arrows pan, +/- zoom.`)}</div>
-    <p class="ver">Ore Belt v${APP_VERSION} · <a href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a> · <a href="${REPO_URL}" target="_blank" rel="noopener">GitHub</a></p></div>`;
+    <p class="ver">Ore Belt v${APP_VERSION}<span id="buildInfo">${buildText()}</span> · <a href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a> · <a href="${REPO_URL}" target="_blank" rel="noopener">GitHub</a></p></div>`;
   o.hidden = false;
   o.querySelectorAll(".grid .ms[data-i]").forEach(b => b.onclick = () => startMission(+b.dataset.i));
   if (sv) $("resume").onclick = loadGame;

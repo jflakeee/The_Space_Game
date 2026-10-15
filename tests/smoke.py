@@ -143,6 +143,12 @@ def t_music_layers(page):
     assert r == [[1, 0, 0], [1, 1, 0], [1, 1, 1]], r
 
 
+def t_build_info(page):
+    r = page.evaluate("""()=>{BUILD={time:new Date(Date.now()-3*3600e3).toISOString(),sha:'abc1234',run:5};showMenu();
+      const el=document.getElementById('buildInfo');return [el.textContent, !!el.querySelector('a[href$=abc1234]')]}""")
+    assert ("3" in r[0]) and ("abc1234" in r[0]) and r[1], r
+
+
 def t_end_and_menu(page):
     page.evaluate("()=>{const G=window.__game;G.newGame(0);G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
     page.wait_for_selector("#tomenu", timeout=3000)
@@ -153,7 +159,7 @@ def t_end_and_menu(page):
     assert page.is_visible(".ms[data-i='0']")
 
 
-TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_music_layers, t_end_and_menu]
+TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_music_layers, t_build_info, t_end_and_menu]
 
 
 def check_version_sync():

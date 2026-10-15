@@ -3,6 +3,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.2.1] - 2026-10-15
+### 추가
+- 메뉴 하단에 **최근 빌드 시간**(현지 시각 + "N시간 전")과 커밋 해시 링크 표시
+- GitHub Pages 배포를 Actions 워크플로(`.github/workflows/pages.yml`)로 전환하고, 배포할 때마다 `build.json`(빌드 시각, 커밋, 실행 번호) 자동 생성
+- 서비스워커가 `build.json`은 항상 네트워크에서 먼저 받아 최신 빌드 시간을 표시
+
 ## [1.2.0] - 2026-10-14
 ### 변경
 - 배경음악을 화면 확대에 반응하는 3단 오케스트라 편곡으로 교체(A단조 8마디, 84 BPM, Am–F–C–G–Am–F–G–E)
@@ -93,6 +99,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.2.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.2.1
 [1.2.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.2.0
 [1.1.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.1.1
 [1.1.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.1.0

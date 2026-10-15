@@ -1,6 +1,6 @@
 // Ore Belt · config.js: 건물·적·임무 정의(DEF, EN, MISSIONS)와 레벨별 수치 계산(st)
 "use strict";
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.2.1";
 const REPO_URL = "https://github.com/jflakeee/The_Space_Game";
 // ---------- config ----------
 const W = 1800, H = 1200, ZMIN = 0.3, ZMAX = 2.5;
