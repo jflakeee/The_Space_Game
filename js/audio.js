@@ -2,17 +2,29 @@
 "use strict";
 // ---------- audio (WebAudio synth) ----------
 const AU = { ctx: null, master: null, noise: null, muted: store.get("orebelt.mute") === "1", last: {} };
+// Browsers only let audio start after a user gesture. On touch devices the gesture that counts is the
+// tap's release (pointerup / touchend / click), not pointerdown, so we listen to all of them and keep
+// trying until the context is actually running. We also try once at load, which works where autoplay is allowed
+// (e.g. an installed PWA or a site the browser already trusts).
 function auInit() {
-  if (AU.ctx) { if (AU.ctx.state === "suspended") AU.ctx.resume(); return; }
-  try {
-    const C = window.AudioContext || window.webkitAudioContext;
-    AU.ctx = new C(); AU.master = AU.ctx.createGain(); AU.master.gain.value = AU.muted ? 0 : 0.35; AU.master.connect(AU.ctx.destination);
-    const len = AU.ctx.sampleRate, buf = AU.ctx.createBuffer(1, len, AU.ctx.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    AU.noise = buf;
-  } catch { AU.ctx = null; }
+  if (!AU.ctx) {
+    try {
+      const C = window.AudioContext || window.webkitAudioContext;
+      AU.ctx = new C(); AU.master = AU.ctx.createGain(); AU.master.gain.value = AU.muted ? 0 : 0.35; AU.master.connect(AU.ctx.destination);
+      const len = AU.ctx.sampleRate, buf = AU.ctx.createBuffer(1, len, AU.ctx.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      AU.noise = buf;
+    } catch { AU.ctx = null; return; }
+  }
+  if (AU.ctx.state === "running") return;
+  try { const s = AU.ctx.createBufferSource(); s.buffer = AU.ctx.createBuffer(1, 1, 22050); s.connect(AU.ctx.destination); s.start(0); } catch {} // iOS unlock
+  const p = AU.ctx.resume && AU.ctx.resume(); if (p && p.catch) p.catch(() => {});
 }
-addEventListener("pointerdown", auInit); addEventListener("keydown", auInit);
+// Listeners stay attached: mobile browsers can suspend audio again (app switch, phone call, screen lock),
+// and the next tap should bring it back without visiting the sound button. auInit is a no-op while running.
+const UNLOCK_EVENTS = ["pointerdown", "pointerup", "touchend", "click", "keydown"];
+for (const ev of UNLOCK_EVENTS) addEventListener(ev, auInit, true);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && AU.ctx && AU.ctx.state !== "running") auInit(); });
 function tone(type, f0, f1, dur, vol, delay = 0) {
   const c = AU.ctx, t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
   o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);

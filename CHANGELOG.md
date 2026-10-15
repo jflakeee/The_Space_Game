@@ -3,6 +3,16 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.3.1] - 2026-10-15
+### 수정
+- 모바일에서 소리가 나지 않다가 소리 버튼을 껐다 켜야 재생되던 문제 수정
+  - 원인: 소리 준비를 손가락이 닿는 순간(pointerdown)에만 시도했는데, 모바일 브라우저는 손을 뗄 때(pointerup/touchend/click)만 오디오 시작을 허용함
+  - 이제 화면 어디든 처음 한 번 누르면 바로 소리가 남. 앱 전환 등으로 소리가 다시 멈춰도 다음 탭에서 자동 복구
+- 페이지를 열 때 바로 소리를 시도함(브라우저가 자동 재생을 허용하는 환경, 예: 설치한 앱에서는 즉시 재생)
+
+### 추가
+- 소리가 아직 막혀 있으면 화면 아래에 "화면을 한 번 누르면 소리가 켜집니다" 안내 표시
+
 ## [1.3.0] - 2026-10-15
 ### 추가
 - 설정 → **음악 스타일**: 오케스트라(기본) / **앰비언트**
@@ -107,6 +117,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.3.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.3.1
 [1.3.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.3.0
 [1.2.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.2.1
 [1.2.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.2.0

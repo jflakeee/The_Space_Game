@@ -14,6 +14,7 @@ function frame(now) {
 applyStaticText(); saveSet();
 showMenu();
 loadBuildInfo();
+auInit(); // succeeds right away where the browser allows autoplay; otherwise the first tap/click unlocks audio
 requestAnimationFrame(frame);
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
 window.__game = { get S() { return S; }, newGame, update, simStep, startReplay, doAction, setBuild, tryPlace, checkPlace, upgrade, DEF, MISSIONS, setGhostWorld(x, y) { ghost = { x, y }; } };

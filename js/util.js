@@ -66,6 +66,7 @@ if (LANG === "en") {
 }
 function applyStaticText() {
   document.documentElement.lang = LANG;
+  $("sndHint").textContent = L("화면을 한 번 누르면 소리가 켜집니다", "Tap or click anywhere to turn on sound");
   $("homeBtn").textContent = L("기지로", "To base");
   $("oreBox").querySelector("small").textContent = L("광석", "ore");
   $("callBtn").textContent = L("웨이브 호출", "Call wave");

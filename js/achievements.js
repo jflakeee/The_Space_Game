@@ -49,6 +49,8 @@ function showAch(back) {
 }
 
 function placeUI() {
+  $("sndHint").hidden = soundMode === 2 || !!(AU.ctx && AU.ctx.state === "running");
+  if (!$("sndHint").hidden) $("sndHint").style.bottom = $("bar").hidden ? "" : ($("bar").offsetHeight + 8) + "px";
   const pl = $("place"), show = S && !S.over && S.build && ghost && touchUI && $("overlay").hidden;
   pl.hidden = !show;
   if (show) {
