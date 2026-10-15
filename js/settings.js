@@ -3,7 +3,7 @@
 // ---------- settings ----------
 const SET = (() => { let v = {}; try { v = JSON.parse(store.get("orebelt.settings")) || {}; } catch {}
   const rm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  return Object.assign({ shake: rm ? 0 : 1, ui: 0, bars: 0, instant: 0, brief: 1, pal: "normal", flash: rm ? 0 : 1 }, v); })();
+  return Object.assign({ shake: rm ? 0 : 1, ui: 0, bars: 0, instant: 0, brief: 1, music: "orch", pal: "normal", flash: rm ? 0 : 1 }, v); })();
 function saveSet() { store.set("orebelt.settings", JSON.stringify(SET)); document.body.classList.toggle("big", !!SET.ui); applyPalette(); }
 function applyPalette() {
   Object.assign(COL, PALETTES[SET.pal] || PALETTES.normal);
@@ -21,6 +21,7 @@ function showSettings(back) {
     ["ui", L("UI 크기", "UI size"), () => SET.ui ? L("크게", "Large") : L("보통", "Normal"), () => { SET.ui ^= 1; saveSet(); }],
     ["bar", L("체력바", "Health bars"), () => SET.bars ? L("항상 표시", "Always") : L("피해 시", "When damaged"), () => { SET.bars ^= 1; saveSet(); }],
     ["brief", L("임무 브리핑", "Mission briefings"), () => SET.brief ? L("표시", "Show") : L("건너뛰기", "Skip"), () => { SET.brief ^= 1; saveSet(); }],
+    ["mus", L("음악 스타일", "Music style"), () => SET.music === "amb" ? L("앰비언트", "Ambient") : L("오케스트라", "Orchestral"), () => { auInit(); SET.music = SET.music === "amb" ? "orch" : "amb"; saveSet(); }],
     ["pal", L("색상 모드", "Colour mode"), () => ({ normal: L("기본", "Default"), deutan: L("적록 색각 보정", "Red-green safe"), contrast: L("고대비", "High contrast") })[SET.pal], () => { const k = ["normal", "deutan", "contrast"]; SET.pal = k[(k.indexOf(SET.pal) + 1) % 3]; saveSet(); }],
     ["fl", L("섬광 효과", "Flash effects"), () => SET.flash ? L("켬", "On") : L("줄임", "Reduced"), () => { SET.flash ^= 1; saveSet(); }],
     ["inst", L("건설 방식", "Construction"), () => SET.instant ? L("즉시 (원작식)", "Instant (classic)") : L("시간 소요", "Timed"), () => { SET.instant ^= 1; saveSet(); }],

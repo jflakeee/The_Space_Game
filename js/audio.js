@@ -120,18 +120,45 @@ function scheduleStep(step, t) {
   for (const [st, m, len] of mel) if (st === s) voice(L.high, { type: "triangle", f: mtof(m), t, dur: SIXTEENTH * len * 0.92, vol: 0.06, a: 0.04, rel: 0.18, vib: 0.006 });
   if (s === 0 || s === 8) voice(L.high, { type: "sine", f: mtof(chord[s === 0 ? 2 : 0] + 24), t, dur: 0.05, vol: 0.035, a: 0.003, rel: 0.6 });
 }
+// ---- ambient style: slow, airy D-dorian piece (Dm9 Bbmaj7 Fmaj7 Cadd9), 60 BPM, long reverb ----
+// Written for Ore Belt as a nod to the "atmospheric, calming" mood players described in the original; it is not a copy of any track.
+const EIGHTH = 0.5;
+const AMB = [ // [bass root, pad chord, bell notes [step, midi]]
+  [38, [53, 57, 60, 64], [[2, 81], [5, 77]]],
+  [34, [50, 53, 57, 62], [[3, 86], [6, 77]]],
+  [41, [53, 57, 60, 64], [[1, 84], [6, 81]]],
+  [36, [52, 55, 60, 62], [[2, 79], [5, 86]]],
+];
+function scheduleAmb(step, t) {
+  const bar = Math.floor(step / 8) % AMB.length, s = step % 8, [root, chord, bells] = AMB[bar], L = MUS.layer;
+  // LOW: deep sine drone with a soft octave and a fifth that blooms mid-bar
+  if (s === 0) { voice(L.low, { f: mtof(root), t, dur: EIGHTH * 8, vol: 0.13, a: 1.2, rel: 1.6 }); voice(L.low, { type: "triangle", f: mtof(root + 12), t, dur: EIGHTH * 8, vol: 0.04, a: 1.5, rel: 1.6 }); }
+  if (s === 4) voice(L.low, { type: "triangle", f: mtof(root + 19), t, dur: EIGHTH * 4, vol: 0.025, a: 1, rel: 1.4 });
+  // MID: slow-swelling pad + sparse plucks
+  if (s === 0) for (const m of chord) voice(L.mid, { type: "sawtooth", f: mtof(m), t, dur: EIGHTH * 8, vol: 0.016, a: 1.8, rel: 2.2, det: [-8, 8], cut: 900 });
+  if (s === 1 || s === 3 || s === 6) voice(L.mid, { type: "triangle", f: mtof(chord[[1, 3, 0][[1, 3, 6].indexOf(s)]] + 12), t, dur: 0.5, vol: 0.03, a: 0.01, rel: 1.4 });
+  // HIGH: glassy pentatonic bells with a quiet octave shimmer
+  for (const [st, m] of bells) if (st === s) { voice(L.high, { f: mtof(m), t, dur: 0.08, vol: 0.045, a: 0.004, rel: 2.6 }); voice(L.high, { f: mtof(m + 12), t: t + 0.02, dur: 0.05, vol: 0.012, a: 0.004, rel: 2 }); }
+}
+function buildMusicGraph(c, dest) {
+  const g = { bus: c.createGain(), filt: c.createBiquadFilter(), wet: c.createGain(), verb: c.createConvolver(), layer: {} };
+  g.bus.gain.value = 0; g.filt.type = "lowpass"; g.filt.frequency.value = 6000; g.wet.gain.value = 0.12;
+  const len = Math.floor(c.sampleRate * 3.2), ir = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+  g.verb.buffer = ir;
+  g.filt.connect(g.bus); g.filt.connect(g.wet).connect(g.verb).connect(g.bus); g.bus.connect(dest);
+  for (const k of ["low", "mid", "high"]) { const l = c.createGain(); l.gain.value = 0; l.connect(g.filt); g.layer[k] = l; }
+  return g;
+}
+const musicStyle = () => (typeof SET !== "undefined" && SET.music === "amb" ? "amb" : "orch");
 function musicTick() {
   if (!AU.ctx || AU.ctx.state !== "running") return;
   const c = AU.ctx, now = c.currentTime;
-  if (!MUS.bus) {
-    MUS.bus = c.createGain(); MUS.bus.gain.value = 0;
-    MUS.filt = c.createBiquadFilter(); MUS.filt.type = "lowpass"; MUS.filt.frequency.value = 6000;
-    MUS.filt.connect(MUS.bus).connect(AU.master);
-    MUS.layer = {};
-    for (const k of ["low", "mid", "high"]) { const g = c.createGain(); g.gain.value = 0; g.connect(MUS.filt); MUS.layer[k] = g; }
-  }
+  if (!MUS.bus) Object.assign(MUS, buildMusicGraph(c, AU.master));
+  const style = musicStyle();
+  if (MUS.style !== style) { MUS.style = style; MUS.step = 0; MUS.next = 0; MUS.wet.gain.setTargetAtTime(style === "amb" ? 0.55 : 0.12, now, 0.5); }
   const playing = S && !S.paused && !S.over && !S.editor;
-  const target = soundMode !== 0 ? 0 : playing ? 0.32 : 0.16;
+  const target = soundMode !== 0 ? 0 : (playing ? 0.32 : 0.16) * (style === "amb" ? 1.25 : 1);
   MUS.bus.gain.setTargetAtTime(target, now, 0.6);
   const lv = musicLayers();
   for (const k in lv) MUS.layer[k].gain.setTargetAtTime(lv[k], now, 0.35);
@@ -139,5 +166,6 @@ function musicTick() {
   MUS.filt.frequency.setTargetAtTime(3000 + 5000 * inten, now, 1.2);
   if (target === 0) { MUS.next = 0; return; }
   if (MUS.next < now) MUS.next = now + 0.05;
-  while (MUS.next < now + 0.35) { scheduleStep(MUS.step, MUS.next); MUS.step++; MUS.next += SIXTEENTH; }
+  const amb = style === "amb", dur = amb ? EIGHTH : SIXTEENTH;
+  while (MUS.next < now + 0.35) { (amb ? scheduleAmb : scheduleStep)(MUS.step, MUS.next); MUS.step++; MUS.next += dur; }
 }

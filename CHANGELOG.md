@@ -3,6 +3,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.3.0] - 2026-10-15
+### 추가
+- 설정 → **음악 스타일**: 오케스트라(기본) / **앰비언트**
+  - 앰비언트: D 도리안 4마디(Dm9–B♭maj7–Fmaj7–Cadd9), 60 BPM, 긴 잔향의 독자 곡
+  - 원작에 대해 확인된 "분위기 있고 차분한" 음악이라는 평을 참고해 만든 독자 곡이며, 원작 음원을 복제하지 않음
+  - 확대 반응은 그대로: 축소 시 저음 드론, 기본 시점은 + 패드와 플럭, 확대 시 + 유리 종소리
+- 음악 버스에 리버브(컨볼루션) 추가: 오케스트라는 약하게, 앰비언트는 깊게
+
 ## [1.2.1] - 2026-10-15
 ### 추가
 - 메뉴 하단에 **최근 빌드 시간**(현지 시각 + "N시간 전")과 커밋 해시 링크 표시
@@ -99,6 +107,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.3.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.3.0
 [1.2.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.2.1
 [1.2.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.2.0
 [1.1.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.1.1
