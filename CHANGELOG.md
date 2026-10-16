@@ -3,6 +3,12 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.4.0] - 2026-10-15
+### 추가
+- 설정 → **프레임 제한**: 화면에 맞춤 / 60 fps / 30 fps
+- 설정 → **절전 모드**: 화면 해상도를 1배로 낮추고 파티클을 절반만 그림(시뮬레이션과 리플레이 결과는 그대로)
+- 메뉴, 일시정지, 결과 화면처럼 게임이 멈춘 동안에는 초당 15회만 다시 그려 배터리 사용을 줄임
+
 ## [1.3.1] - 2026-10-15
 ### 수정
 - 모바일에서 소리가 나지 않다가 소리 버튼을 껐다 켜야 재생되던 문제 수정
@@ -117,6 +123,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.4.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.4.0
 [1.3.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.3.1
 [1.3.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.3.0
 [1.2.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.2.1

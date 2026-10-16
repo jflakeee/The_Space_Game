@@ -190,7 +190,7 @@ function draw() {
     ctx.globalAlpha = 1 - k; ctx.strokeStyle = f.col; ctx.lineWidth = 2;
     circle(f.x, f.y, f.r * (0.3 + 0.7 * k)); ctx.stroke(); ctx.globalAlpha = 1;
   }
-  for (const p of S.parts) { ctx.globalAlpha = 1 - p.t / p.max; ctx.fillStyle = p.col; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
+  for (let pi = 0; pi < S.parts.length; pi += SET.saver ? 2 : 1) { const p = S.parts[pi]; ctx.globalAlpha = 1 - p.t / p.max; ctx.fillStyle = p.col; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
   ctx.globalAlpha = 1;
 
   if (S.flare > 0) { ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = `rgba(255,170,60,${SET.flash ? 0.06 + 0.03 * Math.sin(S.t * 3) : 0.05})`; ctx.fillRect(0, 0, cw, ch); ctx.restore(); }

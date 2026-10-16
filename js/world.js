@@ -4,7 +4,8 @@
 const cv = $("c"); let ctx = cv.getContext("2d");
 let cw, ch, dpr;
 function resize() {
-  dpr = Math.min(2, window.devicePixelRatio || 1);
+  // battery saver renders at 1x pixel density (render only; the simulation is unaffected)
+  dpr = typeof SET !== "undefined" && SET.saver ? 1 : Math.min(2, window.devicePixelRatio || 1);
   cw = innerWidth; ch = innerHeight;
   cv.width = cw * dpr; cv.height = ch * dpr;
   cv.style.width = cw + "px"; cv.style.height = ch + "px";

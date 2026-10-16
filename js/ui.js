@@ -162,7 +162,7 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("설정에 음악 스타일이 추가되었습니다. 원작의 차분한 분위기를 참고한 \"앰비언트\"를 고르면 느린 패드와 종소리, 긴 잔향의 곡이 확대 정도에 따라 겹쳐 연주됩니다.", "New music style setting: \"Ambient\" plays a slow, airy piece with pads, bells and long reverb, layered by zoom like the orchestral score.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("설정에 절전 모드와 프레임 제한(30/60fps)이 추가되었고, 메뉴와 일시정지 화면은 배터리를 아끼도록 느리게 그립니다. 첫 탭 한 번으로 소리가 켜집니다.", "New battery saver and 30/60 fps frame limit settings; menus and pause screens redraw slowly to save power. Sound now starts with your first tap.")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
