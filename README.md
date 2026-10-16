@@ -1,6 +1,6 @@
 # Ore Belt
 
-**v1.4.0** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+**v1.5.0** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
 
 소행성 채굴 + 타워 디펜스 웹게임. 플래시 게임 The Space Game의 규칙에서 영감을 받은 클린룸 구현으로,
 원작의 코드, 그래픽, 사운드는 사용하지 않았습니다.
@@ -105,12 +105,16 @@ WebAudio로 직접 합성한 효과음과 배경음악(외부 파일 없음). �
 | `js/editor.js` | 맵 에디터와 URL 공유(#map=) |
 | `js/story.js` | 임무 브리핑과 스토리 |
 | `js/replay.js` | 결정적 기록·재생(리플레이), 공유 링크 |
+| `js/feedback.js` | 게임 안 피드백(GitHub 이슈 양식 자동 채우기) |
 | `js/main.js` | 메인 루프와 부팅, 테스트용 window.__game |
 | `sw.js`, `manifest.webmanifest`, 아이콘 | PWA |
 | `tests/` | Playwright 스모크 테스트, 밸런스 봇 |
 
 스크립트는 일반 `<script>`로 순서대로 로드되며, 각 파일은 앞 파일의 전역 선언을 사용합니다. 파일을 추가하면 `index.html`과 `sw.js`의 `CORE` 목록에 함께 넣어 주세요.
 로컬 실행: `python -m http.server` 후 http://localhost:8000
+
+## 피드백
+게임 메뉴의 "피드백 보내기"나 [이슈 양식](https://github.com/jflakeee/The_Space_Game/issues/new?template=feedback.yml)으로 보내 주세요. 게임에서 열면 버전·기기 정보가 자동으로 채워집니다.
 
 ## 테스트
 ```bash

@@ -3,6 +3,11 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.5.0] - 2026-10-15
+### 추가
+- 메뉴와 일시정지 화면에 **피드백 보내기**: GitHub 이슈 양식을 열고 버전·빌드·기기·화면·설정·진행 상황·현재 판·마지막 판(짧으면 리플레이 링크 포함)을 자동으로 채움
+- 저장소에 이슈 양식(`.github/ISSUE_TEMPLATE/feedback.yml`) 추가: 종류(난이도/버그/조작/소리/제안), 내용, 임무, 자동 수집 정보
+
 ## [1.4.0] - 2026-10-15
 ### 추가
 - 설정 → **프레임 제한**: 화면에 맞춤 / 60 fps / 30 fps
@@ -123,6 +128,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.5.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.5.0
 [1.4.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.4.0
 [1.3.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.3.1
 [1.3.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.3.0

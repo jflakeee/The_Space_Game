@@ -162,7 +162,7 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("설정에 절전 모드와 프레임 제한(30/60fps)이 추가되었고, 메뉴와 일시정지 화면은 배터리를 아끼도록 느리게 그립니다. 첫 탭 한 번으로 소리가 켜집니다.", "New battery saver and 30/60 fps frame limit settings; menus and pause screens redraw slowly to save power. Sound now starts with your first tap.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("메뉴와 일시정지 화면에 \"피드백 보내기\"가 생겼습니다. 버전과 기기 정보가 자동으로 붙어서 난이도나 버그를 쉽게 알려주실 수 있습니다.", "New \"Send feedback\" button in the menu and pause screen; version and device details are attached automatically.")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
@@ -180,6 +180,7 @@ function showMenu() {
     <button class="ms" id="rpBtn"><b>${L("리플레이", "Replays")}</b><span>${L("최근 5판 다시 보기와 공유", "Watch and share your last 5 games")}</span></button>
     <button class="ms" id="edBtn"><b>${L("맵 에디터", "Map editor")}</b><span>${L("나만의 맵을 만들고 링크로 공유", "Build your own map and share it as a link")}</span></button>
     <button class="ms" id="achBtn"><b>${L("업적·통계", "Achievements & stats")}</b><span>${ACH_GOT.size} / ${ACH.length}</span></button>
+    <button class="ms" id="fbBtn"><b>${L("피드백 보내기", "Send feedback")}</b><span>${L("난이도·버그·제안을 GitHub로 (버전·기기 정보 자동 첨부)", "Difficulty, bugs, ideas via GitHub (version & device info attached)")}</span></button>
     <button class="ms" id="cxBtn"><b>${L("도감", "Codex")}</b><span>${L("건물과 적 정보, 상대법", "Buildings, enemies and counters")}</span></button>
     <div class="help">${L(`드래그로 이동, 휠 또는 두 손가락으로 확대.<br>
     건설 버튼을 고른 뒤 맵을 누르면 건설됩니다. 터치는 위치를 탭하고 점선 원을 끌어 조정한 뒤 ✓로 설치, 다른 곳을 끌면 화면 이동.<br>
@@ -199,6 +200,7 @@ function showMenu() {
   o.querySelectorAll(".grid .ms[data-i]").forEach(b => b.onclick = () => startMission(+b.dataset.i));
   if (sv) $("resume").onclick = loadGame;
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
+  $("fbBtn").onclick = openFeedback;
   $("cxBtn").onclick = () => showCodex(showMenu);
   $("edBtn").onclick = () => openEditor();
   if (showNews) $("newsOk").onclick = () => { store.set("orebelt.ver", APP_VERSION); showMenu(); };

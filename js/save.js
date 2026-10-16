@@ -39,12 +39,13 @@ function setPause(p) {
   if (!p) { o.hidden = true; return; }
   saveGame(); toastTimer = 0; $("toast").style.opacity = 0;
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("일시정지", "Paused")}</h1><p>${S.m.goal && S.mi >= 0 ? S.mi + 1 + ". " : ""}${S.m.name}, ${L("웨이브", "wave")} ${S.wave}</p>
-    <button class="ms" id="pResume"><b>${L("계속", "Resume")}</b></button><button class="ms" id="pRestart"><b>${L("다시 시작", "Restart")}</b></button><button class="ms" id="pCodex"><b>${L("도감", "Codex")}</b></button><button class="ms" id="pSet"><b>${L("설정", "Settings")}</b></button><button class="ms" id="pMenu"><b>${L("임무 선택", "Missions")}</b></button>
+    <button class="ms" id="pResume"><b>${L("계속", "Resume")}</b></button><button class="ms" id="pRestart"><b>${L("다시 시작", "Restart")}</b></button><button class="ms" id="pCodex"><b>${L("도감", "Codex")}</b></button><button class="ms" id="pFb"><b>${L("피드백 보내기", "Send feedback")}</b></button><button class="ms" id="pSet"><b>${L("설정", "Settings")}</b></button><button class="ms" id="pMenu"><b>${L("임무 선택", "Missions")}</b></button>
     <div class="help">${L("진행 상황은 자동 저장됩니다. 임무 선택 화면에서 이어할 수 있습니다.", "Progress is saved automatically. Continue from the mission screen.")}</div></div>`;
   o.hidden = false;
   $("pResume").onclick = () => setPause(false);
   $("pRestart").onclick = () => newGame(S.mi);
   $("pCodex").onclick = () => showCodex(() => setPause(true));
+  $("pFb").onclick = openFeedback;
   $("pSet").onclick = () => showSettings(() => setPause(true));
   $("pMenu").onclick = () => { saveGame(); showMenu(); };
 }

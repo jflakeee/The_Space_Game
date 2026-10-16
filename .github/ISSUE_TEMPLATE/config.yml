@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 지금 플레이하기 / Play now
+    url: https://jflakeee.github.io/The_Space_Game/
+    about: 게임 안의 "피드백 보내기" 버튼을 쓰면 버전·기기 정보가 자동으로 채워집니다.

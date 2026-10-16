@@ -1,0 +1,35 @@
+name: 플레이 피드백 / Feedback
+description: 난이도, 조작, 버그, 제안 등 무엇이든 알려주세요. 게임 안의 "피드백 보내기"로 열면 버전과 기기 정보가 자동으로 채워집니다.
+title: "[피드백] "
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 종류 / Kind
+      options:
+        - 난이도 (너무 어려움/쉬움) / Difficulty
+        - 버그 / Bug
+        - 조작·화면 / Controls & UI
+        - 소리·음악 / Sound & music
+        - 제안 / Suggestion
+        - 기타 / Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 내용 / What happened or what you'd like
+      description: 어떤 임무에서 무엇이 어땠는지 적어 주세요. 버그라면 재현 순서도 알려주세요.
+    validations:
+      required: true
+  - type: input
+    id: mission
+    attributes:
+      label: 임무 / Mission
+  - type: textarea
+    id: context
+    attributes:
+      label: 자동 수집 정보 / Auto-filled details
+      description: 버전, 빌드, 기기, 설정, 마지막 판 정보. 필요 없으면 지워도 됩니다.
+      render: text
