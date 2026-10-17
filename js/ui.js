@@ -103,12 +103,12 @@ function hudTick(dt) {
   $("enR").textContent = (net >= 0 ? "+" : "") + net.toFixed(1) + "/s";
   $("enBox").classList.toggle("starved", S.starved > 0 && S.energy < 5);
   const alive = S.enemies.length;
-  $("waveV").innerHTML = wavesDone()
+  $("waveV").innerHTML = S.m.manual ? L(`웨이브 <b>${S.wave}</b> · 웨이브 호출로 적을 부르세요`, `Wave <b>${S.wave}</b> · call a wave to spawn enemies`) + (alive ? L(`, 적 <b>${alive}</b>`, `, enemies <b>${alive}</b>`) : "") : wavesDone()
     ? L(`웨이브 <b>${S.wave}</b> 마지막`, `Wave <b>${S.wave}</b> final`) + (alive ? L(`, 남은 적 <b>${alive}</b>`, `, enemies <b>${alive}</b>`) : "")
     : L(`웨이브 <b>${S.wave}</b>, 다음 <b>${Math.ceil(S.waveT)}초</b>`, `Wave <b>${S.wave}</b>, next in <b>${Math.ceil(S.waveT)}s</b>`) + (alive ? L(`, 적 <b>${alive}</b>`, `, enemies <b>${alive}</b>`) : "");
   const g = S.m.goal;
   $("goalV").innerHTML = !g ? `${L("최고 기록", "Best")} <b>${S.m.daily ? dailyBest() : store.get("orebelt.best") || 0}</b>` :
-    g.ore ? `${L("목표", "Goal")} <b>${Math.floor(S.oreMined)}</b> / ${g.ore}` : g.kills ? `${L("격파", "Kills")} <b>${S.kills}</b> / ${g.kills}`
+    g.ore ? `${L("목표", "Goal")} <b>${Math.floor(S.oreMined)}</b> / ${g.ore}` + (S.m.mode === "mining" ? ` · <b>${mmss(S.t)}</b>` : "") : g.kills ? `${L("격파", "Kills")} <b>${S.kills}</b> / ${g.kills}`
     : g.boss ? (S.wave < g.at ? L(`${EINFO[g.boss].n()} <b>${g.at}</b>웨이브에 출현`, `${EINFO[g.boss].n()} on wave <b>${g.at}</b>`) : `${EINFO[g.boss].n()} ${L("격파", "down")} <b>${S.bossK || 0}</b> / ${g.count || 1}`)
     : `${L("목표", "Goal")} <b>${S.wave}</b> / ${g.waves}`;
   $("callBtn").disabled = wavesDone() || !!S.over;
@@ -162,7 +162,7 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("메뉴와 일시정지 화면에 \"피드백 보내기\"가 생겼습니다. 버전과 기기 정보가 자동으로 붙어서 난이도나 버그를 쉽게 알려주실 수 있습니다.", "New \"Send feedback\" button in the menu and pause screen; version and device details are attached automatically.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("원작처럼 모드 구성이 생겼습니다: 코어가 부서지지 않는 \"훈련\", 광석 3000을 최대한 빨리 캐는 \"채굴 타임어택\", 그리고 생존 모드인 \"무한 벨트\".", "Classic modes are here: \"Training\" with an indestructible core, a 3000-ore \"Mining time attack\", and \"Endless Belt\" survival.")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
@@ -170,10 +170,13 @@ function showMenu() {
       <div class="row"><button id="shPlay">${L("플레이", "Play")}</button><button id="shEdit">${L("편집", "Edit")}</button></div></div>`; })() : ""}
     <p>${L("소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.", "Build a base in the middle of an asteroid belt. Lay a power grid, mine ore, and hold off the pirates.")}</p>
     <div class="prog">${L("획득한 별", "Stars")} <b>${total}</b> / ${maxStars} <button id="diffBtn" class="lang">${[L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard")][diffIdx]}</button><button id="setBtn" class="lang">${L("설정", "Settings")}</button></div>
-    ${sv ? `<button class="ms resume" id="resume"><b>${L("이어하기", "Continue")}</b><span>${sv.mi >= 0 && MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${sv.mi === -1 ? L("일일 도전", "Daily Challenge") : sv.mi === -2 ? L("커스텀 맵", "Custom map") : MISSIONS[sv.mi].name}, ${L("웨이브", "wave")} ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
+    ${sv ? `<button class="ms resume" id="resume"><b>${L("이어하기", "Continue")}</b><span>${sv.mi >= 0 && MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${sv.mi === -1 ? L("일일 도전", "Daily Challenge") : sv.mi === -2 ? L("커스텀 맵", "Custom map") : sv.mi === -3 ? L("훈련", "Training") : sv.mi === -4 ? L("채굴 타임어택", "Mining time attack") : MISSIONS[sv.mi].name}, ${L("웨이브", "wave")} ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
-      if (!m.goal) return `<button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` ${L("최고 웨이브", "Best wave")} ${best}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button>`;
+      if (!m.goal) return `<h3 class="span">${L("모드", "Modes")}</h3>
+        <button class="ms wide mode" id="trainBtn"><b>${L("훈련", "Training")}</b><span>${L("코어가 파괴되지 않는 연습장. 적은 웨이브 호출로만 옵니다.", "Practice field: indestructible core, enemies only on demand.")}</span></button>
+        <button class="ms wide mode" id="mineBtn" ${(p.stars[0] || 0) > 0 ? "" : "disabled"}><b>${L("채굴 타임어택", "Mining time attack")}</b><span>${(p.stars[0] || 0) > 0 ? L("광석 3000을 최대한 빨리.", "Mine 3000 ore as fast as you can.") + (miningBest() ? ` ${L("최고 기록", "Best")} ${mmss(miningBest())}` : "") : L("1번 임무를 완료하면 열립니다", "Unlocks after mission 1")}</span></button>
+        <button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` ${L("최고 웨이브", "Best wave")} ${best}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button>`;
       return (i === 10 ? `<h3 class="span">${L("확장 임무", "Expansion")}</h3>` : i === 20 ? `<h3 class="span">${L("유리 군단", "Glass Legion")}</h3>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
@@ -201,6 +204,8 @@ function showMenu() {
   if (sv) $("resume").onclick = loadGame;
   if (!$("daily").disabled) $("daily").onclick = () => newGame(-1);
   $("fbBtn").onclick = openFeedback;
+  $("trainBtn").onclick = () => newGame(-3);
+  if (!$("mineBtn").disabled) $("mineBtn").onclick = () => newGame(-4);
   $("cxBtn").onclick = () => showCodex(showMenu);
   $("edBtn").onclick = () => openEditor();
   if (showNews) $("newsOk").onclick = () => { store.set("orebelt.ver", APP_VERSION); showMenu(); };
@@ -220,15 +225,17 @@ function endGame(win) {
   if (win) { STATS.wins++; if (S.m.goal && S.m.goal.waves && S.lost === 0 && S.mi >= 0) ach("flawless"); if (S.mi === 9 && S.dIdx === 2) ach("hard"); }
   if (win && S.m.goal && S.mi >= 0) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; if (S.dIdx === 0) stars = Math.min(2, stars); saveStars(S.mi, stars); }
   if (S.m.daily) { if (S.wave > dailyBest()) store.set("orebelt.daily", JSON.stringify({ key: todayKey(), best: S.wave })); }
-  else if (!S.m.goal && !S.m.custom) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
+  else if (win && S.m.mode === "mining") { if (!miningBest() || S.t < miningBest()) store.set("orebelt.mining", String(Math.round(S.t))); }
+  else if (!S.m.goal && !S.m.custom && !S.m.mode) { const best = +(store.get("orebelt.best") || 0); if (S.wave > best) store.set("orebelt.best", S.wave); }
   saveStats(); checkAch(); const replay = saveReplayFromGame();
   const mm = Math.floor(S.t / 60), ss = String(Math.floor(S.t % 60)).padStart(2, "0");
   const next = S.mi + 1, hasNext = win && MISSIONS[next] && MISSIONS[next].goal;
   setTimeout(() => {
     const o = $("overlay");
-    const title = win ? L("임무 완료", "Mission complete") : (S.m.goal ? L("코어가 파괴되었습니다", "Core destroyed") : L(`웨이브 ${S.wave}까지 버텼습니다`, `Survived to wave ${S.wave}`));
+    const title = win && S.m.mode === "mining" ? L(`채굴 완료 ${mmss(S.t)}`, `Mined in ${mmss(S.t)}`) : win ? L("임무 완료", "Mission complete") : (S.m.goal ? L("코어가 파괴되었습니다", "Core destroyed") : L(`웨이브 ${S.wave}까지 버텼습니다`, `Survived to wave ${S.wave}`));
     o.innerHTML = `<div class="card"><h1 style="font-size:36px">${title}</h1>
       ${stars ? `<div class="stars">${starStr(stars)}</div>` : ""}
+      ${win && S.m.mode === "mining" ? `<p class="newach">${L("최고 기록", "Best")} ${mmss(miningBest())}${Math.round(S.t) <= miningBest() ? L(" (신기록!)", " (new record!)") : ""}</p>` : ""}
       ${S.newAch && S.newAch.length ? `<p class="newach">${L("새 업적", "New achievements")}: ${S.newAch.join(", ")}</p>` : ""}
       <p>${S.m.goal && S.mi >= 0 ? S.mi + 1 + ". " : ""}${S.m.name}</p>
       ${win && S.mi >= 0 && STORY[S.mi] ? `<div class="msg"><i class="av">S</i><div><b>${L("관제관 세라", "Controller Sera")}</b><p>${L(STORY[S.mi][5], STORY[S.mi][6])}</p></div></div>` : ""}

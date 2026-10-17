@@ -23,7 +23,8 @@ const ACH = [
   ["maxlv", "최대 출력", "Full Power", "건물 하나를 Lv 3까지 업그레이드", "Upgrade a building to Lv 3", null],
   ["big", "거대 기지", "Megabase", "한 판에서 건물 40개 동시 운용", "Run 40 buildings at once", () => S && !S.over && S.buildings.length >= 40],
   ["chain", "연쇄 반응", "Chain Reaction", "아크 코일 한 번에 5기 타격", "Hit 5 ships with one arc", null],
-  ["endless", "생존 전문가", "Survivor", "무한 벨트 15웨이브 도달", "Reach wave 15 in Endless Belt", () => S && !S.m.goal && !S.m.daily && !S.m.custom && S.wave >= 15],
+  ["endless", "생존 전문가", "Survivor", "무한 벨트 15웨이브 도달", "Reach wave 15 in Endless Belt", () => S && !S.m.goal && !S.m.daily && !S.m.custom && !S.m.mode && S.wave >= 15],
+  ["miner", "채굴왕", "Ore Rush", "채굴 타임어택 5분 이내", "Finish the mining time attack within 5 minutes", () => miningBest() > 0 && miningBest() <= 300],
   ["daily", "오늘의 도전자", "Daily Contender", "일일 도전 10웨이브 도달", "Reach wave 10 in a Daily Challenge", () => S && S.m.daily && S.wave >= 10],
   ["hard", "강철 의지", "Iron Will", "어려움으로 10번 임무 완료", "Complete mission 10 on Hard", null],
 ];

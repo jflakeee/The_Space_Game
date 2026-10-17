@@ -60,7 +60,7 @@ if (LANG === "en") {
     ["Phase Disruption", "Survive 12 waves. Phasers teleport forward."],
     ["Two Foes", "Survive 14 waves. Both pirate bands attack together."],
     ["Harvest Queen", "Destroy the Harvest Queen arriving on wave 8. It drains nearby power."],
-    ["Endless Belt", "Endless waves. Meteor showers from wave 8, both bands from wave 10."],
+    ["Endless Belt", "Survival mode. Endless waves, meteor showers from wave 8, both bands from wave 10."],
   ];
   MISSIONS.forEach((m, i) => { [m.name, m.desc] = EN_M[i]; });
 }

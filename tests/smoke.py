@@ -169,6 +169,17 @@ def t_feedback(page):
     assert r[0] and r[1] == "feedback.yml" and r[2] and r[3].startswith("4."), r
 
 
+def t_modes(page):
+    page.click("#trainBtn")
+    r = page.evaluate("""()=>{const G=window.__game,S=G.S;S.paused=true;S.tut=null;for(let i=0;i<4000;i++)G.simStep();const w0=S.wave;
+      G.doAction({k:'c'});for(let i=0;i<6000&&!S.over;i++)G.simStep();return [w0,S.wave,S.over,S.core.hp>=1,S.m.mode]}""")
+    assert r[0] == 0 and r[1] == 1 and r[2] is None and r[3] and r[4] == "training", r
+    r = page.evaluate("""()=>{const G=window.__game;G.newGame(-4);const S=G.S;S.paused=true;S.t=250;S.oreMined=3000;G.simStep();return [S.over,S.m.mode]}""")
+    assert r == ["win", "mining"], r
+    page.wait_for_timeout(1200)
+    assert page.evaluate("()=>miningBest()") == 250
+
+
 def t_end_and_menu(page):
     page.evaluate("()=>{const G=window.__game;G.newGame(0);G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
     page.wait_for_selector("#tomenu", timeout=3000)
@@ -179,7 +190,7 @@ def t_end_and_menu(page):
     assert page.is_visible(".ms[data-i='0']")
 
 
-TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_music_layers, t_build_info, t_audio_unlock, t_frame_pacing, t_feedback, t_end_and_menu]
+TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_music_layers, t_build_info, t_audio_unlock, t_frame_pacing, t_feedback, t_modes, t_end_and_menu]
 
 
 def check_version_sync():

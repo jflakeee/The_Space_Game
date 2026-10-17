@@ -38,7 +38,7 @@ function execAction(a) {
       if (S.sel === b) select(null);
       return true;
     }
-    case "c": { const bonus = Math.floor(S.waveT * 0.5); S.ore += bonus; spawnWave(); S.waveT = S.m.gap; return bonus; }
+    case "c": { const bonus = S.m.manual ? 0 : Math.floor(S.waveT * 0.5); S.ore += bonus; spawnWave(); S.waveT = S.m.gap; return bonus; }
     case "tut": S.tut = a.v; return true;
   }
   return false;

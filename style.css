@@ -95,6 +95,9 @@ body.replaying #hud .ctl{display:none}
 #sndHint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:5;background:var(--panel);border:1px solid var(--en);
   color:var(--text);border-radius:999px;padding:6px 14px;font-size:12px;pointer-events:none;animation:pulse2 2s ease-in-out infinite}
 @keyframes pulse2{50%{opacity:.6}}
+.grid + .ms{margin-top:8px}
+#sndHint{white-space:nowrap}
+.ms.mode{border-color:rgba(232,169,81,.55)}
 .stars{color:var(--ore);font-size:28px;letter-spacing:6px;margin:0 0 6px}
 .help{font-size:12px;color:var(--dim);line-height:1.7;margin-top:16px}
 .stats{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0 0 20px;font-variant-numeric:tabular-nums}

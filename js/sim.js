@@ -26,6 +26,7 @@ function hurt(e, a) {
 }
 function damageB(b, a) {
   if (b.dead) return;
+  if (b === S.core && S.m.mode === "training") { b.hp = Math.max(1, b.hp - a); b.flash = 0.12; return; }
   b.hp -= a; b.flash = 0.12; sfx("hit");
   if (b.hp <= 0) {
     b.dead = true; S.dirty = true; boom(b.x, b.y, b.r * 3, COL.ore); shake(b === S.core ? 14 : 5); sfx("boom"); if (b !== S.core) { S.lost++; STATS.lost++; }
@@ -324,7 +325,7 @@ function updateCore(dt) {
 
   hazTick(dt);
   // waves
-  if (!wavesDone() && !(S.tut != null && S.tut < 4)) { S.waveT -= dt; if (S.waveT <= 0) { spawnWave(); S.waveT = S.m.gap; } }
+  if (!wavesDone() && !S.m.manual && !(S.tut != null && S.tut < 4)) { S.waveT -= dt; if (S.waveT <= 0) { spawnWave(); S.waveT = S.m.gap; } }
 
   const g = S.m.goal;
   if (g && g.ore && S.oreMined >= g.ore) endGame(true);

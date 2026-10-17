@@ -3,6 +3,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.6.0] - 2026-10-15
+### 추가
+- 메뉴에 원작과 같은 **모드** 구성(규칙은 Ore Belt 독자 설계)
+  - **훈련**: 코어가 파괴되지 않고, 적은 "웨이브 호출"로만 등장. 시작 광석 1500, 전 건물 사용 가능, 튜토리얼 안내 포함
+  - **채굴 타임어택**: 광석 3000을 최대한 빨리 채굴. 해적은 가끔 약하게 등장, 맵은 무작위. 최고 기록 저장, HUD에 경과 시간 표시. 1번 임무 완료 후 열림
+  - **생존**: 기존 "무한 벨트"를 생존 모드로 정리
+- 업적 "채굴왕"(채굴 타임어택 5분 이내)
+- 훈련·채굴 모드도 이어하기와 리플레이 지원
+
 ## [1.5.0] - 2026-10-15
 ### 추가
 - 메뉴와 일시정지 화면에 **피드백 보내기**: GitHub 이슈 양식을 열고 버전·빌드·기기·화면·설정·진행 상황·현재 판·마지막 판(짧으면 리플레이 링크 포함)을 자동으로 채움
@@ -128,6 +137,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.6.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.6.0
 [1.5.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.5.0
 [1.4.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.4.0
 [1.3.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.3.1

@@ -69,7 +69,7 @@ function newGame(mi, silent = false, seed) {
   document.body.classList.remove("replaying"); $("rpbar").hidden = true; $("rpinfo").hidden = true;
 }
 function newGameInner(mi, silent) {
-  const m = mi === -1 ? dailyMission() : mi === -2 ? CUSTOM : MISSIONS[mi];
+  const m = mi === -1 ? dailyMission() : mi === -2 ? CUSTOM : mi === -3 ? trainingMission() : mi === -4 ? miningMission() : MISSIONS[mi];
   S = { mi, m, t: 0, ore: m.ore ?? 120, allow: m.allow || ORDER, energy: 60, eCap: 150, oreMined: 0, wave: 0, waveT: m.firstWave, dm: m.diff * DIFFS[diffIdx], dIdx: diffIdx,
     asteroids: m.astList ? seeded(m.seed, () => m.astList.map(([x, y, r]) => makeAst(x, y, r))) : m.seed ? seeded(m.seed, () => genAsteroids(30, m.map)) : genAsteroids(m.ast || 30, m.map || MAPS[(Math.random() * MAPS.length) | 0]),
     mod: Object.assign({ spd: 1, mine: 1, solar: 1, hp: 1 }, m.mod), haz: Object.assign({}, m.haz), meteors: [], metT: 40, flare: 0, flareT: 50,
@@ -81,7 +81,7 @@ function newGameInner(mi, silent) {
   cam.x = W / 2; cam.y = H / 2; cam.z = clamp(Math.min(cw / 560, ch / 640), 0.5, 1.4);
   ghost = null;
   $("overlay").hidden = true; $("hud").hidden = false; $("bar").hidden = false; $("info").hidden = true;
-  S.tut = !silent && mi === 0 ? 0 : null; S.tutT = 0; S.saveT = 0;
+  S.tut = !silent && (mi === 0 || mi === -3) ? 0 : null; S.tutT = 0; S.saveT = 0;
   if (!silent) { clearSave(); STATS.games++; }
   buildBar(); updateCtl(); renderTip();
   if (!silent && mi !== 0) toast(`${m.goal && mi >= 0 ? mi + 1 + ". " : ""}${m.name}: ${m.desc}`, 5);

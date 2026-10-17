@@ -1,11 +1,11 @@
 # Ore Belt
 
-**v1.5.0** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+**v1.6.0** · [플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
 
 소행성 채굴 + 타워 디펜스 웹게임. 플래시 게임 The Space Game의 규칙에서 영감을 받은 클린룸 구현으로,
 원작의 코드, 그래픽, 사운드는 사용하지 않았습니다.
 
-- 임무 25개(캠페인·확장·유리 군단 편) + 무한 모드 + 일일 도전
+- 임무 25개(캠페인·확장·유리 군단 편) + 모드(훈련 · 채굴 타임어택 · 생존) + 일일 도전
 - 건물 10종, 적 2개 진영 16종(보스 3종), 환경 위험 3종
 - 맵 에디터·리플레이 링크 공유, 업적·통계, 도감, 스토리
 - 한국어/English, PWA(설치·오프라인), 모바일 터치, 접근성 옵션

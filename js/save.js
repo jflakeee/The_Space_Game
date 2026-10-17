@@ -11,7 +11,7 @@ function saveGame() {
     cam: [cam.x, cam.y, cam.z] };
   store.set(SAVE_KEY, JSON.stringify(data));
 }
-function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 3 && (MISSIONS[d.mi] || d.mi === -1 || (d.mi === -2 && d.code && decodeMap(d.code))) ? d : null; } catch { return null; } }
+function readSave() { try { const d = JSON.parse(store.get(SAVE_KEY)); return d && d.v === 3 && (MISSIONS[d.mi] || d.mi === -1 || d.mi === -3 || d.mi === -4 || (d.mi === -2 && d.code && decodeMap(d.code))) ? d : null; } catch { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 function loadGame() {
   const d = readSave(); if (!d) return;

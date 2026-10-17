@@ -26,3 +26,16 @@ function dailyMission(key = todayKey()) {
 }
 function dailyBest() { try { const d = JSON.parse(store.get("orebelt.daily")); return d && d.key === todayKey() ? d.best : 0; } catch { return 0; } }
 function seeded(seed, fn) { const orig = Math.random; Math.random = mulberry32(seed); try { return fn(); } finally { Math.random = orig; } }
+
+// ---------- classic modes (training / mining time attack) ----------
+// Inspired by the original's mode line-up (training, mining, survival); rules are Ore Belt's own.
+function trainingMission() {
+  return { mode: "training", name: L("훈련", "Training"), desc: L("코어가 파괴되지 않는 연습장. 적은 '웨이브 호출'로만 옵니다.", "Practice field: the core can't be destroyed and enemies only come when you call a wave."),
+    goal: null, manual: true, firstWave: 1e9, gap: 1e9, diff: 0.8, ore: 1500, map: "scatter", allow: ALL };
+}
+function miningMission() {
+  return { mode: "mining", name: L("채굴 타임어택", "Mining time attack"), desc: L("광석 3000을 최대한 빨리 채굴하세요. 해적은 가끔, 약하게 옵니다.", "Mine 3000 ore as fast as you can. Occasional light raids."),
+    goal: { ore: 3000 }, firstWave: 70, gap: 55, diff: 0.7, ore: 150, map: MAPS[(Math.random() * MAPS.length) | 0], allow: ALL };
+}
+const miningBest = () => +(store.get("orebelt.mining") || 0);
+const mmss = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;

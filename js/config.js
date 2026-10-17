@@ -1,6 +1,6 @@
 // Ore Belt · config.js: 건물·적·임무 정의(DEF, EN, MISSIONS)와 레벨별 수치 계산(st)
 "use strict";
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "1.6.0";
 const REPO_URL = "https://github.com/jflakeee/The_Space_Game";
 // ---------- config ----------
 const W = 1800, H = 1200, ZMIN = 0.3, ZMAX = 2.5;
@@ -98,7 +98,7 @@ const MISSIONS = [
   { name: "위상 교란",    desc: "웨이브 12개 생존. 순간이동하는 위상선.",   goal: { waves: 12 },  firstWave: 55, gap: 38, diff: 1.05, map: "ring", faction: "glass", w0: 1, allow: ALL },
   { name: "두 개의 적",   desc: "웨이브 14개 생존. 두 해적단이 함께 옵니다.", goal: { waves: 14 }, firstWave: 50, gap: 36, diff: 1.1, map: "lanes", faction: "mixed", allow: ALL },
   { name: "수확 모체",    desc: "8웨이브에 나타나는 수확 모체 격파. 근처 전력을 빨아들입니다.", goal: { boss: "queen", at: 8, count: 1 }, firstWave: 55, gap: 36, diff: 1.15, map: "cluster", faction: "glass", allow: ALL },
-  { name: "무한 벨트",    desc: "끝없는 웨이브. 8웨이브부터 유성우, 10웨이브부터 두 해적단.",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  haz: { meteor: true, from: 8 }, mixFrom: 10, allow: ALL },
+  { name: "무한 벨트",    desc: "생존 모드. 끝없는 웨이브, 8웨이브부터 유성우, 10웨이브부터 두 해적단.",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  haz: { meteor: true, from: 8 }, mixFrom: 10, allow: ALL },
 ];
 const COL = { glass: "#c77dff", glassEdge: "#f0dcff", bg: "#0c1230", ore: "#e8a951", en: "#6fd6ec", grid: "92,143,224", hos: "#ff5a6e", heal: "#7ee0a0", slow: "#b79cff",
   struct: "#cfd8ec", fill: "#1b2450", rock: "#37364f", rockEdge: "#57557a", hosEdge: "#ffc2ca" };
