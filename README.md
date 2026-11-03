@@ -78,6 +78,7 @@
 python -m http.server              # http://localhost:8000
 pip install playwright && playwright install chromium
 python tests/smoke.py              # 스모크 테스트(한국어·영어), 버전·변경 로그 검사 포함
+python tests/smoke.py --browser webkit   # firefox / webkit 도 가능
 python tests/balance.py 3          # 밸런스 봇으로 임무별 승률 측정
 python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/   # 배포본 대상
 ```
@@ -85,7 +86,7 @@ python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/   # 배�
 ### CI와 배포 (`.github/workflows/`)
 | 워크플로 | 하는 일 |
 |---|---|
-| `test.yml` | push·PR마다 JS 문법 검사와 스모크 테스트 |
+| `test.yml` | push·PR마다 JS 문법 검사와 스모크 테스트를 **Chromium·Firefox·WebKit(사파리 엔진)** 세 브라우저에서 실행. 실패는 주석(annotation)으로 표시 |
 | `pages.yml` | `main` push마다 GitHub Pages 배포, `build.json`(빌드 시각·커밋) 생성 → 메뉴 하단에 표시 |
 | `release-zip.yml` | 릴리스 발행 시 `ore-belt-vX.Y.Z-web.zip`을 릴리스에 첨부(itch.io 업로드용: Kind = HTML, 1280×720, Mobile friendly) |
 
