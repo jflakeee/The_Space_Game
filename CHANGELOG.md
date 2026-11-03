@@ -3,6 +3,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.6.1] - 2026-11-03
+### 수정
+- 터치 기기에서 HUD 버튼(웨이브 호출·소리·속도·일시정지)과 메뉴 작은 버튼(난이도·설정)이 29px 안팎으로 작아 누르기 어렵던 문제: 최소 40px로 확대
+- 파일로 직접 열었을 때 사파리 엔진에서 빌드 정보 요청 오류가 나던 문제
+
+### 개선
+- CI가 Chromium·Firefox·WebKit(iOS 사파리 엔진) 세 브라우저에서 테스트
+- 모바일 점검 테스트(`tests/mobile.py`): iPhone SE·13, Pixel 7, iPad Mini, Galaxy S9+ 에뮬레이션으로 가로 넘침, 터치 목표 크기, 탭 설치, 정보 시트 위치 검사
+
 ## [1.6.0] - 2026-10-15
 ### 추가
 - 메뉴에 원작과 같은 **모드** 구성(규칙은 Ore Belt 독자 설계)
@@ -137,6 +146,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.6.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.6.1
 [1.6.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.6.0
 [1.5.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.5.0
 [1.4.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.4.0

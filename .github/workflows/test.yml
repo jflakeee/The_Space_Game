@@ -15,3 +15,15 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install playwright && playwright install --with-deps ${{ matrix.browser }}
       - run: python tests/smoke.py --browser ${{ matrix.browser }}
+  mobile:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: pip install playwright && playwright install --with-deps ${{ matrix.browser }}
+      - run: python tests/mobile.py --browser ${{ matrix.browser }}
