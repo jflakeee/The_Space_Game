@@ -1,0 +1,26 @@
+# Builds the itch.io-ready web zip and attaches it to the GitHub release of the current APP_VERSION.
+# Runs when a release is published, and on pushes to main (self-heals if the asset is missing).
+name: release-zip
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build web zip and attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep -oP 'APP_VERSION = "\K[^"]+' js/config.js)
+          if ! gh release view "v$VER" >/dev/null 2>&1; then echo "no release v$VER yet"; exit 0; fi
+          NAME="ore-belt-v$VER-web.zip"
+          if gh release view "v$VER" --json assets -q '.assets[].name' | grep -qx "$NAME"; then echo "$NAME already attached"; exit 0; fi
+          zip -qr "$NAME" . -x '.git/*' '.github/*' 'tests/*' 'CHANGELOG.md' '*.py'
+          unzip -l "$NAME" | tail -1
+          gh release upload "v$VER" "$NAME"

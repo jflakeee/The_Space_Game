@@ -113,6 +113,9 @@ WebAudio로 직접 합성한 효과음과 배경음악(외부 파일 없음). �
 스크립트는 일반 `<script>`로 순서대로 로드되며, 각 파일은 앞 파일의 전역 선언을 사용합니다. 파일을 추가하면 `index.html`과 `sw.js`의 `CORE` 목록에 함께 넣어 주세요.
 로컬 실행: `python -m http.server` 후 http://localhost:8000
 
+## itch.io 등 다른 곳에 올리기
+릴리스마다 `ore-belt-vX.Y.Z-web.zip`이 GitHub 릴리스에 자동으로 첨부됩니다(`.github/workflows/release-zip.yml`). itch.io에서는 Kind = HTML로 이 zip을 올리고 "This file will be played in the browser"를 체크하면 됩니다(권장 뷰포트 1280×720, Mobile friendly, Fullscreen 버튼).
+
 ## 피드백
 게임 메뉴의 "피드백 보내기"나 [이슈 양식](https://github.com/jflakeee/The_Space_Game/issues/new?template=feedback.yml)으로 보내 주세요. 게임에서 열면 버전·기기 정보가 자동으로 채워집니다.
 
