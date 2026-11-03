@@ -6,6 +6,7 @@ Usage:
     python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/
 """
 import argparse
+import os
 import pathlib
 import sys
 import traceback
@@ -211,6 +212,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default=(ROOT / "index.html").as_uri())
     ap.add_argument("--lang", default="ko-KR")
+    ap.add_argument("--browser", default="chromium", choices=["chromium", "firefox", "webkit"])
     args = ap.parse_args()
     failed = 0
     try:
@@ -219,7 +221,7 @@ def main():
         failed += 1
         print(f"FAIL version sync: {e}")
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = getattr(p, args.browser).launch()
         for lang in [args.lang, "en-US"]:
             for test in TESTS:
                 ctx = browser.new_context(locale=lang, viewport={"width": 390, "height": 780})
@@ -235,7 +237,11 @@ def main():
                     print(f"PASS {lang:5} {test.__name__}")
                 except Exception:
                     failed += 1
-                    print(f"FAIL {lang:5} {test.__name__}\n{traceback.format_exc()}")
+                    tb = traceback.format_exc()
+                    print(f"FAIL {lang:5} {test.__name__}\n{tb}")
+                    if os.environ.get("GITHUB_ACTIONS"):  # surface as an annotation (readable via the public checks API)
+                        msg = tb.strip().splitlines()[-1][:600].replace("%", "%25").replace("\n", " ")
+                        print(f"::error title=smoke {args.browser} {lang} {test.__name__}::{msg}")
                 ctx.close()
         browser.close()
     print(f"\n{len(TESTS) * 2 - failed}/{len(TESTS) * 2} passed")

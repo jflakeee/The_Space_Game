@@ -3,11 +3,15 @@ on: [push, pull_request]
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]   # webkit ~ iOS Safari
     steps:
       - uses: actions/checkout@v4
       - name: JavaScript syntax check
         run: for f in js/*.js sw.js; do node --check "$f"; done
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install playwright && playwright install --with-deps chromium
-      - run: python tests/smoke.py
+      - run: pip install playwright && playwright install --with-deps ${{ matrix.browser }}
+      - run: python tests/smoke.py --browser ${{ matrix.browser }}
