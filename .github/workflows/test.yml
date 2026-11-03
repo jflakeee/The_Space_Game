@@ -8,10 +8,10 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]   # webkit ~ iOS Safari
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: JavaScript syntax check
         run: for f in js/*.js sw.js; do node --check "$f"; done
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
       - run: pip install playwright && playwright install --with-deps ${{ matrix.browser }}
       - run: python tests/smoke.py --browser ${{ matrix.browser }}

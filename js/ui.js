@@ -149,6 +149,7 @@ function buildText() {
   return ` · ${L("빌드", "Build")} <time datetime="${BUILD.time}" title="${abs}">${abs} (${relTime(t.getTime())})</time>${BUILD.sha ? ` · <a href="${REPO_URL}/commit/${BUILD.sha}" target="_blank" rel="noopener">${BUILD.sha}</a>` : ""}`;
 }
 async function loadBuildInfo() {
+  if (location.protocol === "file:") return; // opened from disk: there is no build.json (and some engines log an error)
   try { const r = await fetch("build.json", { cache: "no-store" }); if (r.ok) BUILD = await r.json(); } catch {}
   const el = $("buildInfo"); if (el) el.innerHTML = buildText();
 }

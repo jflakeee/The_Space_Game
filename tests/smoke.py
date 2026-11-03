@@ -151,12 +151,12 @@ def t_build_info(page):
 
 
 def t_audio_unlock(page):
-    page.evaluate("()=>{auInit();return AU.ctx.suspend()}")
+    # Engine-agnostic: headless browsers may have no audio device, so check that a tap asks the context to resume.
+    page.evaluate("()=>{auInit();window.__resumes=0;const r=AU.ctx.resume.bind(AU.ctx);AU.ctx.resume=()=>{window.__resumes++;return r()};return AU.ctx.suspend()}")
     page.wait_for_timeout(150)
-    assert page.evaluate("()=>AU.ctx.state") == "suspended"
     page.mouse.click(30, 30)
-    page.wait_for_timeout(400)
-    assert page.evaluate("()=>AU.ctx.state") == "running"
+    page.wait_for_timeout(300)
+    assert page.evaluate("()=>window.__resumes") >= 1
 
 
 def t_frame_pacing(page):
