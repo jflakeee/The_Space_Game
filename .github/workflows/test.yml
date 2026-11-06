@@ -3,6 +3,7 @@ on: [push, pull_request]
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -17,6 +18,7 @@ jobs:
       - run: python tests/smoke.py --browser ${{ matrix.browser }}
   mobile:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -29,6 +31,7 @@ jobs:
       - run: python tests/mobile.py --browser ${{ matrix.browser }}
   a11y:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6

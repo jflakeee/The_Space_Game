@@ -26,6 +26,7 @@ def run_device(p, browser, name):
     dev = p.devices[name]
     ctx = browser.new_context(**dev, locale="ko-KR")
     page = ctx.new_page()
+    page.set_default_timeout(20000)
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto((ROOT / "index.html").as_uri())
