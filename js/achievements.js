@@ -43,7 +43,7 @@ function showAch(back) {
     [L("격파", "Kills"), n(STATS.kills)], [L("보스 격파", "Bosses"), n(STATS.boss + STATS.dread)], [L("건설", "Built"), n(STATS.built)], [L("업그레이드", "Upgrades"), n(STATS.upgrades)], [L("잃은 건물", "Buildings lost"), n(STATS.lost)]];
   o.innerHTML = `<div class="card"><h1 style="font-size:36px">${L("업적", "Achievements")} <small class="cnt">${ACH_GOT.size} / ${ACH.length}</small></h1>
     ${ACH.map(a => { const got = ACH_GOT.has(a[0]); return `<div class="ach ${got ? "got" : ""}"><i>${got ? "★" : "☆"}</i><div><b>${L(a[1], a[2])}</b><small>${L(a[3], a[4])}</small></div></div>`; }).join("")}
-    <h3>${L("통계", "Stats")}</h3><dl class="stats">${st.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
+    <h2 class="sub">${L("통계", "Stats")}</h2><dl class="stats">${st.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
     <button class="ms" id="achBack"><b>${L("돌아가기", "Back")}</b></button></div>`;
   o.hidden = false; o.scrollTop = 0;
   $("achBack").onclick = back;

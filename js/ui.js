@@ -174,11 +174,11 @@ function showMenu() {
     ${sv ? `<button class="ms resume" id="resume"><b>${L("이어하기", "Continue")}</b><span>${sv.mi >= 0 && MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${sv.mi === -1 ? L("일일 도전", "Daily Challenge") : sv.mi === -2 ? L("커스텀 맵", "Custom map") : sv.mi === -3 ? L("훈련", "Training") : sv.mi === -4 ? L("채굴 타임어택", "Mining time attack") : MISSIONS[sv.mi].name}, ${L("웨이브", "wave")} ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
-      if (!m.goal) return `<h3 class="span">${L("모드", "Modes")}</h3>
+      if (!m.goal) return `<h2 class="sub span">${L("모드", "Modes")}</h2>
         <button class="ms wide mode" id="trainBtn"><b>${L("훈련", "Training")}</b><span>${L("코어가 파괴되지 않는 연습장. 적은 웨이브 호출로만 옵니다.", "Practice field: indestructible core, enemies only on demand.")}</span></button>
         <button class="ms wide mode" id="mineBtn" ${(p.stars[0] || 0) > 0 ? "" : "disabled"}><b>${L("채굴 타임어택", "Mining time attack")}</b><span>${(p.stars[0] || 0) > 0 ? L("광석 3000을 최대한 빨리.", "Mine 3000 ore as fast as you can.") + (miningBest() ? ` ${L("최고 기록", "Best")} ${mmss(miningBest())}` : "") : L("1번 임무를 완료하면 열립니다", "Unlocks after mission 1")}</span></button>
         <button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` ${L("최고 웨이브", "Best wave")} ${best}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button>`;
-      return (i === 10 ? `<h3 class="span">${L("확장 임무", "Expansion")}</h3>` : i === 20 ? `<h3 class="span">${L("유리 군단", "Glass Legion")}</h3>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
+      return (i === 10 ? `<h2 class="sub span">${L("확장 임무", "Expansion")}</h2>` : i === 20 ? `<h2 class="sub span">${L("유리 군단", "Glass Legion")}</h2>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
     <button class="ms" id="rpBtn"><b>${L("리플레이", "Replays")}</b><span>${L("최근 5판 다시 보기와 공유", "Watch and share your last 5 games")}</span></button>

@@ -27,3 +27,12 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install playwright && playwright install --with-deps ${{ matrix.browser }}
       - run: python tests/mobile.py --browser ${{ matrix.browser }}
+  a11y:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: npm i --no-save axe-core@4.10.0
+      - run: pip install playwright && playwright install --with-deps chromium
+      - run: python tests/a11y.py

@@ -1,6 +1,6 @@
 # Ore Belt
 
-**v1.6.1** · [▶ 플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · [릴리스](https://github.com/jflakeee/The_Space_Game/releases) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+**v1.6.2** · [▶ 플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · [릴리스](https://github.com/jflakeee/The_Space_Game/releases) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
 
 소행성대 한가운데 기지를 세우는 타워 디펜스 웹게임입니다. 중계기로 전력망을 깔고, 소행성에서 광석을 캐고, 몰려오는 해적으로부터 코어를 지키세요. 소행성이 전력선을 가리기 때문에 배치 하나하나가 중요합니다.
 
@@ -80,6 +80,7 @@ pip install playwright && playwright install chromium
 python tests/smoke.py              # 스모크 테스트(한국어·영어), 버전·변경 로그 검사 포함
 python tests/smoke.py --browser webkit   # firefox / webkit 도 가능
 python tests/mobile.py             # 휴대폰·태블릿 5종 에뮬레이션 점검(넘침, 터치 목표, 탭 설치)
+npm i axe-core@4.10.0 && python tests/a11y.py   # 접근성 검사(axe-core)
 python tests/balance.py 3          # 밸런스 봇으로 임무별 승률 측정
 python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/   # 배포본 대상
 ```
@@ -87,7 +88,7 @@ python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/   # 배�
 ### CI와 배포 (`.github/workflows/`)
 | 워크플로 | 하는 일 |
 |---|---|
-| `test.yml` | push·PR마다 JS 문법 검사와 스모크 테스트를 **Chromium·Firefox·WebKit(사파리 엔진)** 세 브라우저에서 실행, 이어서 휴대폰·태블릿 점검(`tests/mobile.py`, Chromium·WebKit). 실패는 주석(annotation)으로 표시 |
+| `test.yml` | push·PR마다 JS 문법 검사와 스모크 테스트를 **Chromium·Firefox·WebKit(사파리 엔진)** 세 브라우저에서 실행, 이어서 휴대폰·태블릿 점검(`tests/mobile.py`, Chromium·WebKit). 접근성 검사(`tests/a11y.py`)도 실행. 실패는 주석(annotation)으로 표시 |
 | `pages.yml` | `main` push마다 GitHub Pages 배포, `build.json`(빌드 시각·커밋) 생성 → 메뉴 하단에 표시 |
 | `release-zip.yml` | 릴리스 발행 시 `ore-belt-vX.Y.Z-web.zip`을 릴리스에 첨부(itch.io 업로드용: Kind = HTML, 1280×720, Mobile friendly) |
 

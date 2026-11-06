@@ -3,6 +3,15 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.6.2] - 2026-11-03
+### 수정 (접근성)
+- 페이지 확대(핀치 줌)를 막던 설정 제거: 저시력 사용자가 메뉴와 글자를 확대할 수 있음. 게임 화면의 핀치는 기존처럼 지도 확대로 동작
+- 화면 구성을 `main` 랜드마크로 묶어 스크린리더 탐색 개선
+- 메뉴·도감·통계의 소제목 단계를 바로잡음(h1 다음 h3 → h2)
+
+### 개선
+- 접근성 자동 검사(`tests/a11y.py`, axe-core): 메뉴·설정·도감·게임·일시정지·결과 화면을 한/영으로 검사하고, 심각한 위반이 있으면 CI 실패
+
 ## [1.6.1] - 2026-11-03
 ### 수정
 - 터치 기기에서 HUD 버튼(웨이브 호출·소리·속도·일시정지)과 메뉴 작은 버튼(난이도·설정)이 29px 안팎으로 작아 누르기 어렵던 문제: 최소 40px로 확대
@@ -146,6 +155,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.6.2]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.6.2
 [1.6.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.6.1
 [1.6.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.6.0
 [1.5.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.5.0

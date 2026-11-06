@@ -57,7 +57,7 @@ h1 i{font-style:normal;color:var(--ore)}
 .cx{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
 .cx img{width:56px;height:56px;flex:0 0 56px;background:rgba(27,36,80,.6);border-radius:8px}
 .cx b{display:block;font-size:15px}.cx small{color:var(--ore);font-size:12px;font-variant-numeric:tabular-nums}.cx p{margin:4px 0 0;font-size:13px;line-height:1.5}
-.card h3{margin:20px 0 4px;font-size:14px;color:var(--en);font-weight:600}
+.card h2.sub{margin:20px 0 4px;font-size:14px;color:var(--en);font-weight:600}
 .setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
 .setrow button{min-width:120px}
 body.big #hud{font-size:15px}body.big .res b{font-size:21px}body.big #hud button{padding:8px 12px;font-size:14px}
