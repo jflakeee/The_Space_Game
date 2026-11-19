@@ -90,7 +90,7 @@ python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/   # 배�
 | 워크플로 | 하는 일 |
 |---|---|
 | `test.yml` | push·PR마다 JS 문법 검사와 스모크 테스트를 **Chromium·Firefox·WebKit(사파리 엔진)** 세 브라우저에서 실행, 이어서 휴대폰·태블릿 점검(`tests/mobile.py`, Chromium·WebKit). 접근성 검사(`tests/a11y.py`)도 실행. 실패는 주석(annotation)으로 표시 |
-| `pages.yml` | `main` push마다 GitHub Pages 배포, `build.json`(빌드 시각·커밋) 생성 → 메뉴 하단에 표시 |
+| `pages.yml` | `main` push마다 GitHub Pages 배포, `build.json`(빌드 시각·커밋) 생성 → 메뉴 하단에 표시. 배포 후 **실제 사이트**가 새 커밋을 내보내는지 확인하고, 서비스워커가 캐시하는 파일이 모두 열리는지, 스모크 테스트가 실제 사이트에서 통과하는지 검사 |
 | `release-zip.yml` | `APP_VERSION`이 바뀐 채로 `main`에 push되면 `vX.Y.Z` 태그와 릴리스(노트 = 변경 로그의 해당 버전)를 자동 생성하고 `ore-belt-vX.Y.Z-web.zip`을 첨부(itch.io 업로드용: Kind = HTML, 1280×720, Mobile friendly) |
 
 ### 릴리스 절차

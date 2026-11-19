@@ -14,6 +14,8 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deploy.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -31,3 +33,38 @@ jobs:
           path: _site
       - id: deploy
         uses: actions/deploy-pages@v4
+  # Verify the live site after each deploy: wait until it serves this commit, then run the smoke tests against it.
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Wait for the new build to be live
+        run: |
+          URL="${{ needs.deploy.outputs.page_url }}"; [ -n "$URL" ] || URL="https://jflakeee.github.io/The_Space_Game/"
+          echo "URL=$URL" >> "$GITHUB_ENV"
+          for i in $(seq 1 30); do
+            SHA=$(curl -fsS "${URL}build.json?nocache=$RANDOM" | python3 -c 'import sys,json;print(json.load(sys.stdin)["sha"])' || true)
+            echo "live sha: $SHA (want ${GITHUB_SHA::7})"; [ "$SHA" = "${GITHUB_SHA::7}" ] && exit 0; sleep 10
+          done
+          echo "::error title=live site::build.json never showed ${GITHUB_SHA::7}"; exit 1
+      - name: Check every file the service worker caches is served
+        run: |
+          python3 - <<'PY'
+          import os, re, sys, urllib.request
+          url = os.environ["URL"]; sw = open("sw.js").read()
+          files = re.findall(r'"\./([^"]*)"', re.search(r"const CORE = \[(.*?)\];", sw, re.S).group(1))
+          bad = []
+          for f in files:
+              try: urllib.request.urlopen(url + f, timeout=20).read()
+              except Exception as e: bad.append(f"{f}: {e}")
+          print(f"{len(files) - len(bad)}/{len(files)} cached files served")
+          for b in bad: print(f"::error title=missing on live site::{b}")
+          sys.exit(1 if bad else 0)
+          PY
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: pip install playwright && playwright install --with-deps chromium
+      - name: Smoke tests against the live site
+        run: python tests/smoke.py --url "$URL"
