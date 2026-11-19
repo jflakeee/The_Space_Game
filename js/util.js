@@ -60,6 +60,14 @@ if (LANG === "en") {
     ["Phase Disruption", "Survive 12 waves. Phasers teleport forward."],
     ["Two Foes", "Survive 14 waves. Both pirate bands attack together."],
     ["Harvest Queen", "Destroy the Harvest Queen arriving on wave 8. It drains nearby power."],
+    ["Lasers Only", "Survive 8 waves. Lasers are your only weapon."],
+    ["Missile Battery", "Survive 8 waves. Missiles are your only weapon."],
+    ["Arc Storm", "Survive 8 Glass Legion waves. Arc coils are your only weapon."],
+    ["Small Base", "Survive 8 waves with at most 18 buildings."],
+    ["No Relays", "Mine 2500 ore. Relays are unavailable."],
+    ["No Repairs", "Survive 10 waves. Repair bays are unavailable."],
+    ["Empty Hands", "Mine 1500 ore starting with 60 ore."],
+    ["Early Fortress", "Destroy the dreadnought that arrives on wave 5."],
     ["Endless Belt", "Survival mode. Endless waves, meteor showers from wave 8, both bands from wave 10."],
   ];
   MISSIONS.forEach((m, i) => { [m.name, m.desc] = EN_M[i]; });

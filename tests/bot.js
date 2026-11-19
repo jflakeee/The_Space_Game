@@ -16,7 +16,7 @@
   const weakest = () => all().filter(b => !["laser", "arc", "missile", "decoy"].includes(b.type)).sort((p, q) => cover(p) - cover(q) || dC(q.x, q.y) - dC(p.x, p.y))[0] || S.core;
   const nextWeapon = () => {
     const n = turrets().length, glassy = fac !== "red" || S.wave >= (S.m.mixFrom || 999);
-    if (!allow("laser")) return n % 3 === 2 && allow("missile") ? "missile" : "arc";
+    if (!allow("laser")) { const w = ["arc", "missile"].filter(allow); return w.length > 1 ? (n % 3 === 2 ? "missile" : "arc") : w[0]; }
     if (allow("missile") && S.wave >= 4 && count("missile") < Math.floor(n / 4)) return "missile";
     if (allow("arc") && (glassy ? n % 2 === 1 : n % 4 === 3)) return "arc";
     return "laser";

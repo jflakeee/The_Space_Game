@@ -1,6 +1,6 @@
 // Ore Belt · config.js: 건물·적·임무 정의(DEF, EN, MISSIONS)와 레벨별 수치 계산(st)
 "use strict";
-const APP_VERSION = "1.6.2";
+const APP_VERSION = "1.7.0";
 const REPO_URL = "https://github.com/jflakeee/The_Space_Game";
 // ---------- config ----------
 const W = 1800, H = 1200, ZMIN = 0.3, ZMAX = 2.5;
@@ -71,7 +71,7 @@ const LINK_CAP = { core: 20, node: 8 }, capOf = b => LINK_CAP[b.type] || 2;
 const refund = b => b.prog < 1 || b.type === "node" ? b.spent : Math.floor(b.spent * 0.5);
 const DIFFS = [0.75, 1, 1.3];
 let diffIdx = 1;
-const ALL = null, NO_LASER = ["node", "solar", "battery", "miner", "missile", "slow", "arc", "decoy", "repair"], NO_SLOW = ["node", "solar", "battery", "miner", "laser", "missile", "decoy", "repair"];
+const ECO = ["node", "solar", "battery", "miner"], ALL = null, NO_LASER = ["node", "solar", "battery", "miner", "missile", "slow", "arc", "decoy", "repair"], NO_SLOW = ["node", "solar", "battery", "miner", "laser", "missile", "decoy", "repair"];
 const MISSIONS = [
   { name: "첫 채굴",      desc: "광석 300 채굴. 기본을 익히세요.",       goal: { ore: 300 },   firstWave: 90, gap: 60, diff: 0.6,  ore: 150, map: "scatter", allow: ["node", "solar", "miner", "laser"] },
   { name: "전력 부족",    desc: "광석 800 채굴. 배터리 해금.",           goal: { ore: 800 },   firstWave: 70, gap: 50, diff: 0.7,  ast: 22, map: "cluster", allow: ["node", "solar", "battery", "miner", "laser"] },
@@ -98,6 +98,15 @@ const MISSIONS = [
   { name: "위상 교란",    desc: "웨이브 12개 생존. 순간이동하는 위상선.",   goal: { waves: 12 },  firstWave: 55, gap: 38, diff: 1.05, map: "ring", faction: "glass", w0: 1, allow: ALL },
   { name: "두 개의 적",   desc: "웨이브 14개 생존. 두 해적단이 함께 옵니다.", goal: { waves: 14 }, firstWave: 50, gap: 36, diff: 1.1, map: "lanes", faction: "mixed", allow: ALL },
   { name: "수확 모체",    desc: "8웨이브에 나타나는 수확 모체 격파. 근처 전력을 빨아들입니다.", goal: { boss: "queen", at: 8, count: 1 }, firstWave: 55, gap: 36, diff: 1.15, map: "cluster", faction: "glass", allow: ALL },
+  // challenge missions (inspired by the sequel's weapon side missions; rules are Ore Belt's own). `unlock` = campaign index whose star opens it
+  { name: "레이저 전용",  desc: "웨이브 8개 생존. 무기는 레이저만.",          goal: { waves: 8 },  firstWave: 55, gap: 38, diff: 0.9,  map: "scatter", unlock: 3, ch: 1, allow: [...ECO, "laser", "repair"] },
+  { name: "미사일 포대",  desc: "웨이브 8개 생존. 무기는 미사일만.",          goal: { waves: 8 },  firstWave: 60, gap: 40, diff: 0.75, map: "ring", unlock: 3, ch: 1, allow: [...ECO, "missile", "decoy", "repair"] },
+  { name: "아크 폭풍",    desc: "유리 군단 웨이브 8개 생존. 무기는 아크 코일만.", goal: { waves: 8 }, firstWave: 55, gap: 38, diff: 0.9, map: "cluster", faction: "glass", unlock: 6, ch: 1, allow: [...ECO, "arc", "slow", "repair"] },
+  { name: "소규모 기지",  desc: "웨이브 8개 생존. 건물은 18개까지.",          goal: { waves: 8 },  firstWave: 55, gap: 38, diff: 0.8,  map: "scatter", unlock: 3, ch: 1, cap: 18, allow: ALL },
+  { name: "중계기 없이",  desc: "광석 2500 채굴. 중계기를 쓸 수 없습니다.",    goal: { ore: 2500 }, firstWave: 55, gap: 38, diff: 0.9,  map: "scatter", ast: 30, unlock: 3, ch: 1, allow: ["solar", "battery", "miner", "laser", "missile", "decoy", "repair"] },
+  { name: "수리 금지",    desc: "웨이브 10개 생존. 수리소를 쓸 수 없습니다.",  goal: { waves: 10 }, firstWave: 55, gap: 38, diff: 0.95, map: "lanes", unlock: 6, ch: 1, allow: [...ECO, "laser", "missile", "slow", "arc", "decoy"] },
+  { name: "빈손 출발",    desc: "광석 1500 채굴. 시작 광석 60.",              goal: { ore: 1500 }, firstWave: 80, gap: 42, diff: 0.75, map: "cluster", ore: 60, unlock: 3, ch: 1, allow: ALL },
+  { name: "요새 조기 출현", desc: "5웨이브에 나타나는 요새함 격파.",           goal: { boss: "dread", at: 5, count: 1 }, firstWave: 60, gap: 40, diff: 0.75, map: "ring", unlock: 6, ch: 1, allow: ALL },
   { name: "무한 벨트",    desc: "생존 모드. 끝없는 웨이브, 8웨이브부터 유성우, 10웨이브부터 두 해적단.",       goal: null,           firstWave: 40, gap: 32, diff: 1.1,  haz: { meteor: true, from: 8 }, mixFrom: 10, allow: ALL },
 ];
 const COL = { glass: "#c77dff", glassEdge: "#f0dcff", bg: "#0c1230", ore: "#e8a951", en: "#6fd6ec", grid: "92,143,224", hos: "#ff5a6e", heal: "#7ee0a0", slow: "#b79cff",

@@ -110,7 +110,7 @@ function hudTick(dt) {
   $("goalV").innerHTML = !g ? `${L("최고 기록", "Best")} <b>${S.m.daily ? dailyBest() : store.get("orebelt.best") || 0}</b>` :
     g.ore ? `${L("목표", "Goal")} <b>${Math.floor(S.oreMined)}</b> / ${g.ore}` + (S.m.mode === "mining" ? ` · <b>${mmss(S.t)}</b>` : "") : g.kills ? `${L("격파", "Kills")} <b>${S.kills}</b> / ${g.kills}`
     : g.boss ? (S.wave < g.at ? L(`${EINFO[g.boss].n()} <b>${g.at}</b>웨이브에 출현`, `${EINFO[g.boss].n()} on wave <b>${g.at}</b>`) : `${EINFO[g.boss].n()} ${L("격파", "down")} <b>${S.bossK || 0}</b> / ${g.count || 1}`)
-    : `${L("목표", "Goal")} <b>${S.wave}</b> / ${g.waves}`;
+    : `${L("목표", "Goal")} <b>${S.wave}</b> / ${g.waves}` + (S.m.cap ? ` · ${L("건물", "Buildings")} <b>${S.buildings.length - 1}</b> / ${S.m.cap}` : "");
   $("callBtn").disabled = wavesDone() || !!S.over;
   for (const b of $("bar").children) b.classList.toggle("poor", S.ore < DEF[b.dataset.k].cost);
   updateInfo();
@@ -130,7 +130,7 @@ $("pauseBtn").onclick = () => setPause(true);
 function loadProg() { try { const p = JSON.parse(store.get("orebelt.progress")); return p && p.stars ? p : { stars: [] }; } catch { return { stars: [] }; } }
 function saveStars(i, n) { const p = loadProg(); p.stars[i] = Math.max(p.stars[i] || 0, n); store.set("orebelt.progress", JSON.stringify(p)); }
 const ENDLESS_UNLOCK = 4;
-function unlocked(i, p) { return i === 0 || (MISSIONS[i].goal ? (p.stars[i - 1] || 0) > 0 : (p.stars[ENDLESS_UNLOCK] || 0) > 0); }
+function unlocked(i, p) { if (MISSIONS[i].unlock != null) return (p.stars[MISSIONS[i].unlock] || 0) > 0; return i === 0 || (MISSIONS[i].goal ? (p.stars[i - 1] || 0) > 0 : (p.stars[ENDLESS_UNLOCK] || 0) > 0); }
 const starStr = n => "★".repeat(n) + "☆".repeat(3 - n);
 // ---- build info (build.json is written by the Pages deploy workflow) ----
 let BUILD = null;
@@ -163,7 +163,7 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("원작처럼 모드 구성이 생겼습니다: 코어가 부서지지 않는 \"훈련\", 광석 3000을 최대한 빨리 캐는 \"채굴 타임어택\", 그리고 생존 모드인 \"무한 벨트\".", "Classic modes are here: \"Training\" with an indestructible core, a 3000-ore \"Mining time attack\", and \"Endless Belt\" survival.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("도전 과제 8개가 추가되었습니다: 레이저 전용, 미사일 포대, 아크 폭풍, 소규모 기지(건물 18개), 중계기 없이, 수리 금지, 빈손 출발, 요새 조기 출현.", "8 new challenges: Lasers Only, Missile Battery, Arc Storm, Small Base (18 buildings), No Relays, No Repairs, Empty Hands, Early Fortress.")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
@@ -178,7 +178,7 @@ function showMenu() {
         <button class="ms wide mode" id="trainBtn"><b>${L("훈련", "Training")}</b><span>${L("코어가 파괴되지 않는 연습장. 적은 웨이브 호출로만 옵니다.", "Practice field: indestructible core, enemies only on demand.")}</span></button>
         <button class="ms wide mode" id="mineBtn" ${(p.stars[0] || 0) > 0 ? "" : "disabled"}><b>${L("채굴 타임어택", "Mining time attack")}</b><span>${(p.stars[0] || 0) > 0 ? L("광석 3000을 최대한 빨리.", "Mine 3000 ore as fast as you can.") + (miningBest() ? ` ${L("최고 기록", "Best")} ${mmss(miningBest())}` : "") : L("1번 임무를 완료하면 열립니다", "Unlocks after mission 1")}</span></button>
         <button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` ${L("최고 웨이브", "Best wave")} ${best}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button>`;
-      return (i === 10 ? `<h2 class="sub span">${L("확장 임무", "Expansion")}</h2>` : i === 20 ? `<h2 class="sub span">${L("유리 군단", "Glass Legion")}</h2>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
+      return (i === 10 ? `<h2 class="sub span">${L("확장 임무", "Expansion")}</h2>` : i === 20 ? `<h2 class="sub span">${L("유리 군단", "Glass Legion")}</h2>` : i === 25 ? `<h2 class="sub span">${L("도전 과제", "Challenges")}</h2>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : m.unlock != null ? L(`${m.unlock + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${m.unlock + 1}`) : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
     <button class="ms" id="rpBtn"><b>${L("리플레이", "Replays")}</b><span>${L("최근 5판 다시 보기와 공유", "Watch and share your last 5 games")}</span></button>

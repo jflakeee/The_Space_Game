@@ -136,6 +136,7 @@ function checkPlace(type, x, y) {
   }
   if (type === "miner" && !nearAst(p)) { res.reason = L("채굴기는 소행성 가까이에 지어야 합니다", "Miners must be next to an asteroid"); return res; }
   if (!any) { res.reason = full ? L("근처 중계기의 연결 슬롯이 가득 찼습니다", "Nearby relays have no free link slots") : L("전력망 범위 밖입니다", "Out of power grid range"); return res; }
+  if (S.m.cap && S.buildings.length - 1 >= S.m.cap) { res.reason = L(`건물 한도(${S.m.cap}개)에 도달했습니다`, `Building limit (${S.m.cap}) reached`); return res; }
   if (S.ore < d.cost) { res.reason = L("광석이 부족합니다", "Not enough ore"); return res; }
   res.ok = true; return res;
 }

@@ -181,6 +181,16 @@ def t_modes(page):
     assert page.evaluate("()=>miningBest()") == 250
 
 
+def t_challenges(page):
+    r = page.evaluate("""()=>{const M=window.__game.MISSIONS,ch=M.map((m,i)=>m.ch?i:-1).filter(i=>i>=0);
+      const lock=ch.map(i=>unlocked(i,{stars:[]})),open=ch.map(i=>unlocked(i,{stars:[3,3,3,3,3,3,3]}));
+      const sm=ch.find(i=>M[i].cap);const G=window.__game;G.newGame(sm);const S=G.S;S.paused=true;S.tut=null;S.ore=99999;G.update(0.01);
+      let n=0;for(let k=0;k<600&&n<40;k++){const a=Math.random()*6.283,d=40+Math.random()*150,x=900+Math.cos(a)*d,y=600+Math.sin(a)*d;
+        if(G.checkPlace('decoy',x,y).ok){G.setBuild('decoy');G.setGhostWorld(x,y);G.tryPlace();G.setBuild(null);G.update(0.01);n++}}
+      return [ch.length,lock.every(x=>!x),open.every(x=>x),S.buildings.length-1,M[sm].cap]}""")
+    assert r[0] == 8 and r[1] and r[2] and r[3] == r[4], r
+
+
 def t_end_and_menu(page):
     page.evaluate("()=>{const G=window.__game;G.newGame(0);G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
     page.wait_for_selector("#tomenu", timeout=3000)
@@ -191,7 +201,7 @@ def t_end_and_menu(page):
     assert page.is_visible(".ms[data-i='0']")
 
 
-TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_music_layers, t_build_info, t_audio_unlock, t_frame_pacing, t_feedback, t_modes, t_end_and_menu]
+TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_music_layers, t_build_info, t_audio_unlock, t_frame_pacing, t_feedback, t_modes, t_challenges, t_end_and_menu]
 
 
 def check_version_sync():
