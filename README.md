@@ -91,9 +91,9 @@ python tests/smoke.py --url https://jflakeee.github.io/The_Space_Game/   # 배�
 |---|---|
 | `test.yml` | push·PR마다 JS 문법 검사와 스모크 테스트를 **Chromium·Firefox·WebKit(사파리 엔진)** 세 브라우저에서 실행, 이어서 휴대폰·태블릿 점검(`tests/mobile.py`, Chromium·WebKit). 접근성 검사(`tests/a11y.py`)도 실행. 실패는 주석(annotation)으로 표시 |
 | `pages.yml` | `main` push마다 GitHub Pages 배포, `build.json`(빌드 시각·커밋) 생성 → 메뉴 하단에 표시 |
-| `release-zip.yml` | 릴리스 발행 시 `ore-belt-vX.Y.Z-web.zip`을 릴리스에 첨부(itch.io 업로드용: Kind = HTML, 1280×720, Mobile friendly) |
+| `release-zip.yml` | `APP_VERSION`이 바뀐 채로 `main`에 push되면 `vX.Y.Z` 태그와 릴리스(노트 = 변경 로그의 해당 버전)를 자동 생성하고 `ore-belt-vX.Y.Z-web.zip`을 첨부(itch.io 업로드용: Kind = HTML, 1280×720, Mobile friendly) |
 
 ### 릴리스 절차
 1. `js/config.js`의 `APP_VERSION`과 `sw.js`의 `CACHE`(`orebelt-X.Y.Z`)를 같이 올립니다.
 2. `CHANGELOG.md` 맨 위에 `## [X.Y.Z] - 날짜` 항목과 하단 링크를 추가합니다(기존 제목줄은 지우지 않기). `js/ui.js`의 "새 소식" 문구도 갱신합니다.
-3. `python tests/smoke.py` 통과 → push → `vX.Y.Z` 태그 → GitHub 릴리스 생성. zip은 자동으로 첨부됩니다.
+3. `python tests/smoke.py` 통과 → `main`에 push. 태그, 릴리스, zip은 워크플로가 자동으로 만듭니다.

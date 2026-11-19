@@ -1,5 +1,6 @@
-# Builds the itch.io-ready web zip and attaches it to the GitHub release of the current APP_VERSION.
-# Runs when a release is published, and on pushes to main (self-heals if the asset is missing).
+# Release automation: when APP_VERSION in js/config.js changes on main, create tag vX.Y.Z and a GitHub
+# release (notes = that version's CHANGELOG.md section), and attach the itch.io-ready web zip.
+# Also runs when a release is published by hand, and self-heals a missing zip.
 name: release-zip
 on:
   release:
@@ -9,18 +10,24 @@ on:
 permissions:
   contents: write
 jobs:
-  zip:
+  release:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - name: Build web zip and attach it to the release
+      - name: Create release for the current version if missing, attach zip
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VER=$(grep -oP 'APP_VERSION = "\K[^"]+' js/config.js)
-          if ! gh release view "v$VER" >/dev/null 2>&1; then echo "no release v$VER yet"; exit 0; fi
+          TAG="v$VER"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            awk -v v="$VER" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md \
+              | sed 's/^### \(.*\)/**\1**/' > notes.md
+            printf 'Play: https://jflakeee.github.io/The_Space_Game/\n\n' | cat - notes.md > body.md
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "Ore Belt $VER" --notes-file body.md
+          fi
           NAME="ore-belt-v$VER-web.zip"
-          if gh release view "v$VER" --json assets -q '.assets[].name' | grep -qx "$NAME"; then echo "$NAME already attached"; exit 0; fi
-          zip -qr "$NAME" . -x '.git/*' '.github/*' 'tests/*' 'CHANGELOG.md' '*.py'
-          unzip -l "$NAME" | tail -1
-          gh release upload "v$VER" "$NAME"
+          if gh release view "$TAG" --json assets -q '.assets[].name' | grep -qx "$NAME"; then echo "$NAME already attached"; exit 0; fi
+          zip -qr "$NAME" . -x '.git/*' '.github/*' 'tests/*' 'CHANGELOG.md' '*.py' 'notes.md' 'body.md' 'node_modules/*'
+          gh release upload "$TAG" "$NAME"
