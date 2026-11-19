@@ -90,11 +90,30 @@ function updateCtl() {
   $("pauseBtn").textContent = L("일시정지", "Pause");
 }
 let hudT = 0;
+// Out-of-range boss hint (UI only: reads the sim state, never changes it, so replays stay deterministic).
+// Bosses like the dreadnought (range 220) shell outer buildings from beyond the reach of core lasers (150).
+const BOSSES = ["dread", "queen", "boss"];
+function bossRangeCheck(step) {
+  S.bossOut = false;
+  if (S.over || S.replay) return;
+  const b = S.enemies.find(e => BOSSES.includes(e.kind) && !e.dead);
+  if (!b) { S.oorT = 0; return; }
+  const covered = S.buildings.some(w => w.prog >= 1 && w.powered && (w.type === "laser" || w.type === "missile" || w.type === "arc") && dist(w, b) - b.r <= st(w, "range"));
+  if (covered) { S.oorT = 0; return; }
+  S.bossOut = true;
+  if ((S.oorT = (S.oorT || 0) + step) > 6 && !S.oorHint) {
+    S.oorHint = true; sfx("alarm");
+    const nm = EINFO[b.kind].n(), josa = (nm.charCodeAt(nm.length - 1) - 0xAC00) % 28 ? "이" : "가";
+    toast(L(`${nm}${josa} 방어 사거리 밖에 있습니다. 보스 쪽 외곽에 미사일(사거리 240)이나 저격 레이저(220+)를 지으세요.`,
+      `The ${EINFO[b.kind].n()} is out of your weapons' reach. Build missiles (range 240) or Lance lasers (220+) on the edge facing it.`), 7);
+  }
+}
 function hudTick(dt) {
   if (toastTimer > 0 && (toastTimer -= dt) <= 0) $("toast").style.opacity = 0;
   if (!S || S.editor || (hudT += dt) < 0.12) return;
   if (!S.over && (S.saveT += hudT) > 10) { S.saveT = 0; saveGame(); saveStats(); }
   if ((S.achT = (S.achT || 0) + hudT) > 1) { S.achT = 0; checkAch(); }
+  if (!S.paused) bossRangeCheck(hudT * S.speed);
   hudT = 0; tutTick(); if (!$("tip").hidden) $("tip").style.top = $("hud").offsetHeight + "px"; if (toastTimer > 0) placeToast();
   $("oreV").textContent = Math.floor(S.ore);
   $("enV").textContent = Math.floor(S.energy);
@@ -163,7 +182,7 @@ function showMenu() {
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("도전 과제 8개가 추가되었습니다: 레이저 전용, 미사일 포대, 아크 폭풍, 소규모 기지(건물 18개), 중계기 없이, 수리 금지, 빈손 출발, 요새 조기 출현.", "8 new challenges: Lasers Only, Missile Battery, Arc Storm, Small Base (18 buildings), No Relays, No Repairs, Empty Hands, Early Fortress.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("보스가 방어 사거리 밖에서 포격하면 안내가 뜨고 보스 사거리가 빨간 점선으로 표시됩니다. 도전 과제 8개도 추가되어 있습니다.", "When a boss shells you from beyond your weapons' reach, you now get a hint and its range is shown as a red dashed ring. 8 challenge missions were also added.")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}

@@ -1,6 +1,6 @@
 # Ore Belt
 
-**v1.7.0** · [▶ 플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · [릴리스](https://github.com/jflakeee/The_Space_Game/releases) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+**v1.7.1** · [▶ 플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · [릴리스](https://github.com/jflakeee/The_Space_Game/releases) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
 
 소행성대 한가운데 기지를 세우는 타워 디펜스 웹게임입니다. 중계기로 전력망을 깔고, 소행성에서 광석을 캐고, 몰려오는 해적으로부터 코어를 지키세요. 소행성이 전력선을 가리기 때문에 배치 하나하나가 중요합니다.
 

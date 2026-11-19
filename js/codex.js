@@ -14,7 +14,7 @@ const EINFO = {
   shield: { n: () => L("실드함", "Shield Ship"), d: () => L("주변 아군이 받는 피해를 절반으로 줄입니다. 실드함 자신은 보호받지 못하니 먼저 노리세요.", "Halves damage taken by nearby allies, but not itself. Kill it first.") },
   sniper: { n: () => L("저격선", "Sniper"), d: () => L("레이저보다 긴 사거리에서 강한 한 발을 쏩니다. 저격 레이저나 미사일로 끌어내리세요.", "Outranges lasers with heavy shots. Bring it down with Lance lasers or missiles.") },
   splitter: { n: () => L("분열선", "Splitter"), d: () => L("파괴되면 정찰기 3기로 나뉩니다. 아크 코일이나 속사 레이저로 뒷정리하세요.", "Splits into 3 scouts when destroyed. Arc coils and Rapid lasers mop up.") },
-  dread:  { n: () => L("요새함", "Dreadnought"), d: () => L("10웨이브마다 등장하는 최종 보스. 여러 건물에 동시 포격하고, 체력이 절반 이하가 되면 자폭선을 내보냅니다. 미끼 신호기로 포격을 분산하세요.", "Final boss every 10th wave. Shells several buildings at once and launches bombers below half HP. Spread its fire with decoys.") },
+  dread:  { n: () => L("요새함", "Dreadnought"), d: () => L("10웨이브마다 등장하는 최종 보스. 여러 건물에 동시 포격하고, 체력이 절반 이하가 되면 자폭선을 내보냅니다. 미끼 신호기로 포격을 분산하세요. 사거리가 220이라 코어 주변 레이저가 닿지 않으니, 보스 쪽 외곽에 미사일이나 저격 레이저를 두세요.", "Final boss every 10th wave. Shells several buildings at once and launches bombers below half HP. Spread its fire with decoys. Its 220 range outreaches core lasers, so put missiles or Lance lasers on the edge facing it.") },
   boss:   { n: () => L("모함", "Mothership"), d: () => L("5웨이브마다 등장(10의 배수 제외). 체력이 매우 높고 정찰기를 계속 내보냅니다. 저격 레이저가 효과적입니다.", "Every 5th wave (except 10s). Huge HP, keeps launching scouts. Lance lasers excel.") },
 };
 function drawEnemyBody(e, t) {

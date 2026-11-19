@@ -163,6 +163,7 @@ function draw() {
     ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang);
     drawEnemyBody(e, S.t);
     ctx.restore();
+    if (S.bossOut && BOSSES.includes(e.kind)) { ctx.strokeStyle = `rgba(255,90,110,${0.35 + 0.25 * Math.sin(S.t * 4)})`; ctx.lineWidth = 2 / cam.z; ctx.setLineDash([8 / cam.z, 6 / cam.z]); circle(e.x, e.y, EN[e.kind].range); ctx.stroke(); ctx.setLineDash([]); }
     if (e.kind === "shield") { ctx.strokeStyle = "rgba(255,150,170,.2)"; ctx.lineWidth = 1 / cam.z; circle(e.x, e.y, EN.shield.aura); ctx.stroke(); }
     if (e.slowF < 1) { ctx.strokeStyle = COL.slow; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); circle(e.x, e.y, e.r + 7); ctx.stroke(); ctx.setLineDash([]); }
     if (e.shielded) { ctx.strokeStyle = "rgba(255,205,215,.75)"; ctx.lineWidth = 1.3; circle(e.x, e.y, e.r + 4); ctx.stroke(); }
