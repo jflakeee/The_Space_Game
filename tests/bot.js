@@ -1,4 +1,4 @@
-// Heuristic balance bot v2: economy first, energy budgeting, coverage-based turret placement,
+// Heuristic balance bot v2.1 (adds a boss response: long-range weapons and lance upgrades placed toward big ships): economy first, energy budgeting, coverage-based turret placement,
 // faction-aware weapon mix (lasers vs Red Swarm, arc coils vs Glass Legion swarms), decoys, slow fields, missiles, repair.
 (mi) => {
   const G = window.__game; G.newGame(mi); const S = G.S; S.tut = null;
@@ -22,9 +22,22 @@
     return "laser";
   };
   const outward = (b, d) => { const g = Math.atan2(b.y - S.core.y, b.x - S.core.x); return ring(b.x + Math.cos(g) * d, b.y + Math.sin(g) * d, 0, 30, 10); };
+  const bossGoal = S.m.goal && S.m.goal.boss, bossNear = () => bossGoal && S.wave >= S.m.goal.at - 2;
   const think = () => {
     const miners = count("miner"), T = turrets().length, threat = S.enemies.some(e => dC(e.x, e.y) < 380);
     const want = 2 + Math.floor(S.wave * 1.3) + (S.m.goal && S.m.goal.boss && S.wave >= S.m.goal.at - 2 ? 4 : 0);
+    // 0. boss response: big ships outrange core defenses, so put missiles / lances between the boss and its target
+    const boss = S.enemies.find(e => ["dread", "queen", "boss"].includes(e.kind));
+    if (boss) {
+      const near = all().filter(b => b.type !== "decoy").sort((p, q) => Math.hypot(p.x - boss.x, p.y - boss.y) - Math.hypot(q.x - boss.x, q.y - boss.y))[0];
+      const longW = ["missile", "laser"].filter(allow);
+      if (near && longW.length && S.buildings.filter(b => ["missile", "laser"].includes(b.type) && Math.hypot(b.x - boss.x, b.y - boss.y) < 260).length < 6) {
+        const g = Math.atan2(boss.y - near.y, boss.x - near.x), c = ring(near.x + Math.cos(g) * 40, near.y + Math.sin(g) * 40, 0, 50, 30);
+        for (const w of longW) if (place(w, c)) return;
+      }
+      const lw = S.buildings.filter(b => b.type === "laser" && b.prog >= 1 && b.lvl < 3 && Math.hypot(b.x - boss.x, b.y - boss.y) < 320).sort((p, q) => q.lvl - p.lvl)[0];
+      if (lw && S.ore >= upCost(lw, lw.br || "lance")) { G.upgrade(lw, lw.lvl === 1 ? "lance" : undefined); return; }
+    }
     // 1. economy floor
     if (miners < 2 && !threat) { if (placeMiner()) return; }
     // 2. defense when needed
@@ -37,14 +50,14 @@
     if (miners < Math.min(10, 4 + Math.floor(S.t / 60)) && placeMiner()) return;
     // 5. support
     if (S.wave >= 4 && count("repair") < (S.wave >= 9 ? 2 : 1) && place("repair", ring(S.core.x, S.core.y, 30, 100, 40))) return;
-    if (S.wave >= 4 && count("decoy") < Math.floor(T / 6) + 1) { const o = all().filter(b => b.type !== "decoy").sort((p, q) => dC(q.x, q.y) - dC(p.x, p.y))[(Math.random() * 3) | 0]; if (o && place("decoy", outward(o, 55))) return; }
+    if ((S.wave >= 4 || bossNear()) && count("decoy") < Math.floor(T / 6) + 1 + (bossNear() ? 3 : 0)) { const o = all().filter(b => b.type !== "decoy").sort((p, q) => dC(q.x, q.y) - dC(p.x, p.y))[(Math.random() * 3) | 0]; if (o && place("decoy", outward(o, 55))) return; }
     if (S.wave >= 4 && count("slow") < Math.floor(T / 5)) { const o = weakest(); if (place("slow", outward(o, 40))) return; }
     // 6. upgrades (keep a reserve while under attack)
-    if (S.ore > (threat ? 160 : 110)) {
+    if (S.ore > (threat ? 160 : 110) + (bossNear() && !boss ? 120 : 0)) {
       const lances = S.buildings.filter(b => b.br === "lance").length, lasers = count("laser");
       const pri = b => (b.type === "miner" && !threat ? 0 : ["laser", "arc", "missile"].includes(b.type) ? 1 : 2) * 3 + b.lvl;
       const pick = S.buildings.filter(b => b.prog >= 1 && b.lvl < 3 && ["laser", "arc", "missile", "miner"].includes(b.type)).sort((p, q) => pri(p) - pri(q))[0];
-      if (pick) G.upgrade(pick, pick.type === "laser" && pick.lvl === 1 ? (S.wave >= 6 && lances < lasers / 3 ? "lance" : "rapid") : undefined);
+      if (pick) G.upgrade(pick, pick.type === "laser" && pick.lvl === 1 ? ((bossNear() ? lances < lasers * 0.6 : S.wave >= 6 && lances < lasers / 3) ? "lance" : "rapid") : undefined);
     }
   };
   const placeMiner = () => {
