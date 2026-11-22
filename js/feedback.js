@@ -7,7 +7,7 @@ function feedbackContext() {
     `version: v${APP_VERSION}${BUILD ? ` (build ${BUILD.sha || "?"} ${BUILD.time || ""})` : ""}`,
     `device: ${ua}`,
     `screen: ${screen.width}x${screen.height} @${window.devicePixelRatio || 1}x, viewport ${innerWidth}x${innerHeight}, touch ${"ontouchstart" in window ? "yes" : "no"}`,
-    `lang: ${LANG}, difficulty: ${["easy", "normal", "hard"][diffIdx]}, music: ${SET.music}, palette: ${SET.pal}, saver: ${SET.saver}, fps: ${SET.fps || "auto"}, instant: ${SET.instant}`,
+    `lang: ${LANG}, difficulty: ${["easy", "normal", "hard", "crazy"][diffIdx]}, music: ${SET.music}, palette: ${SET.pal}, saver: ${SET.saver}, fps: ${SET.fps || "auto"}, instant: ${SET.instant}`,
     `progress: stars ${loadProg().stars.reduce((a, b) => a + (b || 0), 0)}, games ${STATS.games}, wins ${STATS.wins}`,
   ];
   if (S && !S.editor && !S.replay) lines.push(`current: ${S.m.name} (#${S.mi + 1}), wave ${S.wave}, t ${Math.round(S.t)}s, ore ${Math.floor(S.ore)}, buildings ${S.buildings.length}, lost ${S.lost}`);

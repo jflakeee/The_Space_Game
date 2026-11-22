@@ -27,7 +27,9 @@ const ACH = [
   ["challenge", "도전자", "Challenger", "도전 과제 8개 모두 완료", "Clear all 8 challenges", () => MISSIONS.every((m, i) => !m.ch || (loadProg().stars[i] || 0) > 0)],
   ["miner", "채굴왕", "Ore Rush", "채굴 타임어택 5분 이내", "Finish the mining time attack within 5 minutes", () => miningBest() > 0 && miningBest() <= 300],
   ["daily", "오늘의 도전자", "Daily Contender", "일일 도전 10웨이브 도달", "Reach wave 10 in a Daily Challenge", () => S && S.m.daily && S.wave >= 10],
-  ["hard", "강철 의지", "Iron Will", "어려움으로 10번 임무 완료", "Complete mission 10 on Hard", null],
+  ["hard", "강철 의지", "Iron Will", "어려움 이상으로 10번 임무 완료", "Complete mission 10 on Hard or Crazy", null],
+  ["crazy1", "광란 입문", "Into the Frenzy", "광란 난이도로 임무 하나 완료", "Complete any mission on Crazy", null],
+  ["crazy10", "광란 정복", "Frenzy Tamed", "광란 난이도로 10번 임무 완료", "Complete mission 10 on Crazy", null],
 ];
 function ach(id) {
   if (ACH_GOT.has(id) || (S && S.replay)) return;

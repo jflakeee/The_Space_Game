@@ -3,6 +3,14 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전](https://semver.org/lang/ko/)을 따릅니다.
 1.0.0 이전 버전은 개발 과정을 묶어 정리한 것이며 별도 태그는 없습니다.
 
+## [1.8.0] - 2026-11-23
+### 추가
+- 네 번째 난이도 **광란**(적 체력·피해 ×1.65). 후속작 *Missions*에 4단계 난이도가 있었던 점에서 착안했고, 수치는 Ore Belt 독자 설정
+  - 메뉴의 난이도 버튼과 설정에서 쉬움 → 보통 → 어려움 → 광란 순으로 전환
+  - 광란으로 깬 임무는 메뉴의 별 옆에 ◆ 표시, 결과 화면에 "광란" 표시
+  - 업적 "광란 입문"(광란으로 임무 하나 완료), "광란 정복"(광란으로 10번 임무 완료)
+- "강철 의지" 업적은 어려움 또는 광란으로 10번 임무를 깨면 달성
+
 ## [1.7.1] - 2026-11-20
 ### 개선
 - 보스가 모든 무기의 사거리 밖에서 6초 넘게 포격하면 안내 표시: 보스 쪽 외곽에 미사일(사거리 240)이나 저격 레이저(220+)를 지으라고 알려줌. 그동안 보스의 사거리를 빨간 점선 원으로 표시
@@ -175,6 +183,7 @@
 ### 추가
 - 클린룸 HTML5 구현 첫 플레이 가능 버전: 전력망, 채굴, 레이저·미사일·수리소, 웨이브 방어
 
+[1.8.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.8.0
 [1.7.1]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.7.1
 [1.7.0]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.7.0
 [1.6.2]: https://github.com/jflakeee/The_Space_Game/releases/tag/v1.6.2

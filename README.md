@@ -1,6 +1,6 @@
 # Ore Belt
 
-**v1.7.1** · [▶ 플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · [릴리스](https://github.com/jflakeee/The_Space_Game/releases) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
+**v1.8.0** · [▶ 플레이](https://jflakeee.github.io/The_Space_Game/) · [변경 로그](CHANGELOG.md) · [릴리스](https://github.com/jflakeee/The_Space_Game/releases) · ![test](https://github.com/jflakeee/The_Space_Game/actions/workflows/test.yml/badge.svg)
 
 소행성대 한가운데 기지를 세우는 타워 디펜스 웹게임입니다. 중계기로 전력망을 깔고, 소행성에서 광석을 캐고, 몰려오는 해적으로부터 코어를 지키세요. 소행성이 전력선을 가리기 때문에 배치 하나하나가 중요합니다.
 
@@ -32,7 +32,7 @@
 효과음과 배경음악은 모두 WebAudio로 실시간 합성합니다(음원 파일 없음). 배경음악은 **화면 확대에 반응**합니다. 축소하면 저음만, 기본 시점은 저음과 중음, 확대하면 멜로디까지 전체 합주로 들립니다. 설정에서 오케스트라 또는 앰비언트 스타일을 고를 수 있습니다. 브라우저 정책상 처음 한 번 화면을 눌러야 소리가 납니다.
 
 ### 설정
-언어(한국어/English), 난이도, 소리(전체/효과음만/끔), 음악 스타일, 프레임 제한(60/30fps), 절전 모드, 색상 모드(기본/적록 색각 보정/고대비), 섬광 효과 줄이기, 화면 흔들림, UI 크기, 체력바 항상 표시, 임무 브리핑, 건설 방식(시간 소요/즉시), 진행 초기화
+언어(한국어/English), 난이도(쉬움·보통·어려움·광란), 소리(전체/효과음만/끔), 음악 스타일, 프레임 제한(60/30fps), 절전 모드, 색상 모드(기본/적록 색각 보정/고대비), 섬광 효과 줄이기, 화면 흔들림, UI 크기, 체력바 항상 표시, 임무 브리핑, 건설 방식(시간 소요/즉시), 진행 초기화
 
 ### 앱으로 설치 (오프라인 플레이)
 - Android Chrome: 메뉴 → 앱 설치(홈 화면에 추가)

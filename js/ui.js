@@ -178,18 +178,18 @@ function showMenu() {
   $("hud").hidden = true; $("bar").hidden = true; $("info").hidden = true; $("edbar").hidden = true; $("edinfo").hidden = true;
   const seenVer = store.get("orebelt.ver"), showNews = !!seenVer && seenVer !== APP_VERSION || (!seenVer && !!store.get("orebelt.progress"));
   if (!showNews) store.set("orebelt.ver", APP_VERSION);
-  const p = loadProg(), best = store.get("orebelt.best"), sv = readSave(), dm = dailyMission(), dbest = dailyBest();
+  const cz = crazyClears(), p = loadProg(), best = store.get("orebelt.best"), sv = readSave(), dm = dailyMission(), dbest = dailyBest();
   const total = p.stars.reduce((a, b) => a + (b || 0), 0), maxStars = MISSIONS.filter(m => m.goal).length * 3;
   const o = $("overlay");
   o.innerHTML = `<div class="card"><h1>Ore Belt</h1>
-    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("보스가 방어 사거리 밖에서 포격하면 안내가 뜨고 보스 사거리가 빨간 점선으로 표시됩니다. 도전 과제 8개도 추가되어 있습니다.", "When a boss shells you from beyond your weapons' reach, you now get a hint and its range is shown as a red dashed ring. 8 challenge missions were also added.")}</span>
+    ${showNews ? `<div class="shared news"><b>${L(`v${APP_VERSION} 새 소식`, `What's new in v${APP_VERSION}`)}</b><span>${L("새 난이도 \"광란\"이 추가되었습니다(적 체력·피해 ×1.65). 광란으로 깬 임무에는 별 옆에 ◆ 표시가 붙습니다.", "New \"Crazy\" difficulty (enemy HP and damage ×1.65). Missions cleared on Crazy get a ◆ next to their stars.")}</span>
       <div class="row"><a class="btnlink" href="${REPO_URL}/blob/main/CHANGELOG.md" target="_blank" rel="noopener">${L("변경 로그", "Changelog")}</a><button id="newsOk">${L("확인", "OK")}</button></div></div>` : ""}
     ${SHARED_REPLAY ? `<div class="shared"><b>${L("공유된 리플레이", "Shared replay")}</b><span>${SHARED_REPLAY.name} · ${SHARED_REPLAY.res === "win" ? L("승리", "Victory") : L("패배", "Defeat")} · ${L("웨이브", "wave")} ${SHARED_REPLAY.wave}</span>
       <div class="row"><button id="shRp">${L("보기", "Watch")}</button></div></div>` : ""}
     ${SHARED ? (() => { const e = decodeMap(SHARED); return `<div class="shared"><b>${L("공유된 맵", "Shared map")}</b><span>${L("소행성", "Asteroids")} ${e.asts.length} · ${[goalText(e), ...modText(e)].join(" / ")}</span>
       <div class="row"><button id="shPlay">${L("플레이", "Play")}</button><button id="shEdit">${L("편집", "Edit")}</button></div></div>`; })() : ""}
     <p>${L("소행성대 한가운데 기지를 세우세요. 전력망을 깔고, 광석을 캐고, 몰려오는 해적을 막아내야 합니다.", "Build a base in the middle of an asteroid belt. Lay a power grid, mine ore, and hold off the pirates.")}</p>
-    <div class="prog">${L("획득한 별", "Stars")} <b>${total}</b> / ${maxStars} <button id="diffBtn" class="lang">${[L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard")][diffIdx]}</button><button id="setBtn" class="lang">${L("설정", "Settings")}</button></div>
+    <div class="prog">${L("획득한 별", "Stars")} <b>${total}</b> / ${maxStars} <button id="diffBtn" class="lang${diffIdx === 3 ? " crazy" : ""}">${diffName(diffIdx)}</button><button id="setBtn" class="lang">${L("설정", "Settings")}</button></div>
     ${sv ? `<button class="ms resume" id="resume"><b>${L("이어하기", "Continue")}</b><span>${sv.mi >= 0 && MISSIONS[sv.mi].goal ? sv.mi + 1 + ". " : ""}${sv.mi === -1 ? L("일일 도전", "Daily Challenge") : sv.mi === -2 ? L("커스텀 맵", "Custom map") : sv.mi === -3 ? L("훈련", "Training") : sv.mi === -4 ? L("채굴 타임어택", "Mining time attack") : MISSIONS[sv.mi].name}, ${L("웨이브", "wave")} ${sv.wave}, ${Math.floor(sv.t / 60)}:${String(Math.floor(sv.t % 60)).padStart(2, "0")}</span></button>` : ""}
     <div class="grid">${MISSIONS.map((m, i) => {
       const ok = unlocked(i, p), n = p.stars[i] || 0;
@@ -197,7 +197,7 @@ function showMenu() {
         <button class="ms wide mode" id="trainBtn"><b>${L("훈련", "Training")}</b><span>${L("코어가 파괴되지 않는 연습장. 적은 웨이브 호출로만 옵니다.", "Practice field: indestructible core, enemies only on demand.")}</span></button>
         <button class="ms wide mode" id="mineBtn" ${(p.stars[0] || 0) > 0 ? "" : "disabled"}><b>${L("채굴 타임어택", "Mining time attack")}</b><span>${(p.stars[0] || 0) > 0 ? L("광석 3000을 최대한 빨리.", "Mine 3000 ore as fast as you can.") + (miningBest() ? ` ${L("최고 기록", "Best")} ${mmss(miningBest())}` : "") : L("1번 임무를 완료하면 열립니다", "Unlocks after mission 1")}</span></button>
         <button class="ms wide" data-i="${i}" ${ok ? "" : "disabled"}><b>${m.name}</b><span>${ok ? m.desc + (best ? ` ${L("최고 웨이브", "Best wave")} ${best}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button>`;
-      return (i === 10 ? `<h2 class="sub span">${L("확장 임무", "Expansion")}</h2>` : i === 20 ? `<h2 class="sub span">${L("유리 군단", "Glass Legion")}</h2>` : i === 25 ? `<h2 class="sub span">${L("도전 과제", "Challenges")}</h2>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : m.unlock != null ? L(`${m.unlock + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${m.unlock + 1}`) : L("잠김", "Locked")}</span><em>${starStr(n)}</em></button>`;
+      return (i === 10 ? `<h2 class="sub span">${L("확장 임무", "Expansion")}</h2>` : i === 20 ? `<h2 class="sub span">${L("유리 군단", "Glass Legion")}</h2>` : i === 25 ? `<h2 class="sub span">${L("도전 과제", "Challenges")}</h2>` : "") + `<button class="ms" data-i="${i}" ${ok ? "" : "disabled"}><b>${i + 1}. ${m.name}</b><span>${ok ? m.desc : m.unlock != null ? L(`${m.unlock + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${m.unlock + 1}`) : L("잠김", "Locked")}</span><em>${starStr(n)}${cz.includes(i) ? `<i class="cz" title="${L("광란 클리어", "Cleared on Crazy")}">◆</i>` : ""}</em></button>`;
     }).join("")}
     <button class="ms wide daily" id="daily" ${unlocked(MISSIONS.length - 1, p) ? "" : "disabled"}><b>${dm.name}</b><span>${unlocked(MISSIONS.length - 1, p) ? dm.desc + (dbest ? ` ${L("오늘 최고 웨이브", "Today's best wave")} ${dbest}` : "") : L(`${ENDLESS_UNLOCK + 1}번 임무를 완료하면 열립니다`, `Unlocks after mission ${ENDLESS_UNLOCK + 1}`)}</span></button></div>
     <button class="ms" id="rpBtn"><b>${L("리플레이", "Replays")}</b><span>${L("최근 5판 다시 보기와 공유", "Watch and share your last 5 games")}</span></button>
@@ -233,7 +233,7 @@ function showMenu() {
   if (SHARED_REPLAY) $("shRp").onclick = () => startReplay(SHARED_REPLAY);
   if (SHARED) { $("shPlay").onclick = () => { CUSTOM = customMission(decodeMap(SHARED), SHARED); newGame(-2); }; $("shEdit").onclick = () => openEditor(SHARED); }
   $("achBtn").onclick = () => showAch(showMenu);
-  $("diffBtn").onclick = () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); showMenu(); };
+  $("diffBtn").onclick = () => { diffIdx = (diffIdx + 1) % 4; store.set("orebelt.diff", String(diffIdx)); showMenu(); };
   $("setBtn").onclick = () => showSettings(showMenu);
 }
 function endGame(win) {
@@ -242,7 +242,8 @@ function endGame(win) {
   S.over = win ? "win" : "lose"; S.build = null; ghost = null; clearSave(); renderTip(); sfx(win ? "win" : "lose");
   const coreF = Math.max(0, S.core.hp / S.core.maxHp);
   let stars = 0;
-  if (win) { STATS.wins++; if (S.m.goal && S.m.goal.waves && S.lost === 0 && S.mi >= 0) ach("flawless"); if (S.mi === 9 && S.dIdx === 2) ach("hard"); }
+  if (win) { STATS.wins++; if (S.m.goal && S.m.goal.waves && S.lost === 0 && S.mi >= 0) ach("flawless"); if (S.mi === 9 && S.dIdx >= 2) ach("hard");
+    if (S.dIdx === 3 && S.mi >= 0 && S.m.goal) { const c = crazyClears(); if (!c.includes(S.mi)) { c.push(S.mi); store.set("orebelt.crazy", JSON.stringify(c)); } ach("crazy1"); if (S.mi === 9) ach("crazy10"); } }
   if (win && S.m.goal && S.mi >= 0) { stars = S.lost <= 3 && coreF >= 0.5 ? 3 : S.lost <= 10 ? 2 : 1; if (S.dIdx === 0) stars = Math.min(2, stars); saveStars(S.mi, stars); }
   if (S.m.daily) { if (S.wave > dailyBest()) store.set("orebelt.daily", JSON.stringify({ key: todayKey(), best: S.wave })); }
   else if (win && S.m.mode === "mining") { if (!miningBest() || S.t < miningBest()) store.set("orebelt.mining", String(Math.round(S.t))); }
@@ -257,7 +258,7 @@ function endGame(win) {
       ${stars ? `<div class="stars">${starStr(stars)}</div>` : ""}
       ${win && S.m.mode === "mining" ? `<p class="newach">${L("최고 기록", "Best")} ${mmss(miningBest())}${Math.round(S.t) <= miningBest() ? L(" (신기록!)", " (new record!)") : ""}</p>` : ""}
       ${S.newAch && S.newAch.length ? `<p class="newach">${L("새 업적", "New achievements")}: ${S.newAch.join(", ")}</p>` : ""}
-      <p>${S.m.goal && S.mi >= 0 ? S.mi + 1 + ". " : ""}${S.m.name}</p>
+      <p>${S.m.goal && S.mi >= 0 ? S.mi + 1 + ". " : ""}${S.m.name}${S.dIdx === 3 ? ` · <b class="cz">${diffName(3)}</b>` : ""}</p>
       ${win && S.mi >= 0 && STORY[S.mi] ? `<div class="msg"><i class="av">S</i><div><b>${L("관제관 세라", "Controller Sera")}</b><p>${L(STORY[S.mi][5], STORY[S.mi][6])}</p></div></div>` : ""}
       <dl class="stats"><dt>${L("시간", "Time")}</dt><dd>${mm}:${ss}</dd><dt>${L("코어 내구도", "Core HP")}</dt><dd>${Math.round(coreF * 100)}%</dd><dt>${L("잃은 건물", "Buildings lost")}</dt><dd>${S.lost}</dd>
       <dt>${L("채굴한 광석", "Ore mined")}</dt><dd>${Math.floor(S.oreMined)}</dd><dt>${L("격파", "Kills")}</dt><dd>${S.kills}</dd><dt>${L("웨이브", "Waves")}</dt><dd>${S.wave}</dd></dl>

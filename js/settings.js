@@ -15,7 +15,7 @@ function showSettings(back) {
   const o = $("overlay");
   const opts = [
     ["lang", L("언어", "Language"), () => LANG === "en" ? "English" : "한국어", () => setLang(LANG === "en" ? "ko" : "en")],
-    ["diff", L("난이도", "Difficulty"), () => [L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard")][diffIdx], () => { diffIdx = (diffIdx + 1) % 3; store.set("orebelt.diff", String(diffIdx)); }],
+    ["diff", L("난이도", "Difficulty"), () => diffName(diffIdx), () => { diffIdx = (diffIdx + 1) % 4; store.set("orebelt.diff", String(diffIdx)); }],
     ["snd", L("소리", "Sound"), () => [L("전체 켬", "All on"), L("효과음만", "Effects only"), L("끔", "Off")][soundMode], () => { auInit(); setSound((soundMode + 1) % 3); }],
     ["shk", L("화면 흔들림", "Screen shake"), () => SET.shake ? L("켬", "On") : L("끔", "Off"), () => { SET.shake ^= 1; saveSet(); }],
     ["ui", L("UI 크기", "UI size"), () => SET.ui ? L("크게", "Large") : L("보통", "Normal"), () => { SET.ui ^= 1; saveSet(); }],

@@ -1,6 +1,6 @@
 // Ore Belt · config.js: 건물·적·임무 정의(DEF, EN, MISSIONS)와 레벨별 수치 계산(st)
 "use strict";
-const APP_VERSION = "1.7.1";
+const APP_VERSION = "1.8.0";
 const REPO_URL = "https://github.com/jflakeee/The_Space_Game";
 // ---------- config ----------
 const W = 1800, H = 1200, ZMIN = 0.3, ZMAX = 2.5;
@@ -69,7 +69,7 @@ const BR = { rapid: () => L("속사", "Rapid"), lance: () => L("저격", "Lance"
 const BRD = { rapid: () => L("짧은 사거리, 높은 연속 피해. 사격 중 에너지 소모.", "Short range, high sustained damage. Uses energy while firing."), lance: () => L("긴 사거리. 범위 내 체력이 가장 높은 적에게 강한 단발. 발사마다 에너지 소모.", "Long range. Heavy single shots at the toughest target in range. Uses energy per shot.") };
 const LINK_CAP = { core: 20, node: 8 }, capOf = b => LINK_CAP[b.type] || 2;
 const refund = b => b.prog < 1 || b.type === "node" ? b.spent : Math.floor(b.spent * 0.5);
-const DIFFS = [0.75, 1, 1.3];
+const DIFFS = [0.75, 1, 1.3, 1.65]; // easy, normal, hard, crazy
 let diffIdx = 1;
 const ECO = ["node", "solar", "battery", "miner"], ALL = null, NO_LASER = ["node", "solar", "battery", "miner", "missile", "slow", "arc", "decoy", "repair"], NO_SLOW = ["node", "solar", "battery", "miner", "laser", "missile", "decoy", "repair"];
 const MISSIONS = [

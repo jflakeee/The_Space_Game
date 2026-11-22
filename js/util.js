@@ -18,6 +18,8 @@ const store = {
 // ---------- i18n ----------
 const LANG = store.get("orebelt.lang") || ((navigator.language || "").toLowerCase().startsWith("ko") ? "ko" : "en");
 const L = (ko, en) => LANG === "en" ? en : ko;
+const diffName = i => [L("쉬움", "Easy"), L("보통", "Normal"), L("어려움", "Hard"), L("광란", "Crazy")][i];
+const crazyClears = () => { try { return JSON.parse(store.get("orebelt.crazy")) || []; } catch { return []; } };
 diffIdx = +(store.get("orebelt.diff") ?? 1);
 if (LANG === "en") {
   const EN_B = {

@@ -198,6 +198,12 @@ def t_boss_range_hint(page):
     assert r == [True, True, False, True], r
 
 
+def t_crazy_difficulty(page):
+    r = page.evaluate("""()=>{const names=[0,1,2,3].map(diffName);diffIdx=3;const G=window.__game;G.newGame(0);const S=G.S;S.paused=true;S.tut=null;
+      const dm=S.dm;S.oreMined=300;G.update(0.05);diffIdx=1;return [names.length,dm,crazyClears().includes(0)]}""")
+    assert r[0] == 4 and abs(r[1] - 0.6 * 1.65) < 1e-9 and r[2], r
+
+
 def t_end_and_menu(page):
     page.evaluate("()=>{const G=window.__game;G.newGame(0);G.S.tut=null;G.S.oreMined=300;G.update(0.05)}")
     page.wait_for_selector("#tomenu", timeout=3000)
@@ -208,7 +214,7 @@ def t_end_and_menu(page):
     assert page.is_visible(".ms[data-i='0']")
 
 
-TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_music_layers, t_build_info, t_audio_unlock, t_frame_pacing, t_feedback, t_modes, t_challenges, t_boss_range_hint, t_end_and_menu]
+TESTS = [t_boot, t_all_missions_run, t_build_upgrade_sell, t_grid_link_cap, t_instant_build, t_save_load, t_daily_deterministic, t_editor_share, t_hazards, t_briefing, t_replay_deterministic, t_touch_drag_preview, t_music_layers, t_build_info, t_audio_unlock, t_frame_pacing, t_feedback, t_modes, t_challenges, t_boss_range_hint, t_crazy_difficulty, t_end_and_menu]
 
 
 def check_version_sync():
